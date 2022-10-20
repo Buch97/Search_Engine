@@ -1,20 +1,20 @@
 package it.unipi;
 
 public class Doc_Stats {
-    int doc_id;
+    String doc_no;
     int doc_length;
 
-    public Doc_Stats(int doc_id, int length) {
-        this.doc_id = doc_id;
+    public Doc_Stats(String doc_no, int length) {
+        this.doc_no= doc_no;
         this.doc_length = length;
     }
 
-    public int getDoc_id() {
-        return doc_id;
+    public String getDoc_no() {
+        return doc_no;
     }
 
-    public void setDoc_id(int doc_id) {
-        this.doc_id = doc_id;
+    public void setDoc_no(String doc_no) {
+        this.doc_no = doc_no;
     }
 
     public int getLength() {

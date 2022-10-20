@@ -1,6 +1,6 @@
 package it.unipi;
 
-import java.util.List;
+import java.util.HashMap;
 
 //• Document index:
 //  • Contains information on the single documents, such as the URL, title, document length, pagerank, etc…
@@ -14,24 +14,26 @@ import java.util.List;
 //  • Replace URL in above table by pointer or offset
 //  • Also allows lookup of docID by URL
 
-public class Document_Index {
-    List<Doc_Stats> doc_index;
+public class Document_Index_Hash {
+    HashMap<Integer, Doc_Stats> doc_index;
 
-    public Document_Index(List<Doc_Stats> doc_index) {
+    public Document_Index_Hash(HashMap<Integer, Doc_Stats> doc_index) {
         this.doc_index = doc_index;
     }
 
-    public List<Doc_Stats> getDoc_index() {
+    public HashMap<Integer, Doc_Stats> getDoc_index() {
         return doc_index;
     }
 
-    public void setDoc_index(List<Doc_Stats> doc_index) {
+    public void setDoc_index(HashMap<Integer, Doc_Stats> doc_index) {
         this.doc_index = doc_index;
     }
 
     public void print(){
-        for (Doc_Stats docIndex : this.doc_index) {
-            System.out.println("DOC_NO: " + docIndex.getDoc_no() + "    DOC_LEN: " + docIndex.getLength());
+        for (Integer key: doc_index.keySet()) {
+            String docno = doc_index.get(key).getDoc_no();
+            int len = doc_index.get(key).getLength();
+            System.out.println("DOC_NO: " + docno + "  DOC_LEN: " + len);
         }
     }
 }
