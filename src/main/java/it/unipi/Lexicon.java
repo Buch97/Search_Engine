@@ -12,38 +12,28 @@ package it.unipi;
 //• Also stores length of list, maybe other items
 //• Can get large in some cases
 
+import java.util.HashMap;
+
 public class Lexicon {
-    String term;
-    int doc_frequency;
-    Inverted_Index inverted_index;
+    HashMap<String, Term_Stats> lexicon;
 
-    public Lexicon(String term, int doc_frequency, Inverted_Index inverted_index) {
-        this.term = term;
-        this.doc_frequency = doc_frequency;
-        this.inverted_index = inverted_index;
+    public Lexicon(HashMap<String, Term_Stats> lexicon) {
+        this.lexicon = lexicon;
     }
 
-    public String getTerm() {
-        return term;
+    public HashMap<String, Term_Stats> getLexicon() {
+        return lexicon;
     }
 
-    public void setTerm(String term) {
-        this.term = term;
+    public void setLexicon(HashMap<String, Term_Stats> lexicon) {
+        this.lexicon = lexicon;
     }
 
-    public int getDoc_frequency() {
-        return doc_frequency;
-    }
-
-    public void setDoc_frequency(int doc_frequency) {
-        this.doc_frequency = doc_frequency;
-    }
-
-    public Inverted_Index getInverted_index() {
-        return inverted_index;
-    }
-
-    public void setInverted_index(Inverted_Index inverted_index) {
-        this.inverted_index = inverted_index;
+    public void print(){
+        for (String key: lexicon.keySet()) {
+            int freq = lexicon.get(key).getDocument_frequency();
+            Inverted_Index inv_ind = lexicon.get(key).getInverted_index();
+            System.out.println("TERM: " + key + "   DOC_FREQUENCY: " + freq + "   INVERTED_INDEX: " + inv_ind);
+        }
     }
 }
