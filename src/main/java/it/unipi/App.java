@@ -28,7 +28,11 @@ public class App
                 String[] row = data.split("\t");
                 String doc_no = row[0];
                 String text = row[1];
-                lexicon_construction(text, vocabulary);
+                text = text.replaceAll("[.,;:\\-?!'_<>(){}\\[\\]\"/^*+&£@€°|%$=#]","");
+                text = text.toLowerCase(Locale.ROOT);
+                String[] tokens = text.split(" ");
+                lexicon_construction(tokens, vocabulary);
+                inverted_index_updating(tokens);
                 //System.out.println(text);
                 int doc_len = text.getBytes().length;
                 Doc_Stats doc = new Doc_Stats(doc_no,doc_len);
@@ -49,37 +53,60 @@ public class App
         }
     }
 
-    private static void lexicon_construction(String text, HashMap<String, Term_Stats> lexicon) {
-        text = text.replaceAll("[.,;:\\-?!'_<>(){}\\[\\]\"/^*+&£@€°|%$=#]","");
-        text = text.toLowerCase(Locale.ROOT);
-        String[] tokens = text.split(" ");
+
+    private static void lexicon_construction(String[] tokens, HashMap<String, Term_Stats> lexicon) {
+
         List<String> tokenized_list = new ArrayList<>(Arrays.asList(tokens));
         Inverted_Index inverted_index = new Inverted_Index(null);
+        ArrayList<String> doc_vocabulary = new ArrayList<>();
 
+        //tolgo le stopwords
         for (String elem : STOPWORDS)
             tokenized_list.removeIf(i -> Objects.equals(i, elem));
+
+        //tolgo stringa vuota dovuta allo split quando ce piu di uno spazio tra le parole
         tokenized_list.removeIf(i -> Objects.equals(i, ""));
         System.out.println(tokenized_list);
 
-        int count = 1;
+        //mi faccio una lista senza duplicati (serve per calcolare bene la doc frequency per il lexicon)
+        for (String element : tokenized_list) {
+            if (!doc_vocabulary.contains(element)) {
+                doc_vocabulary.add(element);
+            }
+        }
 
-        for (String word : tokenized_list) {
+        //aggiungo i termini al mio lexicon e se ci sono gia aggiorno la doc frequency
+        for (String word : doc_vocabulary) {
             if (!lexicon.containsKey(word)) {
-                //System.out.println("primo " + word);
                 Term_Stats term_stats = new Term_Stats(1, inverted_index);
                 lexicon.put(word, term_stats);
             }
-            // qui devo aumentare la frequenza di uno a meno che il termine non compaia due volte nel SOLITO documento
-            else if ((lexicon.containsKey(word)) && (count != 0)){ // aggiorno la doc_freq 1 volta sola
-                //System.out.println("secondo " + word);
-                count --;
+            else{
                 int freq = lexicon.get(word).getDocument_frequency();
                 lexicon.put(word, lexicon.get(word).update_frequency(freq));
             }
+        }
+
+    }
+
+    private static void inverted_index_updating(String[] tokens) {
+        List<String> tokenized_list = new ArrayList<>(Arrays.asList(tokens));
+        Map<String,Integer> term_frequency = new HashMap<>();
+
+        //serve per creare la posting list (conto la frequenza dei termini e lo metto in un map)
+        for (String i : tokenized_list) {
+            Integer j = term_frequency.get(i);
+            term_frequency.put(i, (j == null) ? 1 : j + 1);
+        }
+
+        //serve solo per stampare
+        for (String key: term_frequency.keySet()) {
+            int freq = term_frequency.get(key);
+            System.out.println("TERM: " + key + "  FREQ: " + freq);
         }
     }
 }
 
 
-//problemi: nel lexicon ci sono diversi terminbi composti da un carattere solo,
+//problemi: nel lexicon ci sono diversi termini composti da un carattere solo,
 // ci sono caratteri strani, non conta bene la frequenza
