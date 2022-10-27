@@ -1,7 +1,5 @@
 package it.unipi;
 
-import java.util.ArrayList;
-
 public class Token {
     String term;
     int doc_id;
