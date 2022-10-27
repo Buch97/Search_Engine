@@ -1,6 +1,7 @@
 package it.unipi;
 
 import java.util.HashMap;
+import java.util.Map;
 
 //• Document index:
 //  • Contains information on the single documents, such as the URL, title, document length, pagerank, etc…
@@ -15,17 +16,17 @@ import java.util.HashMap;
 //  • Also allows lookup of docID by URL
 
 public class Document_Index_Hash {
-    HashMap<Integer, Doc_Stats> doc_index;
+    Map<Integer, Doc_Stats> doc_index;
 
-    public Document_Index_Hash(HashMap<Integer, Doc_Stats> doc_index) {
+    public Document_Index_Hash(Map<Integer, Doc_Stats> doc_index) {
         this.doc_index = doc_index;
     }
 
-    public HashMap<Integer, Doc_Stats> getDoc_index() {
+    public Map<Integer, Doc_Stats> getDoc_index() {
         return doc_index;
     }
 
-    public void setDoc_index(HashMap<Integer, Doc_Stats> doc_index) {
+    public void setDoc_index(Map<Integer, Doc_Stats> doc_index) {
         this.doc_index = doc_index;
     }
 

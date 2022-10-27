@@ -1,12 +1,15 @@
 package it.unipi;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class Term_Stats {
     int document_frequency;
-    Inverted_Index inverted_index;
+    ArrayList<Posting> postingList;
 
-    public Term_Stats(int document_frequency, Inverted_Index inverted_index) {
+    public Term_Stats(int document_frequency, ArrayList<Posting> postingList) {
         this.document_frequency = document_frequency;
-        this.inverted_index = inverted_index;
+        this.postingList = postingList;
     }
 
     public int getDocument_frequency() {
@@ -17,16 +20,12 @@ public class Term_Stats {
         this.document_frequency = document_frequency;
     }
 
-    public Term_Stats update_frequency(int document_frequency) {
-        this.document_frequency = document_frequency + 1;
-        return this;
+    public ArrayList<Posting> getPostingList() {
+        return postingList;
     }
 
-    public Inverted_Index getInverted_index() {
-        return inverted_index;
+    public void setPostingList(ArrayList<Posting> postingList) {
+        this.postingList = postingList;
     }
 
-    public void setInverted_index(Inverted_Index inverted_index) {
-        this.inverted_index = inverted_index;
-    }
 }

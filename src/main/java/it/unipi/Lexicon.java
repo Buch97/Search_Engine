@@ -12,28 +12,28 @@ package it.unipi;
 //• Also stores length of list, maybe other items
 //• Can get large in some cases
 
-import java.util.HashMap;
+import java.util.Map;
 
 public class Lexicon {
-    HashMap<String, Term_Stats> lexicon;
+    Map<String, Term_Stats> lexicon;
 
-    public Lexicon(HashMap<String, Term_Stats> lexicon) {
+    public Lexicon(Map<String, Term_Stats> lexicon) {
         this.lexicon = lexicon;
     }
 
-    public HashMap<String, Term_Stats> getLexicon() {
+    public Map<String, Term_Stats> getLexicon() {
         return lexicon;
     }
 
-    public void setLexicon(HashMap<String, Term_Stats> lexicon) {
+    public void setLexicon(Map<String, Term_Stats> lexicon) {
         this.lexicon = lexicon;
     }
 
     public void print(){
         for (String key: lexicon.keySet()) {
             int freq = lexicon.get(key).getDocument_frequency();
-            Inverted_Index inv_ind = lexicon.get(key).getInverted_index();
-            System.out.println("TERM: " + key + "   DOC_FREQUENCY: " + freq + "   INVERTED_INDEX: " + inv_ind);
+            //Inverted_Index inv_ind = lexicon.get(key).getInverted_index();
+            System.out.println("TERM: " + key + "   DOC_FREQUENCY: " + freq);
         }
     }
 }
