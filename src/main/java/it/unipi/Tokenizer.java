@@ -64,10 +64,7 @@ public class Tokenizer {
         while (normalTokenizer.hasMoreTokens()) {
             String word = normalTokenizer.nextToken().trim();
             if (word.length() > 0 && !Arrays.asList(STOPWORDS).contains(word)) {
-                if (token_list.get(word) != null)
-                    token_list.put(word, token_list.get(word) + 1);
-                else
-                    token_list.put(word, 1);
+                token_list.merge(word, 1, Integer::sum);
             }
         }
     }

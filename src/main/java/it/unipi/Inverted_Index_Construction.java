@@ -1,14 +1,12 @@
 package it.unipi;
 
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 
 
 public class Inverted_Index_Construction {
+
     public static final String[] STOPWORDS = {"a", "an", "and", "are", "as", "at", "be", "but", "by", "for",
             "if", "in", "into", "is", "it", "no", "not", "of", "on", "or", "such", "that", "the", "their", "then",
             "there", "these", "they", "this", "to", "was", "will", "with"};
@@ -21,7 +19,6 @@ public class Inverted_Index_Construction {
     public static int block_number = 0;
     public static File inverted_index = new File("C:\\Users\\pucci\\Desktop\\AIDE\\" +
             "Multimedia Information Retrieval and Computer Vision\\inverted_index.tsv");
-
 
     public static void main(String[] args) {
         try {
@@ -36,6 +33,7 @@ public class Inverted_Index_Construction {
                 String text = row[1];
                 documentIndexMapping(doc_no, text);
                 parseDocumentBody(Integer.parseInt(doc_no), text);
+                mergeBlocks();
             }
 
             for (Token elem : tokenStream)
@@ -123,7 +121,17 @@ public class Inverted_Index_Construction {
         return postings_list;
     }
 
-    private static void mergeBlocks(List<File> blocks, File inverted_index) {
+    private static void mergeBlocks() throws FileNotFoundException {
+        final List<BufferedReader> readerList = new ArrayList<BufferedReader>();
+
+        for(int i = 0 ; i < block_number ; i++){
+            readerList.add(new BufferedReader(new FileReader("C:\\Users\\pucci\\Desktop\\AIDE\\" +
+                    "Multimedia Information Retrieval and Computer Vision\\inverted_index" + i + ".tsv")));
+
+
+
+        }
+
     }
 
 }
