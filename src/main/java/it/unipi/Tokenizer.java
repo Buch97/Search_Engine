@@ -42,8 +42,9 @@ public class Tokenizer {
     }
 
     public Map<String, Integer> tokenize() {
-        //Remove the useless tokens.
+        //QUESTI REPLACE LI AVEVO COPIATI DA UN CODICE CHE AVEVO VISTO, ALCUNI POSSONO SERVIRE ALTRI MAGARI NO
         String text = bodyText.toLowerCase();
+
         text = text.replaceAll("<ref>.*?</ref>", "");
         text = text.replaceAll("</?.*?>", "");
         text = text.replaceAll("\\{\\{.*?}}", "");

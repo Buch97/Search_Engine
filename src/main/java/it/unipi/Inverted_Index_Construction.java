@@ -7,11 +7,6 @@ import java.util.*;
 
 public class Inverted_Index_Construction {
 
-    public static final String[] STOPWORDS = {"a", "an", "and", "are", "as", "at", "be", "but", "by", "for",
-            "if", "in", "into", "is", "it", "no", "not", "of", "on", "or", "such", "that", "the", "their", "then",
-            "there", "these", "they", "this", "to", "was", "will", "with"};
-    public static final String[] PUNCTUATUION = {"'", ".", ":", ",", "!", "?", "(", ")", ";", "-",
-            "_", "/", "\\", "[", "]", "{", "}"};
     public final static int SPIMI_TOKEN_STREAM_MAX_LIMIT = 3000;
     public final static List<Token> tokenStream = new ArrayList<>();
     public static Map<Integer, Doc_Stats> documents = new HashMap<>();
