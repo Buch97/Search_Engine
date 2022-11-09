@@ -31,8 +31,8 @@ public class Inverted_Index_Construction {
                 parseDocumentBody(Integer.parseInt(doc_no), text);
             }
 
-            Document_Index_Hash document_index = new Document_Index_Hash(documents);
-            //document_index.print();
+            Document_Index document_index = new Document_Index(documents);
+            document_index.save_to_file();
             myReader.close();
             mergeBlocks();
 
@@ -153,8 +153,8 @@ public class Inverted_Index_Construction {
             String currentTerm = orderedLines.get(0).split("\t")[0];
             //System.out.println("MINORE: " + currentTerm);
 
-            for (String elem : orderedLines)
-                System.out.println("orderedLines " + elem);
+            /*for (String elem : orderedLines)
+                System.out.println("orderedLines " + elem);*/
 
             output.write(currentTerm + "\t");
 

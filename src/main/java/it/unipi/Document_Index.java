@@ -1,5 +1,8 @@
 package it.unipi;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,10 +18,10 @@ import java.util.Map;
 //  • Replace URL in above table by pointer or offset
 //  • Also allows lookup of docID by URL
 
-public class Document_Index_Hash {
+public class Document_Index {
     Map<Integer, Doc_Stats> doc_index;
 
-    public Document_Index_Hash(Map<Integer, Doc_Stats> doc_index) {
+    public Document_Index(Map<Integer, Doc_Stats> doc_index) {
         this.doc_index = doc_index;
     }
 
@@ -30,11 +33,15 @@ public class Document_Index_Hash {
         this.doc_index = doc_index;
     }
 
-    public void print(){
+    public void save_to_file() throws IOException {
+        BufferedWriter file = new BufferedWriter(new FileWriter("C:\\Users\\pucci\\Desktop\\AIDE\\" +
+                "Multimedia Information Retrieval and Computer Vision\\document_index.tsv"));
+
         for (Integer key: doc_index.keySet()) {
             String docno = doc_index.get(key).getDoc_no();
             int len = doc_index.get(key).getLength();
-            System.out.println("DOC_NO: " + docno + "  DOC_LEN: " + len);
+            file.write("DOC_ID: " + key + "\t" + "DOC_NO: " + docno + "\t" + "DOC_LEN: " + len + "\n");
         }
+        file.close();
     }
 }

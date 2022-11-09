@@ -12,6 +12,7 @@ public class Tokenizer {
             "if", "in", "into", "is", "it", "no", "not", "of", "on", "or", "such", "that", "the", "their", "then",
             "there", "these", "they", "this", "to", "was", "will", "with"};
 
+
     public Tokenizer(int doc_id, String bodyText) {
         this.doc_id = doc_id;
         this.bodyText = bodyText;
@@ -65,6 +66,7 @@ public class Tokenizer {
         while (normalTokenizer.hasMoreTokens()) {
             String word = normalTokenizer.nextToken().trim();
             if (word.length() > 0 && !Arrays.asList(STOPWORDS).contains(word)) {
+                //se è la prima volta che si incontra si inserisce con valore 1 else si aumenta il valore di 1
                 token_list.merge(word, 1, Integer::sum);
             }
         }
