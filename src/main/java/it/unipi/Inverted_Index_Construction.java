@@ -35,6 +35,7 @@ public class Inverted_Index_Construction {
             document_index.save_to_file();
             myReader.close();
             mergeBlocks();
+            lexiconConstruction();
 
 
         } catch (FileNotFoundException e) {
@@ -67,7 +68,7 @@ public class Inverted_Index_Construction {
         block_number++;
         File output_file = new File("C:\\Users\\pucci\\Desktop\\AIDE\\" +
                 "Multimedia Information Retrieval and Computer Vision\\inverted_index" + block_number + ".tsv");
-        TreeMap<String, Term_Stats> vocabulary = new TreeMap<>();
+        TreeMap<String, ArrayList<Posting>> vocabulary = new TreeMap<>();
         ArrayList<Posting> postings_list;
 
         //while (Runtime.getRuntime().freeMemory() > 0) {
@@ -75,7 +76,7 @@ public class Inverted_Index_Construction {
                 if (!vocabulary.containsKey(token.getTerm()))
                     postings_list = addToLexicon(vocabulary, token.getTerm());
                 else
-                    postings_list = vocabulary.get(token.getTerm()).getPostingList();
+                    postings_list = vocabulary.get(token.getTerm());
 
                 if (!postings_list.isEmpty()) {
                     int capacity = postings_list.size() * 2;
@@ -92,7 +93,7 @@ public class Inverted_Index_Construction {
             for (String term : vocabulary.keySet()) {
                 myWriter.write(term + "\t");
 
-                for (Posting p : vocabulary.get(term).getPostingList())
+                for (Posting p : vocabulary.get(term))
                     myWriter.write(p.getDoc_id() + ":" + p.getTerm_frequency() + " ");
 
                 myWriter.write("\n");
@@ -106,11 +107,10 @@ public class Inverted_Index_Construction {
 
     }
 
-    private static ArrayList<Posting> addToLexicon(Map<String, Term_Stats> vocabulary, String token) {
+    private static ArrayList<Posting> addToLexicon(Map<String, ArrayList<Posting>> vocabulary, String token) {
         int capacity = 1;
         ArrayList<Posting> postings_list = new ArrayList<>(capacity);
-        Term_Stats term_stats = new Term_Stats(0, postings_list);
-        vocabulary.put(token, term_stats);
+        vocabulary.put(token, postings_list);
         return postings_list;
     }
 
@@ -123,7 +123,7 @@ public class Inverted_Index_Construction {
         ArrayList<String> orderedLines = new ArrayList<>();
         List<BufferedReader> readerList = new ArrayList<>();
         BufferedWriter output = new BufferedWriter(new FileWriter("C:\\Users\\pucci\\Desktop\\AIDE\\" +
-                "Multimedia Information Retrieval and Computer Vision\\output.tsv"));
+                "Multimedia Information Retrieval and Computer Vision\\final_inverted_index.tsv"));
 
         for(int i = 1 ; i <= block_number ; i++){
             readerList.add(new BufferedReader(new FileReader("C:\\Users\\pucci\\Desktop\\AIDE\\" +
@@ -194,6 +194,26 @@ public class Inverted_Index_Construction {
 
         output.close();
 
+    }
+
+    private static void lexiconConstruction() throws IOException {
+        BufferedWriter writer = new BufferedWriter(new FileWriter("C:\\Users\\pucci\\Desktop\\AIDE\\" +
+                "Multimedia Information Retrieval and Computer Vision\\lexicon.tsv"));
+        BufferedReader reader = new BufferedReader(new FileReader("C:\\Users\\pucci\\Desktop\\AIDE\\" +
+                "Multimedia Information Retrieval and Computer Vision\\final_inverted_index.tsv"));
+
+        String line = reader.readLine();
+        long offset = 0;
+        while (line != null){
+            String term = line.split("\t")[0];
+            int doc_frequency = line.split("\t")[1].split(" ").length;
+            writer.write(term + "\t" + "DOC_FREQUENCY: " + doc_frequency + "\t" + "BYTE_OFFSET: " + offset + "\n");
+            offset += line.getBytes().length;
+            line = reader.readLine();
+
+        }
+        writer.close();
+        reader.close();
     }
 
 }
