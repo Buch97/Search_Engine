@@ -16,8 +16,18 @@ public class Inverted_Index_Construction {
     public static void main(String[] args) {
         try {
             File myObj = new File("./src/main/resources/collections/small_collection.tsv");
-            //File myObj = new File("C:\\Users\\pucci\\Desktop\\AIDE\\" +
-                   // "Multimedia Information Retrieval and Computer Vision\\small_collection.tsv");
+            //semplice roba di utility per creare le directory in cui ci vanno salvati i files
+            File theDir = new File("./src/main/resources/output");
+            if (!theDir.exists()){
+                if(theDir.mkdirs())
+                    System.out.println("New directory '/output' created");
+            }
+            theDir = new File("./src/main/resources/intermediate_postings");
+            if (!theDir.exists()){
+                if(theDir.mkdirs())
+                    System.out.println("New directory '/intermediate_postings' created");
+            }
+
             Scanner myReader = new Scanner(myObj, "UTF-8");
             BufferedWriter writer_doc_index = new BufferedWriter(new FileWriter("./src/main/resources/output/document_index.tsv"));
 
