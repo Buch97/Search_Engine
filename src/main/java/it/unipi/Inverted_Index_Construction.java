@@ -7,19 +7,19 @@ import java.util.*;
 
 public class Inverted_Index_Construction {
 
+    //dimensione per costruire i blocchi messa ora per prova a 3000 su una small collection
     public final static int SPIMI_TOKEN_STREAM_MAX_LIMIT = 3000;
     public final static List<Token> tokenStream = new ArrayList<>();
-    public static int block_number = 0;
-    public static File inverted_index = new File("C:\\Users\\pucci\\Desktop\\AIDE\\" +
-            "Multimedia Information Retrieval and Computer Vision\\inverted_index.tsv");
+    public static int block_number = 0; //indice da usare per scrivere i file parziali dell'inverted index
+    public static File inverted_index = new File("./src/main/resources/output/inverted_index.tsv");
 
     public static void main(String[] args) {
         try {
-            File myObj = new File("C:\\Users\\pucci\\Desktop\\AIDE\\" +
-                    "Multimedia Information Retrieval and Computer Vision\\small_collection.tsv");
+            File myObj = new File("./src/main/resources/collections/small_collection.tsv");
+            //File myObj = new File("C:\\Users\\pucci\\Desktop\\AIDE\\" +
+                   // "Multimedia Information Retrieval and Computer Vision\\small_collection.tsv");
             Scanner myReader = new Scanner(myObj, "UTF-8");
-            BufferedWriter writer_doc_index = new BufferedWriter(new FileWriter("C:\\Users\\pucci\\Desktop\\AIDE\\" +
-                    "Multimedia Information Retrieval and Computer Vision\\document_index.tsv"));
+            BufferedWriter writer_doc_index = new BufferedWriter(new FileWriter("./src/main/resources/output/document_index.tsv"));
 
             while (myReader.hasNextLine()) {
                 String data = myReader.nextLine();
@@ -65,8 +65,7 @@ public class Inverted_Index_Construction {
 
     private static void invertedIndexSPIMI() {
         block_number++;
-        File output_file = new File("C:\\Users\\pucci\\Desktop\\AIDE\\" +
-                "Multimedia Information Retrieval and Computer Vision\\inverted_index" + block_number + ".tsv");
+        File output_file = new File("./src/main/resources/intermediate_postings/inverted_index" + block_number + ".tsv");
         TreeMap<String, ArrayList<Posting>> vocabulary = new TreeMap<>();
         ArrayList<Posting> postings_list;
 
@@ -121,12 +120,10 @@ public class Inverted_Index_Construction {
     private static void mergeBlocks() throws IOException {
         ArrayList<String> orderedLines = new ArrayList<>();
         List<BufferedReader> readerList = new ArrayList<>();
-        BufferedWriter output = new BufferedWriter(new FileWriter("C:\\Users\\pucci\\Desktop\\AIDE\\" +
-                "Multimedia Information Retrieval and Computer Vision\\final_inverted_index.tsv"));
+        BufferedWriter output = new BufferedWriter(new FileWriter("./src/main/resources/output/final_inverted_index.tsv"));
 
         for(int i = 1 ; i <= block_number ; i++){
-            readerList.add(new BufferedReader(new FileReader("C:\\Users\\pucci\\Desktop\\AIDE\\" +
-                    "Multimedia Information Retrieval and Computer Vision\\inverted_index" + i + ".tsv")));
+            readerList.add(new BufferedReader(new FileReader("./src/main/resources/intermediate_postings/inverted_index" + i + ".tsv")));
         }
 
         ArrayList<String> currentReadedLines = new ArrayList<>();
@@ -196,10 +193,8 @@ public class Inverted_Index_Construction {
     }
 
     private static void lexiconConstruction() throws IOException {
-        BufferedWriter writer = new BufferedWriter(new FileWriter("C:\\Users\\pucci\\Desktop\\AIDE\\" +
-                "Multimedia Information Retrieval and Computer Vision\\lexicon.tsv"));
-        BufferedReader reader = new BufferedReader(new FileReader("C:\\Users\\pucci\\Desktop\\AIDE\\" +
-                "Multimedia Information Retrieval and Computer Vision\\final_inverted_index.tsv"));
+        BufferedWriter writer = new BufferedWriter(new FileWriter("./src/main/resources/output/lexicon.tsv"));
+        BufferedReader reader = new BufferedReader(new FileReader("./src/main/resources/output/final_inverted_index.tsv"));
 
         String line = reader.readLine();
         long offset = 0;
