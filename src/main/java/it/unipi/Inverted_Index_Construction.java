@@ -33,6 +33,7 @@ public class Inverted_Index_Construction {
 
             Scanner myReader = new Scanner(myObj, "UTF-8");
             BufferedWriter writer_doc_index = new BufferedWriter(new FileWriter("./src/main/resources/output/document_index.tsv"));
+            writer_doc_index.write("DOC_ID" + "\t" + "DOC_NO" + "\t" + "DOC_LEN" + "\n");
 
             while (myReader.hasNextLine()) {
                 String data = myReader.nextLine();
@@ -66,7 +67,7 @@ public class Inverted_Index_Construction {
 
     private static void documentIndexAddition(String doc_no, String text, BufferedWriter writer) throws IOException {
         int doc_len = text.getBytes().length;
-        writer.append("DOC_ID: " + Integer.parseInt(doc_no) + "\t" + "DOC_NO: " + doc_no + "\t" + "DOC_LEN: " + doc_len + "\n");
+        writer.write(Integer.parseInt(doc_no) + "\t" + doc_no + "\t" + doc_len + "\n");
     }
 
     public static void parseDocumentBody(int doc_id, String text) {
@@ -111,6 +112,7 @@ public class Inverted_Index_Construction {
         try {
             //scrivo sul file
             FileWriter myWriter = new FileWriter(output_file);
+            myWriter.write("TERM" + "\t" + "POSTING_LIST" + "\n");
 
             for (String term : vocabulary.keySet()) {
                 myWriter.write(term + "\t");
@@ -145,6 +147,7 @@ public class Inverted_Index_Construction {
         ArrayList<String> orderedLines = new ArrayList<>();
         List<BufferedReader> readerList = new ArrayList<>();
         BufferedWriter output = new BufferedWriter(new FileWriter("./src/main/resources/output/final_inverted_index.tsv"));
+        output.write("TERM" + "\t" + "POSTING_LIST" + "\n");
 
         //mi creo l'array di buffer di lettura cosi che scorro tutti i file in parallelo
         for(int i = 1 ; i <= block_number ; i++){
@@ -157,6 +160,8 @@ public class Inverted_Index_Construction {
         // Perche orderedLines viene poi ordinato e perdo traccia di questa
         // informazione perche l'indice nell arrayList non corrisponde piu allo specifico reader)
         for (BufferedReader reader : readerList) {
+            //salto la prima riga che contiene lo header del file
+            reader.readLine();
             String line = reader.readLine();
             if (line != null) {
                 currentReadedLines.add(line);
@@ -217,12 +222,13 @@ public class Inverted_Index_Construction {
         BufferedWriter writer = new BufferedWriter(new FileWriter("./src/main/resources/output/lexicon.tsv"));
         BufferedReader reader = new BufferedReader(new FileReader("./src/main/resources/output/final_inverted_index.tsv"));
 
+        writer.write("TERM" + "\t" + "DOC_FREQUENCY" + "\t" + "BYTE_OFFSET_PL" + "\n");
         String line = reader.readLine();
         long offset = 0;
         while (line != null){
             String term = line.split("\t")[0];
             int doc_frequency = line.split("\t")[1].split(" ").length;
-            writer.write(term + "\t" + "DOC_FREQUENCY: " + doc_frequency + "\t" + "BYTE_OFFSET: " + offset + "\n");
+            writer.write(term + "\t" + doc_frequency + "\t" + offset + "\n");
             offset += line.getBytes().length;
             line = reader.readLine();
 
