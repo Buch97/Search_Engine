@@ -9,7 +9,6 @@ public class Inverted_Index_Construction {
 
     public final static int SPIMI_TOKEN_STREAM_MAX_LIMIT = 3000;
     public final static List<Token> tokenStream = new ArrayList<>();
-    public static Map<Integer, Doc_Stats> documents = new HashMap<>();
     public static int block_number = 0;
     public static File inverted_index = new File("C:\\Users\\pucci\\Desktop\\AIDE\\" +
             "Multimedia Information Retrieval and Computer Vision\\inverted_index.tsv");
@@ -19,6 +18,8 @@ public class Inverted_Index_Construction {
             File myObj = new File("C:\\Users\\pucci\\Desktop\\AIDE\\" +
                     "Multimedia Information Retrieval and Computer Vision\\small_collection.tsv");
             Scanner myReader = new Scanner(myObj, "UTF-8");
+            BufferedWriter writer_doc_index = new BufferedWriter(new FileWriter("C:\\Users\\pucci\\Desktop\\AIDE\\" +
+                    "Multimedia Information Retrieval and Computer Vision\\document_index.tsv"));
 
             while (myReader.hasNextLine()) {
                 String data = myReader.nextLine();
@@ -26,13 +27,12 @@ public class Inverted_Index_Construction {
                 String doc_no = row[0];
                 String text = row[1];
 
-                documentIndexMapping(doc_no, text);
+                documentIndexAddition(doc_no, text, writer_doc_index);
 
                 parseDocumentBody(Integer.parseInt(doc_no), text);
             }
 
-            Document_Index document_index = new Document_Index(documents);
-            document_index.save_to_file();
+            writer_doc_index.close();
             myReader.close();
             mergeBlocks();
             lexiconConstruction();
@@ -46,10 +46,9 @@ public class Inverted_Index_Construction {
         }
     }
 
-    private static void documentIndexMapping(String doc_no, String text) {
+    private static void documentIndexAddition(String doc_no, String text, BufferedWriter writer) throws IOException {
         int doc_len = text.getBytes().length;
-        Doc_Stats doc = new Doc_Stats(doc_no, doc_len);
-        documents.put(Integer.parseInt(doc_no), doc);
+        writer.append("DOC_ID: " + Integer.parseInt(doc_no) + "\t" + "DOC_NO: " + doc_no + "\t" + "DOC_LEN: " + doc_len + "\n");
     }
 
     public static void parseDocumentBody(int doc_id, String text) {
