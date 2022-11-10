@@ -16,12 +16,15 @@ public class Inverted_Index_Construction {
     public static void main(String[] args) {
         try {
             File myObj = new File("./src/main/resources/collections/small_collection.tsv");
+
             //semplice roba di utility per creare le directory in cui ci vanno salvati i files
             File theDir = new File("./src/main/resources/output");
+
             if (!theDir.exists()){
                 if(theDir.mkdirs())
                     System.out.println("New directory '/output' created");
             }
+
             theDir = new File("./src/main/resources/intermediate_postings");
             if (!theDir.exists()){
                 if(theDir.mkdirs())
@@ -37,14 +40,19 @@ public class Inverted_Index_Construction {
                 String doc_no = row[0];
                 String text = row[1];
 
+                //aggiungo il documento che sto processando al doc_index
                 documentIndexAddition(doc_no, text, writer_doc_index);
 
+                //faccio parsing/tokenization del documento
                 parseDocumentBody(Integer.parseInt(doc_no), text);
             }
 
             writer_doc_index.close();
             myReader.close();
+            //faccio il merge di tutte le posting intermedie
             mergeBlocks();
+            //dall'inverted index finale mi leggo riga per riga e costruisco il vocabolario finale
+            //lo faccio qua in fondo perche nel vocabolario ci va la doc frequency che è la length della posting list, che conosco solo dopo aver finito il merge
             lexiconConstruction();
 
 
@@ -64,18 +72,23 @@ public class Inverted_Index_Construction {
     public static void parseDocumentBody(int doc_id, String text) {
         Tokenizer tokenizer = new Tokenizer(doc_id, text);
         Map<String, Integer> results = tokenizer.tokenize();
+
         for (String token : results.keySet())
             tokenStream.add(new Token(token, tokenizer.getDocId(), results.get(token)));
 
+        //aggiungo token al mio stream fino a che non ho raggiunto il limite
         if (tokenStream.size() >= SPIMI_TOKEN_STREAM_MAX_LIMIT) {
+            //sono pronto per creare l'inverted index relativo a questo blocco
             invertedIndexSPIMI();
-            tokenStream.clear();
+            tokenStream.clear(); //pulisco lo stream
         }
     }
 
+    //guarda pseudocodice slide 59
     private static void invertedIndexSPIMI() {
         block_number++;
         File output_file = new File("./src/main/resources/intermediate_postings/inverted_index" + block_number + ".tsv");
+        //tree map e non map perche le inserisce gia ordinate alfabeticamente
         TreeMap<String, ArrayList<Posting>> vocabulary = new TreeMap<>();
         ArrayList<Posting> postings_list;
 
@@ -88,7 +101,7 @@ public class Inverted_Index_Construction {
 
                 if (!postings_list.isEmpty()) {
                     int capacity = postings_list.size() * 2;
-                    postings_list.ensureCapacity(capacity);
+                    postings_list.ensureCapacity(capacity); //aumenta la length dell arraylist
                 }
 
                 postings_list.add(new Posting(token.getDoc_id(), token.getFrequency()));
@@ -96,6 +109,7 @@ public class Inverted_Index_Construction {
         //}
 
         try {
+            //scrivo sul file
             FileWriter myWriter = new FileWriter(output_file);
 
             for (String term : vocabulary.keySet()) {
@@ -125,21 +139,23 @@ public class Inverted_Index_Construction {
     // apro tutti i file in parallelo, ad ogni iterazione devo prendere il termine alfabeticamente minore fra tutti
     // andare a vedere in tutti gli altri file se contengono quel termine e concatenare le posting lists
     // parto leggendo la prima riga di tutti i file, prendo il termine minore e faccio la procedura, avanzo di una riga
-    // solo sui file da cui ho letto il termine corrente
+    // SOLO sui file da cui ho letto il termine corrente
 
     private static void mergeBlocks() throws IOException {
         ArrayList<String> orderedLines = new ArrayList<>();
         List<BufferedReader> readerList = new ArrayList<>();
         BufferedWriter output = new BufferedWriter(new FileWriter("./src/main/resources/output/final_inverted_index.tsv"));
 
+        //mi creo l'array di buffer di lettura cosi che scorro tutti i file in parallelo
         for(int i = 1 ; i <= block_number ; i++){
             readerList.add(new BufferedReader(new FileReader("./src/main/resources/intermediate_postings/inverted_index" + i + ".tsv")));
         }
 
         ArrayList<String> currentReadedLines = new ArrayList<>();
-        //metto la prima riga di ogni file dentro due arraylist: orderedLines e currentReadedLines (mi serve per associare uno
-        // specifico reader alla posting da lui letta. Perche orderedLines viene poi ordinato e perdo traccia di questa
-        // informazione perche l indice nell arrayList non corrisponde piu allo specifico reader)
+        //metto la prima riga di ogni file dentro due arraylist: orderedLines (mi serve per calcolare il termine alfabeticamente minore)
+        // e currentReadedLines (mi serve per associare uno specifico reader alla posting da lui letta.
+        // Perche orderedLines viene poi ordinato e perdo traccia di questa
+        // informazione perche l'indice nell arrayList non corrisponde piu allo specifico reader)
         for (BufferedReader reader : readerList) {
             String line = reader.readLine();
             if (line != null) {
@@ -151,16 +167,12 @@ public class Inverted_Index_Construction {
         }
 
         // condizione di uscita dal loop infinito (quando tutti i reader sono arrivati a EOF e quindi l'arraylist avrà
-        // size 0 perche non ci viene inserito nessun elemento)
+        // size 0 perche non contiene piu nessun elemento)
         while (orderedLines.size() != 0) {
 
             //ordino l'array e prendo il primo elemento (che sarà il minore alfabeticamente)
             Collections.sort(orderedLines);
             String currentTerm = orderedLines.get(0).split("\t")[0];
-            //System.out.println("MINORE: " + currentTerm);
-
-            /*for (String elem : orderedLines)
-                System.out.println("orderedLines " + elem);*/
 
             output.write(currentTerm + "\t");
 
@@ -175,6 +187,7 @@ public class Inverted_Index_Construction {
             output.write("\n");
 
             //rimuovo le righe appena processate dal mio array di appoggio
+            //orderedLines conterrà sempre N termini da confrontare tra di loro per prendere il minore
             orderedLines.removeIf(elem -> elem.split("\t")[0].equals(currentTerm));
 
             //guardo in quali file ho letto il currentTerm e solo in quelli avanzo il reader e metto la riga nuova che leggo nel mio orderedLines
@@ -184,19 +197,17 @@ public class Inverted_Index_Construction {
                     String nextRow = readerList.get(fileIndex).readLine();
                     currentReadedLines.set(fileIndex, nextRow);
                     if (nextRow != null)
+                        //ci metto dentro i termini nuovi dei soli buffer che ho avanzato
                         orderedLines.add(nextRow);
                     else
                         readerList.get(fileIndex).close();
                 }
             }
 
-            /*for (String elem : currentReadedLines)
-                System.out.println("***Lines***: " + elem);
-
-            for (String elem : orderedLines)
-                System.out.println("***orderedLines***: " + elem);*/
-
         }
+
+        for (BufferedReader reader : readerList)
+            reader.close();
 
         output.close();
 

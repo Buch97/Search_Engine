@@ -43,7 +43,7 @@ public class Tokenizer {
     }
 
     public Map<String, Integer> tokenize() {
-        //QUESTI REPLACE LI AVEVO COPIATI DA UN CODICE CHE AVEVO VISTO, ALCUNI POSSONO SERVIRE ALTRI MAGARI NO
+        //QUESTI REPLACE LI AVEVO COPIATI DA UN CODICE CHE AVEVO VISTO, ALCUNI POSSONO SERVIRE, ALTRI MAGARI NO E ALTRI VANNO AGGIUNTI
         String text = bodyText.toLowerCase();
 
         text = text.replaceAll("<ref>.*?</ref>", "");
