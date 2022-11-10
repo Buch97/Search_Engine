@@ -1,4 +1,4 @@
 # Project exclude paths
 /target/
-/src/main/resources/intermediate_postings
-/src/main/resources/output
+/src/main/resources/intermediate_postings/..
+/src/main/resources/output/..
