@@ -8,7 +8,7 @@ import java.util.*;
 public class Inverted_Index_Construction {
 
     //dimensione per costruire i blocchi messa ora per prova a 3000 su una small collection
-    public final static int SPIMI_TOKEN_STREAM_MAX_LIMIT = 5000000;
+    public final static int SPIMI_TOKEN_STREAM_MAX_LIMIT = 3000;
     public final static List<Token> tokenStream = new ArrayList<>();
     public static int block_number = 0; //indice da usare per scrivere i file parziali dell'inverted index
     public static File inverted_index = new File("./src/main/resources/output/inverted_index.tsv");
