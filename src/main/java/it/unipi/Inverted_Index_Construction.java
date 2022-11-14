@@ -8,7 +8,7 @@ import java.util.*;
 public class Inverted_Index_Construction {
 
     //dimensione per costruire i blocchi messa ora per prova a 3000 su una small collection
-    public final static int SPIMI_TOKEN_STREAM_MAX_LIMIT = 3000;
+    public final static int SPIMI_TOKEN_STREAM_MAX_LIMIT = 5000000;
     public final static List<Token> tokenStream = new ArrayList<>();
     public static int block_number = 0; //indice da usare per scrivere i file parziali dell'inverted index
     public static File inverted_index = new File("./src/main/resources/output/inverted_index.tsv");
@@ -37,9 +37,16 @@ public class Inverted_Index_Construction {
 
             while (myReader.hasNextLine()) {
                 String data = myReader.nextLine();
+                System.out.println(data);
+
+                //handling of malformed lines
+                if (!data.contains("\t"))
+                    continue;
+
                 String[] row = data.split("\t");
                 String doc_no = row[0];
                 String text = row[1];
+
 
                 //aggiungo il documento che sto processando al doc_index
                 documentIndexAddition(doc_no, text, writer_doc_index);
@@ -90,7 +97,7 @@ public class Inverted_Index_Construction {
         block_number++;
         File output_file = new File("./src/main/resources/intermediate_postings/inverted_index" + block_number + ".tsv");
         //tree map e non map perche le inserisce gia ordinate alfabeticamente
-        TreeMap<String, ArrayList<Posting>> vocabulary = new TreeMap<>();
+        HashMap<String, ArrayList<Posting>> vocabulary = new HashMap<>();
         ArrayList<Posting> postings_list;
 
         //while (Runtime.getRuntime().freeMemory() > 0) {
@@ -109,15 +116,17 @@ public class Inverted_Index_Construction {
             }
         //}
 
+        TreeMap<String, ArrayList<Posting>> sorted_vocabulary = new TreeMap<>(vocabulary);
+
         try {
             //scrivo sul file
             FileWriter myWriter = new FileWriter(output_file);
             myWriter.write("TERM" + "\t" + "POSTING_LIST" + "\n");
 
-            for (String term : vocabulary.keySet()) {
+            for (String term : sorted_vocabulary.keySet()) {
                 myWriter.write(term + "\t");
 
-                for (Posting p : vocabulary.get(term))
+                for (Posting p : sorted_vocabulary.get(term))
                     myWriter.write(p.getDoc_id() + ":" + p.getTerm_frequency() + " ");
 
                 myWriter.write("\n");
@@ -224,6 +233,7 @@ public class Inverted_Index_Construction {
 
         writer.write("TERM" + "\t" + "DOC_FREQUENCY" + "\t" + "BYTE_OFFSET_PL" + "\n");
         String line = reader.readLine();
+        reader.readLine();
         long offset = 0;
         while (line != null){
             String term = line.split("\t")[0];

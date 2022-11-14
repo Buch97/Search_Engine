@@ -7,7 +7,7 @@ public class Tokenizer {
     private String bodyText;
     private int bodyLength = 0;
     final Map<String, Integer> token_list = new HashMap<>();
-    final String PATTERN_TOKEN = "\\$%{}[]()`<>='&:,;/.~ ;*\n|\"^_-+!?#\t@";
+    final String PATTERN_TOKEN = "\\$%{}[]()`<>='&:,;/.~ *\n|\"^_-+!?#\t@";
     final String[] STOPWORDS = {"a", "an", "and", "are", "as", "at", "be", "but", "by", "for",
             "if", "in", "into", "is", "it", "no", "not", "of", "on", "or", "such", "that", "the", "their", "then",
             "there", "these", "they", "this", "to", "was", "will", "with"};
@@ -62,9 +62,11 @@ public class Tokenizer {
 
     public void extractToken(final String text) {
         //Use PATTERN_TOKEN to tokenize the text.
-        final StringTokenizer normalTokenizer = new StringTokenizer(text, PATTERN_TOKEN);
+        //final StringTokenizer normalTokenizer = new StringTokenizer(text, PATTERN_TOKEN);
+        final StringTokenizer normalTokenizer = new StringTokenizer(text, " ");
         while (normalTokenizer.hasMoreTokens()) {
             String word = normalTokenizer.nextToken().trim();
+            word = word.replaceAll("[$%{}\\[\\]()`<>='&°§£€:,;/.~*|\"^_\\-+!?#\t@]","");
             if (word.length() > 0 && !Arrays.asList(STOPWORDS).contains(word)) {
                 //se è la prima volta che si incontra si inserisce con valore 1 else si aumenta il valore di 1
                 token_list.merge(word, 1, Integer::sum);
@@ -72,3 +74,5 @@ public class Tokenizer {
         }
     }
 }
+
+
