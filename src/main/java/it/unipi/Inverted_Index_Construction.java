@@ -13,7 +13,7 @@ public class Inverted_Index_Construction {
     public static int block_number = 0; //indice da usare per scrivere i file parziali dell'inverted index
     public static File inverted_index = new File("./src/main/resources/output/inverted_index.tsv");
 
-    public static void main(String[] args) {
+    public static void buildDataStructures() {
         try {
             File myObj = new File("./src/main/resources/collections/small_collection.tsv");
 
@@ -182,6 +182,7 @@ public class Inverted_Index_Construction {
 
         // condizione di uscita dal loop infinito (quando tutti i reader sono arrivati a EOF e quindi l'arraylist avrà
         // size 0 perche non contiene piu nessun elemento)
+
         while (orderedLines.size() != 0) {
 
             //ordino l'array e prendo il primo elemento (che sarà il minore alfabeticamente)
@@ -218,6 +219,8 @@ public class Inverted_Index_Construction {
                 }
             }
 
+            for (String elem : currentReadedLines)
+                System.out.println(elem);
         }
 
         for (BufferedReader reader : readerList)
