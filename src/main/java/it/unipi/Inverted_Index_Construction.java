@@ -78,11 +78,11 @@ public class Inverted_Index_Construction {
     }
 
     public static void parseDocumentBody(int doc_id, String text) {
-        Tokenizer tokenizer = new Tokenizer(doc_id, text);
+        Tokenizer tokenizer = new Tokenizer(text);
         Map<String, Integer> results = tokenizer.tokenize();
 
         for (String token : results.keySet())
-            tokenStream.add(new Token(token, tokenizer.getDocId(), results.get(token)));
+            tokenStream.add(new Token(token, doc_id, results.get(token)));
 
         //aggiungo token al mio stream fino a che non ho raggiunto il limite
         if (tokenStream.size() >= SPIMI_TOKEN_STREAM_MAX_LIMIT) {

@@ -3,7 +3,6 @@ package it.unipi;
 import java.util.*;
 
 public class Tokenizer {
-    private int doc_id;
     private String bodyText;
     private int bodyLength = 0;
     final Map<String, Integer> token_list = new HashMap<>();
@@ -13,17 +12,8 @@ public class Tokenizer {
             "there", "these", "they", "this", "to", "was", "will", "with"};
 
 
-    public Tokenizer(int doc_id, String bodyText) {
-        this.doc_id = doc_id;
+    public Tokenizer(String bodyText) {
         this.bodyText = bodyText;
-    }
-
-    public int getDocId() {
-        return doc_id;
-    }
-
-    public void setDocId(int id) {
-        this.doc_id = id;
     }
 
     public String getBodyText() {
@@ -46,6 +36,8 @@ public class Tokenizer {
         //QUESTI REPLACE LI AVEVO COPIATI DA UN CODICE CHE AVEVO VISTO, ALCUNI POSSONO SERVIRE, ALTRI MAGARI NO E ALTRI VANNO AGGIUNTI
         String text = bodyText.toLowerCase();
 
+        text = text.replaceAll("[\\\\$%{}\\[\\]()`<>='&°§£€:,;/.~*|\"^_\\-+!?#\t@]","");
+
         text = text.replaceAll("<ref>.*?</ref>", "");
         text = text.replaceAll("</?.*?>", "");
         text = text.replaceAll("\\{\\{.*?}}", "");
@@ -61,12 +53,12 @@ public class Tokenizer {
     }
 
     public void extractToken(final String text) {
-        //Use PATTERN_TOKEN to tokenize the text.
         //final StringTokenizer normalTokenizer = new StringTokenizer(text, PATTERN_TOKEN);
+        //space based tokenization
         final StringTokenizer normalTokenizer = new StringTokenizer(text, " ");
         while (normalTokenizer.hasMoreTokens()) {
             String word = normalTokenizer.nextToken().trim();
-            word = word.replaceAll("[$%{}\\[\\]()`<>='&°§£€:,;/.~*|\"^_\\-+!?#\t@]","");
+            //word = word.replaceAll("[\\\\$%{}\\[\\]()`<>='&°§£€:,;/.~*|\"^_\\-+!?#\t@]","");
             if (word.length() > 0 && !Arrays.asList(STOPWORDS).contains(word)) {
                 //se è la prima volta che si incontra si inserisce con valore 1 else si aumenta il valore di 1
                 token_list.merge(word, 1, Integer::sum);
