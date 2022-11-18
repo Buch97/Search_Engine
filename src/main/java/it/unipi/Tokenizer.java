@@ -36,7 +36,7 @@ public class Tokenizer {
         //QUESTI REPLACE LI AVEVO COPIATI DA UN CODICE CHE AVEVO VISTO, ALCUNI POSSONO SERVIRE, ALTRI MAGARI NO E ALTRI VANNO AGGIUNTI
         String text = bodyText.toLowerCase();
 
-        text = text.replaceAll("[\\\\$%{}\\[\\]()`<>='&°§£€:,;/.~*|\"^_\\-+!?#\t@]","");
+        text = text.replaceAll("[\\\\$%{}\\[\\]()`<>='&°»§£€:,;/.~*|\"^_\\-+!?#\t@]","");
 
         text = text.replaceAll("<ref>.*?</ref>", "");
         text = text.replaceAll("</?.*?>", "");

@@ -7,7 +7,7 @@ import java.util.Map;
 
 public class App {
     public static void main(String[] args) throws IOException {
-        //Inverted_Index_Construction.buildDataStructures();
+        Index_Construction.buildDataStructures();
         for(;;) {
             System.out.println("Please, submit your query! Otherwise digit \"CTRL+F2\" to stop the execution.");
             BufferedReader reader = new BufferedReader(
@@ -15,10 +15,13 @@ public class App {
             String query = reader.readLine();
             System.out.println("Your request: " + query);
             Tokenizer tokenizer = new Tokenizer(query);
-            Map<String, Integer> results = tokenizer.tokenize();
-            for (String token : results.keySet()) {
-                System.out.println(token + " " + results.get(token));
+            Map<String, Integer> query_term_frequency = tokenizer.tokenize();
+            Integer query_length = 0;
+            for (String token : query_term_frequency.keySet()) {
+                query_length += query_term_frequency.get(token);
+                System.out.println(token + " " + query_term_frequency.get(token));
             }
+            System.out.println("Query length = " + query_length);
         }
 
     }

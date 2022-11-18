@@ -5,13 +5,12 @@ import java.io.*;
 import java.util.*;
 
 
-public class Inverted_Index_Construction {
+public class Index_Construction {
 
     //dimensione per costruire i blocchi messa ora per prova a 3000 su una small collection
     public final static int SPIMI_TOKEN_STREAM_MAX_LIMIT = 3000;
     public final static List<Token> tokenStream = new ArrayList<>();
     public static int block_number = 0; //indice da usare per scrivere i file parziali dell'inverted index
-    public static File inverted_index = new File("./src/main/resources/output/inverted_index.tsv");
 
     public static void buildDataStructures() {
         try {
@@ -47,7 +46,6 @@ public class Inverted_Index_Construction {
                 String doc_no = row[0];
                 String text = row[1];
 
-
                 //aggiungo il documento che sto processando al doc_index
                 documentIndexAddition(doc_no, text, writer_doc_index);
 
@@ -57,12 +55,8 @@ public class Inverted_Index_Construction {
 
             writer_doc_index.close();
             myReader.close();
-            //faccio il merge di tutte le posting intermedie
+            //faccio il merge di tutte le posting intermedie e mi costruisco inv_index e lexicon parallelamente
             mergeBlocks();
-            //dall'inverted index finale mi leggo riga per riga e costruisco il vocabolario finale
-            //lo faccio qua in fondo perche nel vocabolario ci va la doc frequency che è la length della posting list, che conosco solo dopo aver finito il merge
-            lexiconConstruction();
-
 
         } catch (FileNotFoundException e) {
             System.out.println("An error occurred.");
@@ -96,12 +90,11 @@ public class Inverted_Index_Construction {
     private static void invertedIndexSPIMI() {
         block_number++;
         File output_file = new File("./src/main/resources/intermediate_postings/inverted_index" + block_number + ".tsv");
-        //tree map e non map perche le inserisce gia ordinate alfabeticamente
         HashMap<String, ArrayList<Posting>> vocabulary = new HashMap<>();
         ArrayList<Posting> postings_list;
 
         //while (Runtime.getRuntime().freeMemory() > 0) {
-            for (Token token : Inverted_Index_Construction.tokenStream) {
+            for (Token token : Index_Construction.tokenStream) {
                 if (!vocabulary.containsKey(token.getTerm()))
                     postings_list = addToLexicon(vocabulary, token.getTerm());
                 else
@@ -116,6 +109,7 @@ public class Inverted_Index_Construction {
             }
         //}
 
+        //faccio il sort del vocabolario per facilitare la successiva fase di merging
         TreeMap<String, ArrayList<Posting>> sorted_vocabulary = new TreeMap<>(vocabulary);
 
         try {
@@ -147,6 +141,7 @@ public class Inverted_Index_Construction {
         return postings_list;
     }
 
+    //MERGE:
     // apro tutti i file in parallelo, ad ogni iterazione devo prendere il termine alfabeticamente minore fra tutti
     // andare a vedere in tutti gli altri file se contengono quel termine e concatenare le posting lists
     // parto leggendo la prima riga di tutti i file, prendo il termine minore e faccio la procedura, avanzo di una riga
@@ -154,16 +149,24 @@ public class Inverted_Index_Construction {
 
     private static void mergeBlocks() throws IOException {
         ArrayList<String> orderedLines = new ArrayList<>();
+        ArrayList<String> currentReadedLines = new ArrayList<>();
         List<BufferedReader> readerList = new ArrayList<>();
-        BufferedWriter output = new BufferedWriter(new FileWriter("./src/main/resources/output/final_inverted_index.tsv"));
-        output.write("TERM" + "\t" + "POSTING_LIST" + "\n");
+        long offset = 0;
+        int doc_frequency;
+        int coll_frequency;
+        long actual_offset;
+
+        BufferedWriter inv_ind = new BufferedWriter(new FileWriter("./src/main/resources/output/inverted_index.tsv"));
+
+        BufferedWriter lexicon = new BufferedWriter(new FileWriter("./src/main/resources/output/lexicon.tsv"));
+        String header = "TERM" + "\t" + "DOC_FREQUENCY" + "\t" + "COLL_FREQUENCY" + "\t" + "BYTE_OFFSET_PL" + "\n";
+        lexicon.write(header);
 
         //mi creo l'array di buffer di lettura cosi che scorro tutti i file in parallelo
         for(int i = 1 ; i <= block_number ; i++){
             readerList.add(new BufferedReader(new FileReader("./src/main/resources/intermediate_postings/inverted_index" + i + ".tsv")));
         }
 
-        ArrayList<String> currentReadedLines = new ArrayList<>();
         //metto la prima riga di ogni file dentro due arraylist: orderedLines (mi serve per calcolare il termine alfabeticamente minore)
         // e currentReadedLines (mi serve per associare uno specifico reader alla posting da lui letta.
         // Perche orderedLines viene poi ordinato e perdo traccia di questa
@@ -189,17 +192,28 @@ public class Inverted_Index_Construction {
             Collections.sort(orderedLines);
             String currentTerm = orderedLines.get(0).split("\t")[0];
 
-            output.write(currentTerm + "\t");
+            lexicon.write(currentTerm + "\t");
+            doc_frequency = 0;
+            coll_frequency = 0;
+            actual_offset = offset;
 
             for (String row : orderedLines) {
                 String term = row.split("\t")[0];
                 String posting = row.split("\t")[1];
 
-                if (Objects.equals(term, currentTerm))
-                    output.append(posting);
+                if (Objects.equals(term, currentTerm)){
+                    doc_frequency += posting.split(" ").length;
+                    for(String post : posting.split(" ")){
+                        coll_frequency += Integer.parseInt(post.split(":")[1]);
+                    }
+                    inv_ind.append(posting);
+                    offset += posting.getBytes().length;
+                }
             }
 
-            output.write("\n");
+            inv_ind.write("\n");
+            offset += "\n".getBytes().length;
+            lexicon.write(doc_frequency + "\t" + coll_frequency + "\t" + actual_offset + "\n");
 
             //rimuovo le righe appena processate dal mio array di appoggio
             //orderedLines conterrà sempre N termini da confrontare tra di loro per prendere il minore
@@ -218,36 +232,13 @@ public class Inverted_Index_Construction {
                         readerList.get(fileIndex).close();
                 }
             }
-
-            for (String elem : currentReadedLines)
-                System.out.println(elem);
         }
 
         for (BufferedReader reader : readerList)
             reader.close();
 
-        output.close();
-
-    }
-
-    private static void lexiconConstruction() throws IOException {
-        BufferedWriter writer = new BufferedWriter(new FileWriter("./src/main/resources/output/lexicon.tsv"));
-        BufferedReader reader = new BufferedReader(new FileReader("./src/main/resources/output/final_inverted_index.tsv"));
-
-        writer.write("TERM" + "\t" + "DOC_FREQUENCY" + "\t" + "BYTE_OFFSET_PL" + "\n");
-        String line = reader.readLine();
-        reader.readLine();
-        long offset = 0;
-        while (line != null){
-            String term = line.split("\t")[0];
-            int doc_frequency = line.split("\t")[1].split(" ").length;
-            writer.write(term + "\t" + doc_frequency + "\t" + offset + "\n");
-            offset += line.getBytes().length;
-            line = reader.readLine();
-
-        }
-        writer.close();
-        reader.close();
+        inv_ind.close();
+        lexicon.close();
     }
 
 }
