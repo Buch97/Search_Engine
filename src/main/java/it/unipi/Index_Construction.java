@@ -1,6 +1,10 @@
 package it.unipi;
 
 
+import org.mapdb.DB;
+import org.mapdb.DBMaker;
+import org.mapdb.HTreeMap;
+
 import java.io.*;
 import java.util.*;
 
@@ -11,6 +15,7 @@ public class Index_Construction {
     public final static int SPIMI_TOKEN_STREAM_MAX_LIMIT = 3000;
     public final static List<Token> tokenStream = new ArrayList<>();
     public static int block_number = 0; //indice da usare per scrivere i file parziali dell'inverted index
+    public static HTreeMap myMap;
 
     public static void buildDataStructures() {
         try {
@@ -56,7 +61,11 @@ public class Index_Construction {
             writer_doc_index.close();
             myReader.close();
             //faccio il merge di tutte le posting intermedie e mi costruisco inv_index e lexicon parallelamente
+            //DB db = DBMaker.fileDB("./src/main/resources/output/lexicon_disk_based.db").make();
+            //myMap = db.hashMap("lexicon").createOrOpen();
+
             mergeBlocks();
+            //db.close();
 
         } catch (FileNotFoundException e) {
             System.out.println("An error occurred.");
@@ -214,6 +223,7 @@ public class Index_Construction {
             inv_ind.write("\n");
             offset += "\n".getBytes().length;
             lexicon.write(doc_frequency + "\t" + coll_frequency + "\t" + actual_offset + "\n");
+            //myMap.put(currentTerm, new Term_Stats(doc_frequency, coll_frequency, actual_offset));
 
             //rimuovo le righe appena processate dal mio array di appoggio
             //orderedLines conterrà sempre N termini da confrontare tra di loro per prendere il minore

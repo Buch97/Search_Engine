@@ -3,8 +3,7 @@ package it.unipi;
 import java.util.*;
 
 public class Tokenizer {
-    private String bodyText;
-    private int bodyLength = 0;
+    private final String bodyText;
     final Map<String, Integer> token_list = new HashMap<>();
     final String PATTERN_TOKEN = "\\$%{}[]()`<>='&:,;/.~ *\n|\"^_-+!?#\t@";
     final String[] STOPWORDS = {"a", "an", "and", "are", "as", "at", "be", "but", "by", "for",
@@ -14,22 +13,6 @@ public class Tokenizer {
 
     public Tokenizer(String bodyText) {
         this.bodyText = bodyText;
-    }
-
-    public String getBodyText() {
-        return bodyText;
-    }
-
-    public void setBodyText(final String text) {
-        this.bodyText = text;
-    }
-
-    public int getBodyLength() {
-        return bodyLength;
-    }
-
-    public void setBodyLength(int bodyLength) {
-        this.bodyLength = bodyLength;
     }
 
     public Map<String, Integer> tokenize() {

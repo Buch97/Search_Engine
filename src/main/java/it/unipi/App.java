@@ -3,25 +3,28 @@ package it.unipi;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class App {
+    public static int k = 20;
+    public static int num_docs;
+    public static int num_terms;
+
     public static void main(String[] args) throws IOException {
         Index_Construction.buildDataStructures();
+        num_docs = Collection_Statistics.computeDocs();
+        num_terms = Collection_Statistics.computeTerms();
         for(;;) {
-            System.out.println("Please, submit your query! Otherwise digit \"CTRL+F2\" to stop the execution.");
+            System.out.println("Please, submit your query! Otherwise digit \"!exit\" to stop the execution.");
             BufferedReader reader = new BufferedReader(
                     new InputStreamReader(System.in));
             String query = reader.readLine();
+            if (Objects.equals(query, "!exit"))
+                System.exit(0);
             System.out.println("Your request: " + query);
-            Tokenizer tokenizer = new Tokenizer(query);
-            Map<String, Integer> query_term_frequency = tokenizer.tokenize();
-            Integer query_length = 0;
-            for (String token : query_term_frequency.keySet()) {
-                query_length += query_term_frequency.get(token);
-                System.out.println(token + " " + query_term_frequency.get(token));
-            }
-            System.out.println("Query length = " + query_length);
+            QueryProcess.parseQuery(query, k);
         }
 
     }
