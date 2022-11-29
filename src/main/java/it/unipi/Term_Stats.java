@@ -1,6 +1,8 @@
 package it.unipi;
 
-public class Term_Stats {
+import java.io.Serializable;
+
+public class Term_Stats implements Serializable {
     int doc_frequency;
     int coll_frequency;
     long actual_offset;
@@ -9,6 +11,10 @@ public class Term_Stats {
         this.doc_frequency = doc_frequency;
         this.coll_frequency = coll_frequency;
         this.actual_offset = actual_offset;
+    }
+
+    public Term_Stats() {
+
     }
 
     public int getDoc_frequency() {
@@ -33,6 +39,15 @@ public class Term_Stats {
 
     public void setActual_offset(long actual_offset) {
         this.actual_offset = actual_offset;
+    }
+
+    @Override
+    public String toString() {
+        return "Term_Stats{" +
+                "doc_frequency=" + doc_frequency +
+                ", coll_frequency=" + coll_frequency +
+                ", actual_offset=" + actual_offset +
+                '}';
     }
 }
 

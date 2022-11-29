@@ -15,9 +15,9 @@ public class Index_Construction {
     public final static int SPIMI_TOKEN_STREAM_MAX_LIMIT = 3000;
     public final static List<Token> tokenStream = new ArrayList<>();
     public static int block_number = 0; //indice da usare per scrivere i file parziali dell'inverted index
-    public static HTreeMap myMap;
+    //public static HTreeMap<?, ?> myMapLexicon;
 
-    public static void buildDataStructures() {
+    public static void buildDataStructures(DB db) {
         try {
             File myObj = new File("./src/main/resources/collections/small_collection.tsv");
 
@@ -41,7 +41,7 @@ public class Index_Construction {
 
             while (myReader.hasNextLine()) {
                 String data = myReader.nextLine();
-                System.out.println(data);
+                //System.out.println(data);
 
                 //handling of malformed lines
                 if (!data.contains("\t"))
@@ -61,11 +61,13 @@ public class Index_Construction {
             writer_doc_index.close();
             myReader.close();
             //faccio il merge di tutte le posting intermedie e mi costruisco inv_index e lexicon parallelamente
-            //DB db = DBMaker.fileDB("./src/main/resources/output/lexicon_disk_based.db").make();
-            //myMap = db.hashMap("lexicon").createOrOpen();
+            //DB db = DBMaker.fileDB("./src/main/resources/output/lexicon_disk_based.db").checksumHeaderBypass().make();
+            //myMap = (HTreeMap<String, Term_Stats>) db.hashMap("lexicon").createOrOpen();
+            //HTreeMap myMapLexicon =  db.hashMap("lexicon").createOrOpen();
 
-            mergeBlocks();
+            mergeBlocks(db);
             //db.close();
+
 
         } catch (FileNotFoundException e) {
             System.out.println("An error occurred.");
@@ -158,7 +160,7 @@ public class Index_Construction {
     // parto leggendo la prima riga di tutti i file, prendo il termine minore e faccio la procedura, avanzo di una riga
     // SOLO sui file da cui ho letto il termine corrente
 
-    private static void mergeBlocks() throws IOException {
+    private static void mergeBlocks(DB db) throws IOException {
         ArrayList<String> orderedLines = new ArrayList<>();
         ArrayList<String> currentReadedLines = new ArrayList<>();
         List<BufferedReader> readerList = new ArrayList<>();
@@ -166,6 +168,7 @@ public class Index_Construction {
         int doc_frequency;
         int coll_frequency;
         long actual_offset;
+        HTreeMap<String, Term_Stats> myMapLexicon = (HTreeMap<String, Term_Stats>) db.hashMap("lexicon").createOrOpen();
 
         BufferedWriter inv_ind = new BufferedWriter(new FileWriter("./src/main/resources/output/inverted_index.tsv"));
 
@@ -225,7 +228,7 @@ public class Index_Construction {
             inv_ind.write("\n");
             offset += "\n".getBytes().length;
             lexicon.write(doc_frequency + "\t" + coll_frequency + "\t" + actual_offset + "\n");
-            //myMap.put(currentTerm, new Term_Stats(doc_frequency, coll_frequency, actual_offset));
+            myMapLexicon.put(currentTerm, new Term_Stats(doc_frequency, coll_frequency, actual_offset));
 
             //rimuovo le righe appena processate dal mio array di appoggio
             //orderedLines conterrà sempre N termini da confrontare tra di loro per prendere il minore

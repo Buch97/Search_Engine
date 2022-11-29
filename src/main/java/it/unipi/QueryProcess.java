@@ -1,6 +1,10 @@
 package it.unipi;
 
 
+import org.mapdb.DB;
+import org.mapdb.DBMaker;
+import org.mapdb.HTreeMap;
+
 import java.io.*;
 import java.util.*;
 
@@ -30,6 +34,7 @@ public class QueryProcess {
         //lexicon: ci leggo offset dell'inverted index relativo alla posting di un termine
         //inverted_index: ci leggo la posting list
         //document_index: ci leggo la doc_length del documento che sto processando
+        DB db = DBMaker.fileDB("./src/main/resources/output/lexicon_disk_based.db").checksumHeaderBypass().make();
         ArrayList<String> L = new ArrayList<>();
         PriorityQueue<Results> R = new PriorityQueue<>(k);
         int[] pos = new int[query.size()];
@@ -38,6 +43,8 @@ public class QueryProcess {
         RandomAccessFile file_reader = new RandomAccessFile(new File("./src/main/resources/output/inverted_index.tsv"), "r");
         for(String term : query.keySet()){
             //devo leggere dal dizionario lasciandolo su disco, non va mai messo in memoria!!!
+            long a = (Long) Objects.requireNonNull(db.hashMap("lexicon").open().get(term));
+
             //long posting_list_location = memory_lexicon.get(term);
             //accedo direttamente all'offset del file
             //file_reader.seek(posting_list_location);
