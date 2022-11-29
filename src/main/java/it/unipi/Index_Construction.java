@@ -92,24 +92,26 @@ public class Index_Construction {
             //sono pronto per creare l'inverted index relativo a questo blocco
             invertedIndexSPIMI();
             tokenStream.clear(); //pulisco lo stream
+            block_number++;
         }
     }
 
     //guarda pseudocodice slide 59
     private static void invertedIndexSPIMI() {
-        block_number++;
+
         File output_file = new File("./src/main/resources/intermediate_postings/inverted_index" + block_number + ".tsv");
-        HashMap<String, ArrayList<Posting>> vocabulary = new HashMap<>();
+        // one dictionary for each block
+        HashMap<String, ArrayList<Posting>> dictionary = new HashMap<>();
         ArrayList<Posting> postings_list;
 
         //while (Runtime.getRuntime().freeMemory() > 0) {
             for (Token token : Index_Construction.tokenStream) {
-                if (!vocabulary.containsKey(token.getTerm()))
-                    postings_list = addToLexicon(vocabulary, token.getTerm());
+                if (!dictionary.containsKey(token.getTerm()))
+                    postings_list = addToDictionary(dictionary, token.getTerm());
                 else
-                    postings_list = vocabulary.get(token.getTerm());
+                    postings_list = dictionary.get(token.getTerm());
 
-                if (!postings_list.isEmpty()) {
+                if (!postings_list.contains(null)) {
                     int capacity = postings_list.size() * 2;
                     postings_list.ensureCapacity(capacity); //aumenta la length dell arraylist
                 }
@@ -119,17 +121,17 @@ public class Index_Construction {
         //}
 
         //faccio il sort del vocabolario per facilitare la successiva fase di merging
-        TreeMap<String, ArrayList<Posting>> sorted_vocabulary = new TreeMap<>(vocabulary);
+        TreeMap<String, ArrayList<Posting>> sorted_dictionary = new TreeMap<>(dictionary);
 
         try {
             //scrivo sul file
             FileWriter myWriter = new FileWriter(output_file);
             myWriter.write("TERM" + "\t" + "POSTING_LIST" + "\n");
 
-            for (String term : sorted_vocabulary.keySet()) {
+            for (String term : sorted_dictionary.keySet()) {
                 myWriter.write(term + "\t");
 
-                for (Posting p : sorted_vocabulary.get(term))
+                for (Posting p : sorted_dictionary.get(term))
                     myWriter.write(p.getDoc_id() + ":" + p.getTerm_frequency() + " ");
 
                 myWriter.write("\n");
@@ -143,7 +145,7 @@ public class Index_Construction {
 
     }
 
-    private static ArrayList<Posting> addToLexicon(Map<String, ArrayList<Posting>> vocabulary, String token) {
+    private static ArrayList<Posting> addToDictionary(Map<String, ArrayList<Posting>> vocabulary, String token) {
         int capacity = 1;
         ArrayList<Posting> postings_list = new ArrayList<>(capacity);
         vocabulary.put(token, postings_list);
@@ -172,7 +174,7 @@ public class Index_Construction {
         lexicon.write(header);
 
         //mi creo l'array di buffer di lettura cosi che scorro tutti i file in parallelo
-        for(int i = 1 ; i <= block_number ; i++){
+        for(int i = 0 ; i <= block_number ; i++){
             readerList.add(new BufferedReader(new FileReader("./src/main/resources/intermediate_postings/inverted_index" + i + ".tsv")));
         }
 
