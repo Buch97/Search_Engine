@@ -45,7 +45,6 @@ public class Index_Construction {
 
             while (myReader.hasNextLine()) {
                 String data = myReader.nextLine();
-                //System.out.println(data);
 
                 //handling of malformed lines
                 if (!data.contains("\t"))
@@ -177,7 +176,7 @@ public class Index_Construction {
         lexicon.write(header);
 
         // array of buffered reader to read each block at the same time
-        for (int i = 0; i <= BLOCK_NUMBER; i++) {
+        for (int i = 0; i < BLOCK_NUMBER; i++) {
             readerList.add(new BufferedReader(new FileReader("./src/main/resources/intermediate_postings/" +
                     "inverted_index" + i + ".tsv")));
         }
@@ -201,7 +200,6 @@ public class Index_Construction {
 
             Iterator<TermPositionBlock> value = priorityQueue.iterator();
 
-            System.out.println(priorityQueue);
             while (value.hasNext()) {
 
                 TermPositionBlock termPositionBlock = value.next();
