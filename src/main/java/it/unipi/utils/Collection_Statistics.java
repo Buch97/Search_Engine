@@ -1,4 +1,4 @@
-package it.unipi;
+package it.unipi.utils;
 
 //• Collection statistics:
 //  • Stored in a separate file, containing total number of documents, total number of terms, total number of postings, etc…

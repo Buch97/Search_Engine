@@ -1,14 +1,15 @@
-package it.unipi;
+package it.unipi.query_manager;
 
 
+import it.unipi.bean.Results;
+import it.unipi.build_data_structures.Tokenizer;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
-import org.mapdb.HTreeMap;
 
 import java.io.*;
 import java.util.*;
 
-import static it.unipi.App.num_docs;
+import static it.unipi.Main.num_docs;
 
 public class QueryProcess {
     //ricevo query da riga di comando

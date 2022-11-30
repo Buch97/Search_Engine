@@ -1,4 +1,4 @@
-package it.unipi;
+package it.unipi.bean;
 
 import java.io.Serializable;
 

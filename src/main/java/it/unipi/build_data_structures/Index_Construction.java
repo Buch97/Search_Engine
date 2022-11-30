@@ -1,8 +1,12 @@
-package it.unipi;
+package it.unipi.build_data_structures;
 
 
+import it.unipi.bean.Posting;
+import it.unipi.bean.TermPositionBlock;
+import it.unipi.bean.Term_Stats;
+import it.unipi.bean.Token;
+import it.unipi.utils.TermPositionBlockComparator;
 import org.mapdb.DB;
-import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
 
 import java.io.*;
@@ -14,7 +18,7 @@ public class Index_Construction {
     //dimensione per costruire i blocchi messa ora per prova a 3000 su una small collection
     public final static int SPIMI_TOKEN_STREAM_MAX_LIMIT = 3000;
     public final static List<Token> tokenStream = new ArrayList<>();
-    public static int block_number = 0; //indice da usare per scrivere i file parziali dell'inverted index
+    public static int BLOCK_NUMBER = 0; //indice da usare per scrivere i file parziali dell'inverted index
     //public static HTreeMap<?, ?> myMapLexicon;
 
     public static void buildDataStructures(DB db) {
@@ -24,14 +28,14 @@ public class Index_Construction {
             //semplice roba di utility per creare le directory in cui ci vanno salvati i files
             File theDir = new File("./src/main/resources/output");
 
-            if (!theDir.exists()){
-                if(theDir.mkdirs())
+            if (!theDir.exists()) {
+                if (theDir.mkdirs())
                     System.out.println("New directory '/output' created");
             }
 
             theDir = new File("./src/main/resources/intermediate_postings");
-            if (!theDir.exists()){
-                if(theDir.mkdirs())
+            if (!theDir.exists()) {
+                if (theDir.mkdirs())
                     System.out.println("New directory '/intermediate_postings' created");
             }
 
@@ -60,15 +64,9 @@ public class Index_Construction {
 
             writer_doc_index.close();
             myReader.close();
-            //faccio il merge di tutte le posting intermedie e mi costruisco inv_index e lexicon parallelamente
-            //DB db = DBMaker.fileDB("./src/main/resources/output/lexicon_disk_based.db").checksumHeaderBypass().make();
-            //myMap = (HTreeMap<String, Term_Stats>) db.hashMap("lexicon").createOrOpen();
-            //HTreeMap myMapLexicon =  db.hashMap("lexicon").createOrOpen();
 
             mergeBlocks(db);
             //db.close();
-
-
         } catch (FileNotFoundException e) {
             System.out.println("An error occurred.");
             e.printStackTrace();
@@ -94,32 +92,32 @@ public class Index_Construction {
             //sono pronto per creare l'inverted index relativo a questo blocco
             invertedIndexSPIMI();
             tokenStream.clear(); //pulisco lo stream
-            block_number++;
+            BLOCK_NUMBER++;
         }
     }
 
     //guarda pseudocodice slide 59
     private static void invertedIndexSPIMI() {
 
-        File output_file = new File("./src/main/resources/intermediate_postings/inverted_index" + block_number + ".tsv");
+        File output_file = new File("./src/main/resources/intermediate_postings/inverted_index" + BLOCK_NUMBER + ".tsv");
         // one dictionary for each block
         HashMap<String, ArrayList<Posting>> dictionary = new HashMap<>();
         ArrayList<Posting> postings_list;
 
         //while (Runtime.getRuntime().freeMemory() > 0) {
-            for (Token token : Index_Construction.tokenStream) {
-                if (!dictionary.containsKey(token.getTerm()))
-                    postings_list = addToDictionary(dictionary, token.getTerm());
-                else
-                    postings_list = dictionary.get(token.getTerm());
+        for (Token token : Index_Construction.tokenStream) {
+            if (!dictionary.containsKey(token.getTerm()))
+                postings_list = addToDictionary(dictionary, token.getTerm());
+            else
+                postings_list = dictionary.get(token.getTerm());
 
-                if (!postings_list.contains(null)) {
-                    int capacity = postings_list.size() * 2;
-                    postings_list.ensureCapacity(capacity); //aumenta la length dell arraylist
-                }
-
-                postings_list.add(new Posting(token.getDoc_id(), token.getFrequency()));
+            if (!postings_list.contains(null)) {
+                int capacity = postings_list.size() * 2;
+                postings_list.ensureCapacity(capacity); //aumenta la length dell arraylist
             }
+
+            postings_list.add(new Posting(token.getDoc_id(), token.getFrequency()));
+        }
         //}
 
         //faccio il sort del vocabolario per facilitare la successiva fase di merging
@@ -154,99 +152,89 @@ public class Index_Construction {
         return postings_list;
     }
 
-    //MERGE:
-    // apro tutti i file in parallelo, ad ogni iterazione devo prendere il termine alfabeticamente minore fra tutti
-    // andare a vedere in tutti gli altri file se contengono quel termine e concatenare le posting lists
-    // parto leggendo la prima riga di tutti i file, prendo il termine minore e faccio la procedura, avanzo di una riga
-    // SOLO sui file da cui ho letto il termine corrente
+    // MERGE:
+    // One buffered reader for each block
+    // We take the first term of each block and put it into a priority queue, sorted alphabetically
+    // Then we take the first object from the priority queue, in order to compare it with other term from other blocks
+    // The buffer is moved forward only in blocks in which we have a term equal to the current term
 
     private static void mergeBlocks(DB db) throws IOException {
-        ArrayList<String> orderedLines = new ArrayList<>();
-        ArrayList<String> currentReadedLines = new ArrayList<>();
+
+        Comparator<TermPositionBlock> comparator = new TermPositionBlockComparator();
+        PriorityQueue<TermPositionBlock> priorityQueue = new PriorityQueue<>(BLOCK_NUMBER, comparator);
         List<BufferedReader> readerList = new ArrayList<>();
+
         long offset = 0;
         int doc_frequency;
         int coll_frequency;
         long actual_offset;
+
         HTreeMap<String, Term_Stats> myMapLexicon = (HTreeMap<String, Term_Stats>) db.hashMap("lexicon").createOrOpen();
 
         BufferedWriter inv_ind = new BufferedWriter(new FileWriter("./src/main/resources/output/inverted_index.tsv"));
-
         BufferedWriter lexicon = new BufferedWriter(new FileWriter("./src/main/resources/output/lexicon.tsv"));
         String header = "TERM" + "\t" + "DOC_FREQUENCY" + "\t" + "COLL_FREQUENCY" + "\t" + "BYTE_OFFSET_PL" + "\n";
         lexicon.write(header);
 
-        //mi creo l'array di buffer di lettura cosi che scorro tutti i file in parallelo
-        for(int i = 0 ; i <= block_number ; i++){
-            readerList.add(new BufferedReader(new FileReader("./src/main/resources/intermediate_postings/inverted_index" + i + ".tsv")));
+        // array of buffered reader to read each block at the same time
+        for (int i = 0; i <= BLOCK_NUMBER; i++) {
+            readerList.add(new BufferedReader(new FileReader("./src/main/resources/intermediate_postings/" +
+                    "inverted_index" + i + ".tsv")));
         }
 
-        //metto la prima riga di ogni file dentro due arraylist: orderedLines (mi serve per calcolare il termine alfabeticamente minore)
-        // e currentReadedLines (mi serve per associare uno specifico reader alla posting da lui letta.
-        // Perche orderedLines viene poi ordinato e perdo traccia di questa
-        // informazione perche l'indice nell arrayList non corrisponde piu allo specifico reader)
-        for (BufferedReader reader : readerList) {
-            //salto la prima riga che contiene lo header del file
-            reader.readLine();
-            String line = reader.readLine();
-            if (line != null) {
-                currentReadedLines.add(line);
-                orderedLines.add(line);
-            }
-            else
-                reader.close();
-        }
+        // Open buffered readers, one for each block
+        // First lines of each block are inserted in a priority queue
+        // Sorted with a custom comparator
+        openBufferedReaders(priorityQueue, readerList);
 
-        // condizione di uscita dal loop infinito (quando tutti i reader sono arrivati a EOF e quindi l'arraylist avrà
-        // size 0 perche non contiene piu nessun elemento)
+        // For loop is terminated when each bufferedReader reach the EOF
+        while (priorityQueue.size() != 0) {
 
-        while (orderedLines.size() != 0) {
+            // Peek first term
+            String currentTerm = priorityQueue.peek().getTerm();
 
-            //ordino l'array e prendo il primo elemento (che sarà il minore alfabeticamente)
-            Collections.sort(orderedLines);
-            String currentTerm = orderedLines.get(0).split("\t")[0];
-
+            // Add to lexicon the current term
             lexicon.write(currentTerm + "\t");
             doc_frequency = 0;
             coll_frequency = 0;
             actual_offset = offset;
 
-            for (String row : orderedLines) {
-                String term = row.split("\t")[0];
-                String posting = row.split("\t")[1];
+            Iterator<TermPositionBlock> value = priorityQueue.iterator();
 
-                if (Objects.equals(term, currentTerm)){
-                    doc_frequency += posting.split(" ").length;
-                    for(String post : posting.split(" ")){
-                        coll_frequency += Integer.parseInt(post.split(":")[1]);
+            System.out.println(priorityQueue);
+            while (value.hasNext()) {
+
+                TermPositionBlock termPositionBlock = value.next();
+                String term = termPositionBlock.getTerm();
+                ArrayList<Posting> postings = termPositionBlock.getPostingArrayList();
+
+                if (Objects.equals(term, currentTerm)) {
+                    doc_frequency += postings.size();
+                    for (Posting posting : postings) {
+                        coll_frequency += posting.getTerm_frequency();
+                        inv_ind.append(posting.toString()).append(" ");
                     }
-                    inv_ind.append(posting);
-                    offset += posting.getBytes().length;
+                    offset += postings.toString().getBytes().length;
                 }
             }
 
+            // Build inverted index
             inv_ind.write("\n");
+
+            // Build lexicon
             offset += "\n".getBytes().length;
             lexicon.write(doc_frequency + "\t" + coll_frequency + "\t" + actual_offset + "\n");
             myMapLexicon.put(currentTerm, new Term_Stats(doc_frequency, coll_frequency, actual_offset));
 
-            //rimuovo le righe appena processate dal mio array di appoggio
-            //orderedLines conterrà sempre N termini da confrontare tra di loro per prendere il minore
-            orderedLines.removeIf(elem -> elem.split("\t")[0].equals(currentTerm));
+            // Reset the iterator
+            value = priorityQueue.iterator();
+            // List with new terms to add in the priority queue
+            List<TermPositionBlock> itemsToAdd = new ArrayList<TermPositionBlock>();
 
-            //guardo in quali file ho letto il currentTerm e solo in quelli avanzo il reader e metto la riga nuova che leggo nel mio orderedLines
-            for (String elem : currentReadedLines) {
-                if ((elem != null) && (Objects.equals(elem.split("\t")[0], currentTerm))) {
-                    int fileIndex = currentReadedLines.indexOf(elem);
-                    String nextRow = readerList.get(fileIndex).readLine();
-                    currentReadedLines.set(fileIndex, nextRow);
-                    if (nextRow != null)
-                        //ci metto dentro i termini nuovi dei soli buffer che ho avanzato
-                        orderedLines.add(nextRow);
-                    else
-                        readerList.get(fileIndex).close();
-                }
+            while (value.hasNext()) {
+                moveForward(priorityQueue, readerList, currentTerm, value, itemsToAdd);
             }
+            priorityQueue.addAll(itemsToAdd);
         }
 
         for (BufferedReader reader : readerList)
@@ -256,4 +244,43 @@ public class Index_Construction {
         lexicon.close();
     }
 
+    private static void openBufferedReaders(PriorityQueue<TermPositionBlock> priorityQueue, List<BufferedReader> readerList) throws IOException {
+        for (BufferedReader reader : readerList) {
+            // Skip first line of each block
+            reader.readLine();
+            String line = reader.readLine();
+            if (line != null) {
+                TermPositionBlock termPositionBlock = BuildTermPositionBlock(priorityQueue, readerList, reader, line);
+                priorityQueue.add(termPositionBlock);
+            } else
+                reader.close();
+        }
+    }
+
+    private static void moveForward(PriorityQueue<TermPositionBlock> priorityQueue, List<BufferedReader> readerList, String currentTerm, Iterator<TermPositionBlock> value, List<TermPositionBlock> itemsToAdd) throws IOException {
+        TermPositionBlock termPositionBlock = value.next();
+        if ((termPositionBlock != null) && (Objects.equals(termPositionBlock.getTerm(), currentTerm))) {
+            String nextRow = readerList.get(termPositionBlock.getBlock_index()).readLine();
+            value.remove();
+
+            if (nextRow != null) {
+                itemsToAdd.add(BuildTermPositionBlock(priorityQueue, readerList, readerList.get(termPositionBlock.getBlock_index()), nextRow));
+            }
+            else
+                readerList.get(termPositionBlock.getBlock_index()).close();
+        }
+    }
+
+    private static TermPositionBlock BuildTermPositionBlock(PriorityQueue<TermPositionBlock> priorityQueue, List<BufferedReader> readerList, BufferedReader reader, String line) {
+        String term = line.split("\t")[0];
+        String postingList = line.split("\t")[1];
+        ArrayList<Posting> postingArrayList = new ArrayList<>();
+
+        for (String posting : postingList.split(" ")) {
+            int doc_id = Integer.parseInt(posting.split(":")[0]);
+            int term_freq = Integer.parseInt(posting.split(":")[1]);
+            postingArrayList.add(new Posting(doc_id, term_freq));
+        }
+        return new TermPositionBlock(term, postingArrayList, readerList.indexOf(reader));
+    }
 }

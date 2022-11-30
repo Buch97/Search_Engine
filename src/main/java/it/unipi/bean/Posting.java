@@ -1,4 +1,4 @@
-package it.unipi;
+package it.unipi.bean;
 
 //• De-facto posting format is (docid, frequency)
 //• Do not store docids and frequencies in interleaved form: NON CAPISCO??????? SLIDE 64
@@ -28,5 +28,10 @@ public class Posting {
 
     public void setTerm_frequency(int term_frequency) {
         this.term_frequency = term_frequency;
+    }
+
+    @Override
+    public String toString() {
+        return doc_id + ":" + term_frequency;
     }
 }

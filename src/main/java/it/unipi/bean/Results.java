@@ -1,4 +1,4 @@
-package it.unipi;
+package it.unipi.bean;
 
 public class Results {
     int doc_id;
