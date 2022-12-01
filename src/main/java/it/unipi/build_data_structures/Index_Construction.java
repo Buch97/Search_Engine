@@ -137,17 +137,23 @@ public class Index_Construction {
 
         System.out.println("----------------------START MERGE PHASE----------------------");
 
+        // Definition of comparator, implemented in Class TermPositionBlock
         Comparator<TermPositionBlock> comparator = new TermPositionBlockComparator();
+        // Priority queue with size equal to the number of blocks
         PriorityQueue<TermPositionBlock> priorityQueue = new PriorityQueue<>(BLOCK_NUMBER, comparator);
+        // List of terms added to the priority queue during the move forwars phase
         List<BufferedReader> readerList = new ArrayList<>();
 
+        // Definition of parameters that describe the term in lexicon
         long offset = 0;
         int doc_frequency;
         int coll_frequency;
         long actual_offset;
 
+        // Disk based lexicon using the HTreeMap
         HTreeMap<String, Term_Stats> myMapLexicon = (HTreeMap<String, Term_Stats>) db.hashMap("lexicon").createOrOpen();
 
+        // Open write buffers for lexicon and inverted index
         BufferedWriter inv_ind = new BufferedWriter(new FileWriter("./src/main/resources/output/inverted_index.tsv"));
         BufferedWriter lexicon = new BufferedWriter(new FileWriter("./src/main/resources/output/lexicon.tsv"));
         String header = "TERM" + "\t" + "DOC_FREQUENCY" + "\t" + "COLL_FREQUENCY" + "\t" + "BYTE_OFFSET_PL" + "\n";
@@ -177,15 +183,20 @@ public class Index_Construction {
             coll_frequency = 0;
             actual_offset = offset;
 
+            // Definition of iterator to scan the priority queue
             Iterator<TermPositionBlock> value = priorityQueue.iterator();
 
             while (value.hasNext()) {
 
+                // New object that has to be tested against the current term
                 TermPositionBlock termPositionBlock = value.next();
+                // Retrieve term and list of postings of the new objects
                 String term = termPositionBlock.getTerm();
                 ArrayList<Posting> postings = termPositionBlock.getPostingArrayList();
 
+                // Compare new term with current term
                 if (Objects.equals(term, currentTerm)) {
+                    // If equals update parameters of the term
                     doc_frequency += postings.size();
                     for (Posting posting : postings) {
                         coll_frequency += posting.getTerm_frequency();
@@ -221,8 +232,9 @@ public class Index_Construction {
         lexicon.close();
         System.out.println("----------------------END MERGE PHASE----------------------");
     }
-
     private static void openBufferedReaders(PriorityQueue<TermPositionBlock> priorityQueue, List<BufferedReader> readerList) throws IOException {
+        // For each reader read one line ad build an object TermPositionBlock
+        // Add that object to priority queue
         for (BufferedReader reader : readerList) {
             // Skip first line of each block
             reader.readLine();
@@ -235,6 +247,8 @@ public class Index_Construction {
         }
     }
     private static void moveForward(List<BufferedReader> readerList, String currentTerm, Iterator<TermPositionBlock> value, List<TermPositionBlock> itemsToAdd) throws IOException {
+        // Check each object in priority queue
+        // Remove only terms equals to current term and read the next line in each of these blocks
         TermPositionBlock termPositionBlock = value.next();
         if ((termPositionBlock != null) && (Objects.equals(termPositionBlock.getTerm(), currentTerm))) {
             String nextRow = readerList.get(termPositionBlock.getBlock_index()).readLine();
