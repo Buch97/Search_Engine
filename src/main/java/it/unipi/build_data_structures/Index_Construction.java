@@ -7,7 +7,6 @@ import it.unipi.bean.Term_Stats;
 import it.unipi.bean.Token;
 import it.unipi.utils.TermPositionBlockComparator;
 import org.mapdb.DB;
-import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
 
 import java.io.*;
@@ -17,23 +16,22 @@ import java.util.*;
 public class Index_Construction {
 
     //dimensione per costruire i blocchi messa ora per prova a 3000 su una small collection
-    public final static int SPIMI_TOKEN_STREAM_MAX_LIMIT = 3000;
+    public final static int SPIMI_TOKEN_STREAM_MAX_LIMIT = 3000000;
     public final static List<Token> tokenStream = new ArrayList<>();
     public static int BLOCK_NUMBER = 0; //indice da usare per scrivere i file parziali dell'inverted index
-    //public static HTreeMap<?, ?> myMapLexicon;
-
     public static void buildDataStructures(DB db) {
         try {
-            File myObj = new File("./src/main/resources/collections/small_collection.tsv");
+            File myObj = new File("./src/main/resources/collections/collection.tsv");
 
             Scanner myReader = new Scanner(myObj, "UTF-8");
             BufferedWriter writer_doc_index = new BufferedWriter(new FileWriter("./src/main/resources/output/document_index.tsv"));
             writer_doc_index.write("DOC_ID" + "\t" + "DOC_NO" + "\t" + "DOC_LEN" + "\n");
 
+            System.out.println("----------------------START GENERATING INVERTED INDEX BLOCKS----------------------");
             while (myReader.hasNextLine()) {
                 String data = myReader.nextLine();
 
-                //handling of malformed lines
+                // Handling of malformed lines
                 if (!data.contains("\t"))
                     continue;
 
@@ -41,18 +39,17 @@ public class Index_Construction {
                 String doc_no = row[0];
                 String text = row[1];
 
-                //aggiungo il documento che sto processando al doc_index
+                // Add document to the document index
                 documentIndexAddition(doc_no, text, writer_doc_index);
 
-                //faccio parsing/tokenization del documento
+                // Parsing/tokenization of the document
                 parseDocumentBody(Integer.parseInt(doc_no), text);
             }
 
             writer_doc_index.close();
             myReader.close();
-
+            System.out.println("----------------------INVERTED INDEX BLOCKS READY----------------------");
             mergeBlocks(db);
-            //db.close();
         } catch (FileNotFoundException e) {
             System.out.println("An error occurred.");
             e.printStackTrace();
@@ -60,12 +57,10 @@ public class Index_Construction {
             e.printStackTrace();
         }
     }
-
     private static void documentIndexAddition(String doc_no, String text, BufferedWriter writer) throws IOException {
         int doc_len = text.getBytes().length;
         writer.write(Integer.parseInt(doc_no) + "\t" + doc_no + "\t" + doc_len + "\n");
     }
-
     public static void parseDocumentBody(int doc_id, String text) {
         Tokenizer tokenizer = new Tokenizer(text);
         Map<String, Integer> results = tokenizer.tokenize();
@@ -73,19 +68,20 @@ public class Index_Construction {
         for (String token : results.keySet())
             tokenStream.add(new Token(token, doc_id, results.get(token)));
 
-        //aggiungo token al mio stream fino a che non ho raggiunto il limite
+        // Add token to tokenStream until we reach a size threshold
         if (tokenStream.size() >= SPIMI_TOKEN_STREAM_MAX_LIMIT) {
-            //sono pronto per creare l'inverted index relativo a questo blocco
+            // Create the inverted index of the block
             invertedIndexSPIMI();
-            tokenStream.clear(); //pulisco lo stream
+            // clear the stream of token
+            tokenStream.clear();
             BLOCK_NUMBER++;
         }
     }
-
-    //guarda pseudocodice slide 59
     private static void invertedIndexSPIMI() {
 
+        // Pseudocode at slide 59
         File output_file = new File("./src/main/resources/intermediate_postings/inverted_index" + BLOCK_NUMBER + ".tsv");
+
         // one dictionary for each block
         HashMap<String, ArrayList<Posting>> dictionary = new HashMap<>();
         ArrayList<Posting> postings_list;
@@ -122,6 +118,7 @@ public class Index_Construction {
 
                 myWriter.write("\n");
             }
+            System.out.println("WRITTEN BLOCK " + BLOCK_NUMBER);
             myWriter.close();
 
         } catch (IOException e) {
@@ -130,21 +127,15 @@ public class Index_Construction {
         }
 
     }
-
     private static ArrayList<Posting> addToDictionary(Map<String, ArrayList<Posting>> vocabulary, String token) {
         int capacity = 1;
         ArrayList<Posting> postings_list = new ArrayList<>(capacity);
         vocabulary.put(token, postings_list);
         return postings_list;
     }
-
-    // MERGE:
-    // One buffered reader for each block
-    // We take the first term of each block and put it into a priority queue, sorted alphabetically
-    // Then we take the first object from the priority queue, in order to compare it with other term from other blocks
-    // The buffer is moved forward only in blocks in which we have a term equal to the current term
-
     private static void mergeBlocks(DB db) throws IOException {
+
+        System.out.println("----------------------START MERGE PHASE----------------------");
 
         Comparator<TermPositionBlock> comparator = new TermPositionBlockComparator();
         PriorityQueue<TermPositionBlock> priorityQueue = new PriorityQueue<>(BLOCK_NUMBER, comparator);
@@ -166,6 +157,7 @@ public class Index_Construction {
         for (int i = 0; i < BLOCK_NUMBER; i++) {
             readerList.add(new BufferedReader(new FileReader("./src/main/resources/intermediate_postings/" +
                     "inverted_index" + i + ".tsv")));
+            System.out.println("CREATION OF BUFFERED READER" + i);
         }
 
         // Open buffered readers, one for each block
@@ -217,7 +209,7 @@ public class Index_Construction {
             List<TermPositionBlock> itemsToAdd = new ArrayList<>();
 
             while (value.hasNext()) {
-                moveForward(priorityQueue, readerList, currentTerm, value, itemsToAdd);
+                moveForward(readerList, currentTerm, value, itemsToAdd);
             }
             priorityQueue.addAll(itemsToAdd);
         }
@@ -227,6 +219,7 @@ public class Index_Construction {
 
         inv_ind.close();
         lexicon.close();
+        System.out.println("----------------------END MERGE PHASE----------------------");
     }
 
     private static void openBufferedReaders(PriorityQueue<TermPositionBlock> priorityQueue, List<BufferedReader> readerList) throws IOException {
@@ -235,28 +228,26 @@ public class Index_Construction {
             reader.readLine();
             String line = reader.readLine();
             if (line != null) {
-                TermPositionBlock termPositionBlock = BuildTermPositionBlock(priorityQueue, readerList, reader, line);
+                TermPositionBlock termPositionBlock = BuildTermPositionBlock(readerList, reader, line);
                 priorityQueue.add(termPositionBlock);
             } else
                 reader.close();
         }
     }
-
-    private static void moveForward(PriorityQueue<TermPositionBlock> priorityQueue, List<BufferedReader> readerList, String currentTerm, Iterator<TermPositionBlock> value, List<TermPositionBlock> itemsToAdd) throws IOException {
+    private static void moveForward(List<BufferedReader> readerList, String currentTerm, Iterator<TermPositionBlock> value, List<TermPositionBlock> itemsToAdd) throws IOException {
         TermPositionBlock termPositionBlock = value.next();
         if ((termPositionBlock != null) && (Objects.equals(termPositionBlock.getTerm(), currentTerm))) {
             String nextRow = readerList.get(termPositionBlock.getBlock_index()).readLine();
             value.remove();
 
             if (nextRow != null) {
-                itemsToAdd.add(BuildTermPositionBlock(priorityQueue, readerList, readerList.get(termPositionBlock.getBlock_index()), nextRow));
+                itemsToAdd.add(BuildTermPositionBlock(readerList, readerList.get(termPositionBlock.getBlock_index()), nextRow));
             }
             else
                 readerList.get(termPositionBlock.getBlock_index()).close();
         }
     }
-
-    private static TermPositionBlock BuildTermPositionBlock(PriorityQueue<TermPositionBlock> priorityQueue, List<BufferedReader> readerList, BufferedReader reader, String line) {
+    private static TermPositionBlock BuildTermPositionBlock(List<BufferedReader> readerList, BufferedReader reader, String line) {
         String term = line.split("\t")[0];
         String postingList = line.split("\t")[1];
         ArrayList<Posting> postingArrayList = new ArrayList<>();
