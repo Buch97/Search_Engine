@@ -7,6 +7,7 @@ import it.unipi.bean.Term_Stats;
 import it.unipi.bean.Token;
 import it.unipi.utils.TermPositionBlockComparator;
 import org.mapdb.DB;
+import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
 
 import java.io.*;
@@ -24,20 +25,6 @@ public class Index_Construction {
     public static void buildDataStructures(DB db) {
         try {
             File myObj = new File("./src/main/resources/collections/small_collection.tsv");
-
-            //semplice roba di utility per creare le directory in cui ci vanno salvati i files
-            File theDir = new File("./src/main/resources/output");
-
-            if (!theDir.exists()) {
-                if (theDir.mkdirs())
-                    System.out.println("New directory '/output' created");
-            }
-
-            theDir = new File("./src/main/resources/intermediate_postings");
-            if (!theDir.exists()) {
-                if (theDir.mkdirs())
-                    System.out.println("New directory '/intermediate_postings' created");
-            }
 
             Scanner myReader = new Scanner(myObj, "UTF-8");
             BufferedWriter writer_doc_index = new BufferedWriter(new FileWriter("./src/main/resources/output/document_index.tsv"));
@@ -227,7 +214,7 @@ public class Index_Construction {
             // Reset the iterator
             value = priorityQueue.iterator();
             // List with new terms to add in the priority queue
-            List<TermPositionBlock> itemsToAdd = new ArrayList<TermPositionBlock>();
+            List<TermPositionBlock> itemsToAdd = new ArrayList<>();
 
             while (value.hasNext()) {
                 moveForward(priorityQueue, readerList, currentTerm, value, itemsToAdd);
