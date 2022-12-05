@@ -15,7 +15,7 @@ public class Collection_Statistics {
     public static int computeDocs() throws IOException {
         int docs = 0;
         BufferedReader doc_index = new BufferedReader(new FileReader("./src/main/resources/output/document_index.tsv"));
-        BufferedReader lexicon = new BufferedReader(new FileReader("./src/main/resources/output/lexicon.tsv"));
+        //BufferedReader lexicon = new BufferedReader(new FileReader("./src/main/resources/output/lexicon.tsv"));
         while (doc_index.readLine() != null)
             docs += 1;
 
@@ -25,9 +25,9 @@ public class Collection_Statistics {
     public static int computeTerms() throws IOException {
         int terms = 0;
         BufferedReader doc_index = new BufferedReader(new FileReader("./src/main/resources/output/document_index.tsv"));
-        BufferedReader lexicon = new BufferedReader(new FileReader("./src/main/resources/output/lexicon.tsv"));
-        while (lexicon.readLine() != null)
-            terms += 1;
+        //BufferedReader lexicon = new BufferedReader(new FileReader("./src/main/resources/output/lexicon.tsv"));
+        //while (lexicon.readLine() != null)
+          //  terms += 1;
 
         return terms;
     }
