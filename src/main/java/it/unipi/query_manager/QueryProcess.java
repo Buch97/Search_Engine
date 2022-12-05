@@ -1,6 +1,7 @@
 package it.unipi.query_manager;
 
 
+import it.unipi.bean.InvertedIndex;
 import it.unipi.bean.Results;
 import it.unipi.bean.Term_Stats;
 import it.unipi.build_data_structures.Tokenizer;
@@ -38,12 +39,13 @@ public class QueryProcess {
         //document_index: ci leggo la doc_length del documento che sto processando
 
         long offset;
-        ArrayList<String> L = new ArrayList<>();
+        ArrayList<Integer> L = new ArrayList<>();
         PriorityQueue<Results> R = new PriorityQueue<>(k);
         int[] pos = new int[query.size()];
         Arrays.fill(pos,0);
 
-        RandomAccessFile file_reader = new RandomAccessFile(new File("./src/main/resources/output/inverted_index.tsv"), "r");
+        //RandomAccessFile file_reader = new RandomAccessFile(new File("./src/main/resources/output/inverted_index.tsv"), "r");
+        
         for(String term : query.keySet()){
             //devo leggere dal dizionario lasciandolo su disco, non va mai messo in memoria!!!
             try {
@@ -56,8 +58,9 @@ public class QueryProcess {
 
             System.out.println(term + " " + offset);
             //accedo direttamente all'offset del file
-            file_reader.seek(offset);
-            String retrieved_posting = file_reader.readLine();
+            int retrieved_posting=InvertedIndex.getIndex().getInt((int) offset);
+            //file_reader.seek(offset);
+            //String retrieved_posting = file_reader.readLine();
             System.out.println(retrieved_posting);
             L.add(retrieved_posting);
         }

@@ -5,6 +5,7 @@ import it.unipi.query_manager.QueryProcess;
 import it.unipi.utils.Collection_Statistics;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
+import it.unipi.bean.InvertedIndex;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -38,7 +39,12 @@ public class Main {
         Index_Construction.buildDataStructures(db);
         num_docs = Collection_Statistics.computeDocs();
         num_terms = Collection_Statistics.computeTerms();
-        for(;;) {
+        InvertedIndex index=new InvertedIndex("./src/main/resources/output/document_index.tsv");
+
+
+
+
+         for(;;) {
             System.out.println("Please, submit your query! Otherwise digit \"!exit\" to stop the execution.");
             BufferedReader reader = new BufferedReader(
                     new InputStreamReader(System.in));
@@ -49,7 +55,8 @@ public class Main {
             }
             System.out.println("Your request: " + query);
             QueryProcess.parseQuery(query, k, db);
-        }
+        } 
+        
 
 
     }
