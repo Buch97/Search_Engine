@@ -10,6 +10,8 @@ import org.mapdb.DB;
 import org.mapdb.HTreeMap;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 
 
@@ -141,7 +143,7 @@ public class Index_Construction {
         Comparator<TermPositionBlock> comparator = new TermPositionBlockComparator();
         // Priority queue with size equal to the number of blocks
         PriorityQueue<TermPositionBlock> priorityQueue = new PriorityQueue<>(BLOCK_NUMBER, comparator);
-        // List of terms added to the priority queue during the move forwars phase
+        // List of terms added to the priority queue during the move forward phase
         List<BufferedReader> readerList = new ArrayList<>();
 
         // Definition of parameters that describe the term in lexicon
@@ -154,16 +156,21 @@ public class Index_Construction {
         HTreeMap<String, Term_Stats> myMapLexicon = (HTreeMap<String, Term_Stats>) db.hashMap("lexicon").createOrOpen();
 
         // Open write buffers for lexicon and inverted index
-        BufferedWriter inv_ind = new BufferedWriter(new FileWriter("./src/main/resources/output/inverted_index.tsv"));
-        BufferedWriter lexicon = new BufferedWriter(new FileWriter("./src/main/resources/output/lexicon.tsv"));
-        String header = "TERM" + "\t" + "DOC_FREQUENCY" + "\t" + "COLL_FREQUENCY" + "\t" + "BYTE_OFFSET_PL" + "\n";
-        lexicon.write(header);
+        // BufferedWriter inv_ind_doc_id = new BufferedWriter(new FileWriter("./src/main/resources/output/inverted_index_doc_id.tsv"));
+        // BufferedWriter inv_ind_term_frequency = new BufferedWriter(new FileWriter("./src/main/resources/output/inverted_index_term_frequency.tsv"));
+        // From int to binary
+        DataOutputStream inv_ind_doc_id_bin = new DataOutputStream(new BufferedOutputStream
+                (Files.newOutputStream(Paths.get("./src/main/resources/output/inverted_index_doc_id_bin.dat"))));
+        DataOutputStream inv_ind_term_frequency_bin = new DataOutputStream(new BufferedOutputStream
+                (Files.newOutputStream(Paths.get("./src/main/resources/output/inverted_index_term_frequency_bin.dat"))));
+        //BufferedWriter lexicon = new BufferedWriter(new FileWriter("./src/main/resources/output/lexicon.tsv"));
+        //String header = "TERM" + "\t" + "DOC_FREQUENCY" + "\t" + "COLL_FREQUENCY" + "\t" + "BYTE_OFFSET_PL" + "\n";
+        //lexicon.write(header);
 
         // array of buffered reader to read each block at the same time
         for (int i = 0; i < BLOCK_NUMBER; i++) {
             readerList.add(new BufferedReader(new FileReader("./src/main/resources/intermediate_postings/" +
                     "inverted_index" + i + ".tsv")));
-            System.out.println("CREATION OF BUFFERED READER" + i);
         }
 
         // Open buffered readers, one for each block
@@ -178,14 +185,14 @@ public class Index_Construction {
             String currentTerm = priorityQueue.peek().getTerm();
 
             // Add to lexicon the current term
-            lexicon.write(currentTerm + "\t");
+            //lexicon.write(currentTerm + "\t");
             doc_frequency = 0;
             coll_frequency = 0;
             actual_offset = offset;
 
             // Definition of iterator to scan the priority queue
             Iterator<TermPositionBlock> value = priorityQueue.iterator();
-
+            System.out.println("MERGING POSTINGS OF TERM " + currentTerm + " ...");
             while (value.hasNext()) {
 
                 // New object that has to be tested against the current term
@@ -200,18 +207,22 @@ public class Index_Construction {
                     doc_frequency += postings.size();
                     for (Posting posting : postings) {
                         coll_frequency += posting.getTerm_frequency();
-                        inv_ind.append(posting.toString()).append(" ");
+                        // inv_ind_doc_id.append((char) posting.getDoc_id()).append(" ");
+                        // inv_ind_term_frequency.append((char) posting.getTerm_frequency()).append(" ");
+                        inv_ind_doc_id_bin.writeInt(posting.getDoc_id());
+                        inv_ind_term_frequency_bin.writeInt(posting.getTerm_frequency());
                     }
                     offset += postings.toString().getBytes().length;
                 }
             }
 
             // Build inverted index
-            inv_ind.write("\n");
+            //inv_ind_doc_id.write("\n");
+            //inv_ind_term_frequency.write("\n");
 
             // Build lexicon
             offset += "\n".getBytes().length;
-            lexicon.write(doc_frequency + "\t" + coll_frequency + "\t" + actual_offset + "\n");
+            //lexicon.write(doc_frequency + "\t" + coll_frequency + "\t" + actual_offset + "\n");
             myMapLexicon.put(currentTerm, new Term_Stats(doc_frequency, coll_frequency, actual_offset));
 
             // Reset the iterator
@@ -228,8 +239,9 @@ public class Index_Construction {
         for (BufferedReader reader : readerList)
             reader.close();
 
-        inv_ind.close();
-        lexicon.close();
+        inv_ind_term_frequency_bin.close();
+        inv_ind_doc_id_bin.close();
+        //lexicon.close();
         System.out.println("----------------------END MERGE PHASE----------------------");
     }
     private static void openBufferedReaders(PriorityQueue<TermPositionBlock> priorityQueue, List<BufferedReader> readerList) throws IOException {
