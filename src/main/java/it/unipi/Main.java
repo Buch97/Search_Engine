@@ -2,7 +2,7 @@ package it.unipi;
 
 import it.unipi.builddatastructures.IndexConstruction;
 import it.unipi.querymanager.QueryProcess;
-import it.unipi.utils.Collection_Statistics;
+import it.unipi.utils.CollectionStatistics;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import it.unipi.bean.RafInvertedIndex;
@@ -37,9 +37,9 @@ public class Main {
         db = DBMaker.fileDB("./src/main/resources/output/lexicon_disk_based.db").checksumHeaderBypass().make();
 
         IndexConstruction.buildDataStructures(db);
-        num_docs = Collection_Statistics.computeDocs();
-        num_terms = Collection_Statistics.computeTerms();
-        RafInvertedIndex index = new RafInvertedIndex("./src/main/resources/output/inverted_index_doc_id_bin.dat",
+        num_docs = CollectionStatistics.computeDocs();
+        num_terms = CollectionStatistics.computeTerms();
+        RafInvertedIndex rafInvertedIndex = new RafInvertedIndex("./src/main/resources/output/inverted_index_doc_id_bin.dat",
                 "./src/main/resources/output/inverted_index_term_frequency_bin.dat");
 
          for(;;) {
@@ -52,10 +52,7 @@ public class Main {
                 System.exit(0);
             }
             System.out.println("Your request: " + query);
-            QueryProcess.parseQuery(query, k, db);
+            QueryProcess.parseQuery(query, k, db, rafInvertedIndex);
         }
-
-
-
     }
 }

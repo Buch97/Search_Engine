@@ -6,11 +6,10 @@ package it.unipi.utils;
 //non è obbligatoria però ce nelle sue slide e non ci vuole nulla a farla
 
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 
-public class Collection_Statistics {
+public class CollectionStatistics {
 
     public static int computeDocs() throws IOException {
         int docs = 0;

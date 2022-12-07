@@ -3,6 +3,7 @@ package it.unipi.builddatastructures;
 import it.unipi.bean.Posting;
 import it.unipi.bean.TermPositionBlock;
 import it.unipi.bean.TermStats;
+import it.unipi.utils.Compression;
 import it.unipi.utils.TermPositionBlockComparator;
 import org.mapdb.DB;
 import org.mapdb.HTreeMap;
@@ -90,15 +91,19 @@ public class MergeBlocks {
                 if (Objects.equals(term, currentTerm)) {
                     // If equals, then update parameters of the term
                     doc_frequency += postings.size();
-                    size = 4 * postings.size();
+                    size =  postings.size();
                     for (Posting posting : postings) {
                         coll_frequency += posting.getTerm_frequency();
                         // inv_ind_doc_id.append((char) posting.getDoc_id()).append(" ");
                         // inv_ind_term_frequency.append((char) posting.getTerm_frequency()).append(" ");
-                        inv_ind_doc_id_bin.writeInt(posting.getDoc_id());
-                        inv_ind_term_frequency_bin.writeInt(posting.getTerm_frequency());
-                        offset_doc_id += 4;
-                        offset_term_freq += 4;
+                        BitSet doc_id_compressed = Compression.gammaEncoding(posting.getDoc_id());
+                        inv_ind_doc_id_bin.write(doc_id_compressed.toByteArray());
+
+                        BitSet term_freq_compressed = Compression.unaryEncoding(posting.getTerm_frequency());
+                        inv_ind_term_frequency_bin.write(term_freq_compressed.toByteArray());
+
+                        offset_doc_id += doc_id_compressed.size()/8;
+                        offset_term_freq += term_freq_compressed.size()/8;
                     }
                     inv_ind_doc_id_bin.flush();
                     inv_ind_term_frequency_bin.flush();
