@@ -1,174 +1,58 @@
-package it.unipi.build_data_structures;
-
+package it.unipi.builddatastructures;
 
 import it.unipi.bean.Posting;
 import it.unipi.bean.TermPositionBlock;
-import it.unipi.bean.Term_Stats;
-import it.unipi.bean.Token;
+import it.unipi.bean.TermStats;
 import it.unipi.utils.TermPositionBlockComparator;
 import org.mapdb.DB;
 import org.mapdb.HTreeMap;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
 
+import static java.lang.Math.round;
 
-public class Index_Construction {
+public class MergeBlocks {
 
-    //dimensione per costruire i blocchi messa ora per prova a 3000 su una small collection
-    public final static int SPIMI_TOKEN_STREAM_MAX_LIMIT = 3000;
-    public final static List<Token> tokenStream = new ArrayList<>();
-    public static int BLOCK_NUMBER = 0; //indice da usare per scrivere i file parziali dell'inverted index
-    public static void buildDataStructures(DB db) {
-        try {
-            File myObj = new File("./src/main/resources/collections/small_collection.tsv");
+    private MergeBlocks (){}
 
-            Scanner myReader = new Scanner(myObj, "UTF-8");
-            BufferedWriter writer_doc_index = new BufferedWriter(new FileWriter("./src/main/resources/output/document_index.tsv"));
-            writer_doc_index.write("DOC_ID" + "\t" + "DOC_NO" + "\t" + "DOC_LEN" + "\n");
-
-            System.out.println("----------------------START GENERATING INVERTED INDEX BLOCKS----------------------");
-            while (myReader.hasNextLine()) {
-                String data = myReader.nextLine();
-
-                // Handling of malformed lines
-                if (!data.contains("\t"))
-                    continue;
-
-                String[] row = data.split("\t");
-                String doc_no = row[0];
-                String text = row[1];
-
-                // Add document to the document index
-                documentIndexAddition(doc_no, text, writer_doc_index);
-
-                // Parsing/tokenization of the document
-                parseDocumentBody(Integer.parseInt(doc_no), text);
-            }
-
-            writer_doc_index.close();
-            myReader.close();
-            System.out.println("----------------------INVERTED INDEX BLOCKS READY----------------------");
-            mergeBlocks(db);
-        } catch (FileNotFoundException e) {
-            System.out.println("An error occurred.");
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-    private static void documentIndexAddition(String doc_no, String text, BufferedWriter writer) throws IOException {
-        int doc_len = text.getBytes().length;
-        writer.write(Integer.parseInt(doc_no) + "\t" + doc_no + "\t" + doc_len + "\n");
-    }
-    public static void parseDocumentBody(int doc_id, String text) {
-        Tokenizer tokenizer = new Tokenizer(text);
-        Map<String, Integer> results = tokenizer.tokenize();
-
-        for (String token : results.keySet())
-            tokenStream.add(new Token(token, doc_id, results.get(token)));
-
-        // Add token to tokenStream until we reach a size threshold
-        if (tokenStream.size() >= SPIMI_TOKEN_STREAM_MAX_LIMIT) {
-            // Create the inverted index of the block
-            invertedIndexSPIMI();
-            // clear the stream of token
-            tokenStream.clear();
-            BLOCK_NUMBER++;
-        }
-    }
-    private static void invertedIndexSPIMI() {
-
-        // Pseudocode at slide 59
-        File output_file = new File("./src/main/resources/intermediate_postings/inverted_index" + BLOCK_NUMBER + ".tsv");
-
-        // one dictionary for each block
-        HashMap<String, ArrayList<Posting>> dictionary = new HashMap<>();
-        ArrayList<Posting> postings_list;
-
-        //while (Runtime.getRuntime().freeMemory() > 0) {
-        for (Token token : Index_Construction.tokenStream) {
-            if (!dictionary.containsKey(token.getTerm()))
-                postings_list = addToDictionary(dictionary, token.getTerm());
-            else
-                postings_list = dictionary.get(token.getTerm());
-
-            if (!postings_list.contains(null)) {
-                int capacity = postings_list.size() * 2;
-                postings_list.ensureCapacity(capacity); //aumenta la length dell arraylist
-            }
-
-            postings_list.add(new Posting(token.getDoc_id(), token.getFrequency()));
-        }
-        //}
-
-        //faccio il sort del vocabolario per facilitare la successiva fase di merging
-        TreeMap<String, ArrayList<Posting>> sorted_dictionary = new TreeMap<>(dictionary);
-
-        try {
-            //scrivo sul file
-            FileWriter myWriter = new FileWriter(output_file);
-            myWriter.write("TERM" + "\t" + "POSTING_LIST" + "\n");
-
-            for (String term : sorted_dictionary.keySet()) {
-                myWriter.write(term + "\t");
-
-                for (Posting p : sorted_dictionary.get(term))
-                    myWriter.write(p.getDoc_id() + ":" + p.getTerm_frequency() + " ");
-
-                myWriter.write("\n");
-            }
-            System.out.println("WRITTEN BLOCK " + BLOCK_NUMBER);
-            myWriter.close();
-
-        } catch (IOException e) {
-            System.out.println("An error occurred.");
-            e.printStackTrace();
-        }
-
-    }
-    private static ArrayList<Posting> addToDictionary(Map<String, ArrayList<Posting>> vocabulary, String token) {
-        int capacity = 1;
-        ArrayList<Posting> postings_list = new ArrayList<>(capacity);
-        vocabulary.put(token, postings_list);
-        return postings_list;
-    }
-    private static void mergeBlocks(DB db) throws IOException {
+    public static void mergeBlocks(DB db, int blockNumber) throws IOException {
 
         System.out.println("----------------------START MERGE PHASE----------------------");
 
         // Definition of comparator, implemented in Class TermPositionBlock
         Comparator<TermPositionBlock> comparator = new TermPositionBlockComparator();
         // Priority queue with size equal to the number of blocks
-        PriorityQueue<TermPositionBlock> priorityQueue = new PriorityQueue<>(BLOCK_NUMBER, comparator);
+        PriorityQueue<TermPositionBlock> priorityQueue = new PriorityQueue<>(blockNumber, comparator);
         // List of terms added to the priority queue during the move forward phase
         List<BufferedReader> readerList = new ArrayList<>();
 
-        // Definition of parameters that describe the term in lexicon
-        long offset = 0;
+        // Definition of parameters that describe the term in the blocks
+        long offset_doc_id = 0;
+        long offset_term_freq = 0;
         int doc_frequency;
         int coll_frequency;
-        long actual_offset;
+        long actual_offset_doc_id;
+        long actual_offset_term_freq;
+        int size = 1;
 
         // Disk based lexicon using the HTreeMap
-        HTreeMap<String, Term_Stats> myMapLexicon = (HTreeMap<String, Term_Stats>) db.hashMap("lexicon").createOrOpen();
+        HTreeMap<String, TermStats> myMapLexicon = (HTreeMap<String, TermStats>) db.hashMap("lexicon").createOrOpen();
 
         // Open write buffers for lexicon and inverted index
         // BufferedWriter inv_ind_doc_id = new BufferedWriter(new FileWriter("./src/main/resources/output/inverted_index_doc_id.tsv"));
         // BufferedWriter inv_ind_term_frequency = new BufferedWriter(new FileWriter("./src/main/resources/output/inverted_index_term_frequency.tsv"));
         // From int to binary
         DataOutputStream inv_ind_doc_id_bin = new DataOutputStream(new BufferedOutputStream
-                (Files.newOutputStream(Paths.get("./src/main/resources/output/inverted_index_doc_id_bin.dat"))));
+                (new FileOutputStream("./src/main/resources/output/inverted_index_doc_id_bin.dat")));
         DataOutputStream inv_ind_term_frequency_bin = new DataOutputStream(new BufferedOutputStream
-                (Files.newOutputStream(Paths.get("./src/main/resources/output/inverted_index_term_frequency_bin.dat"))));
+                (new FileOutputStream("./src/main/resources/output/inverted_index_term_frequency_bin.dat")));
         //BufferedWriter lexicon = new BufferedWriter(new FileWriter("./src/main/resources/output/lexicon.tsv"));
         //String header = "TERM" + "\t" + "DOC_FREQUENCY" + "\t" + "COLL_FREQUENCY" + "\t" + "BYTE_OFFSET_PL" + "\n";
         //lexicon.write(header);
 
         // array of buffered reader to read each block at the same time
-        for (int i = 0; i < BLOCK_NUMBER; i++) {
+        for (int i = 0; i < blockNumber; i++) {
             readerList.add(new BufferedReader(new FileReader("./src/main/resources/intermediate_postings/" +
                     "inverted_index" + i + ".tsv")));
         }
@@ -183,16 +67,17 @@ public class Index_Construction {
 
             // Peek first term
             String currentTerm = priorityQueue.peek().getTerm();
+            //System.out.println("PROCESSING TERM " + currentTerm + "...");
 
             // Add to lexicon the current term
             //lexicon.write(currentTerm + "\t");
             doc_frequency = 0;
             coll_frequency = 0;
-            actual_offset = offset;
+            actual_offset_doc_id = offset_doc_id;
+            actual_offset_term_freq = offset_term_freq;
 
             // Definition of iterator to scan the priority queue
             Iterator<TermPositionBlock> value = priorityQueue.iterator();
-            System.out.println("MERGING POSTINGS OF TERM " + currentTerm + " ...");
             while (value.hasNext()) {
 
                 // New object that has to be tested against the current term
@@ -203,16 +88,20 @@ public class Index_Construction {
 
                 // Compare new term with current term
                 if (Objects.equals(term, currentTerm)) {
-                    // If equals update parameters of the term
+                    // If equals, then update parameters of the term
                     doc_frequency += postings.size();
+                    size = 4 * postings.size();
                     for (Posting posting : postings) {
                         coll_frequency += posting.getTerm_frequency();
                         // inv_ind_doc_id.append((char) posting.getDoc_id()).append(" ");
                         // inv_ind_term_frequency.append((char) posting.getTerm_frequency()).append(" ");
                         inv_ind_doc_id_bin.writeInt(posting.getDoc_id());
                         inv_ind_term_frequency_bin.writeInt(posting.getTerm_frequency());
+                        offset_doc_id += 4;
+                        offset_term_freq += 4;
                     }
-                    offset += postings.toString().getBytes().length;
+                    inv_ind_doc_id_bin.flush();
+                    inv_ind_term_frequency_bin.flush();
                 }
             }
 
@@ -221,9 +110,9 @@ public class Index_Construction {
             //inv_ind_term_frequency.write("\n");
 
             // Build lexicon
-            offset += "\n".getBytes().length;
+            // offset += "\n".getBytes().length;
             //lexicon.write(doc_frequency + "\t" + coll_frequency + "\t" + actual_offset + "\n");
-            myMapLexicon.put(currentTerm, new Term_Stats(doc_frequency, coll_frequency, actual_offset));
+            myMapLexicon.put(currentTerm, new TermStats(doc_frequency, coll_frequency, actual_offset_doc_id, actual_offset_term_freq, size));
 
             // Reset the iterator
             value = priorityQueue.iterator();
