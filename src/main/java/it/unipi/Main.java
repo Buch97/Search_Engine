@@ -1,11 +1,11 @@
 package it.unipi;
 
-import it.unipi.build_data_structures.Index_Construction;
-import it.unipi.query_manager.QueryProcess;
+import it.unipi.builddatastructures.IndexConstruction;
+import it.unipi.querymanager.QueryProcess;
 import it.unipi.utils.Collection_Statistics;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
-import it.unipi.bean.InvertedIndex;
+import it.unipi.bean.RafInvertedIndex;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -36,13 +36,11 @@ public class Main {
 
         db = DBMaker.fileDB("./src/main/resources/output/lexicon_disk_based.db").checksumHeaderBypass().make();
 
-        Index_Construction.buildDataStructures(db);
+        IndexConstruction.buildDataStructures(db);
         num_docs = Collection_Statistics.computeDocs();
         num_terms = Collection_Statistics.computeTerms();
-        InvertedIndex index=new InvertedIndex("./src/main/resources/output/document_index.tsv");
-
-
-
+        RafInvertedIndex index = new RafInvertedIndex("./src/main/resources/output/inverted_index_doc_id_bin.dat",
+                "./src/main/resources/output/inverted_index_term_frequency_bin.dat");
 
          for(;;) {
             System.out.println("Please, submit your query! Otherwise digit \"!exit\" to stop the execution.");
@@ -55,8 +53,8 @@ public class Main {
             }
             System.out.println("Your request: " + query);
             QueryProcess.parseQuery(query, k, db);
-        } 
-        
+        }
+
 
 
     }

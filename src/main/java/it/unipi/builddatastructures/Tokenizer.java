@@ -1,4 +1,4 @@
-package it.unipi.build_data_structures;
+package it.unipi.builddatastructures;
 
 import java.util.*;
 
