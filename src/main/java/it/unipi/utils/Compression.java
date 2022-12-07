@@ -20,15 +20,16 @@ public class Compression {
         return bitSet;
     }
 
-    public static int gammaDecoding(BitSet bitSet) {
-        int i = 0;
+    public static int gammaDecodingList(BitSet bitSet,int pos) {
+        int i = pos;
         BitSet bs;
+
         while (i < bitSet.size()) {
             if (!bitSet.get(i))
                 break;
             i++;
         }
-        bs = new BitSet(bitSet.size() - i);
+        bs = new BitSet(i);
         bs.set(0, true);
         int cont = 1;
         while (cont < bs.size()) {
@@ -36,6 +37,7 @@ public class Compression {
             bs.set(cont, bitSet.get(i));
             cont++;
         }
+        AuxObject.setPosG(i);
         return toInt(bs);
     }
 
@@ -71,12 +73,13 @@ public class Compression {
         return intValue;
     }
 
-    public static int decodingUnary(BitSet bitSet, int size) {
 
-        int count = 0;
 
-        for (int i = 0; i < size; i++) {
+    public static int decodingUnaryList(BitSet bitSet, int pos) {
+        int count=0;
+        for (int i = pos; i < bitSet.size(); i++) {
             if (!bitSet.get(i)) {
+                AuxObject.setPosU(++i);
                 return ++count;
             } else {
                 count++;

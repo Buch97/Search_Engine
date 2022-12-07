@@ -6,6 +6,7 @@ import it.unipi.bean.Posting;
 import it.unipi.bean.Results;
 import it.unipi.bean.TermStats;
 import it.unipi.builddatastructures.Tokenizer;
+import it.unipi.utils.AuxObject;
 import it.unipi.utils.Compression;
 import org.mapdb.DB;
 
@@ -57,15 +58,13 @@ public class QueryProcess {
                 RafInvertedIndex.getIndex_doc_id().get(doc_id_buffer, (int) offset_doc_id, size*4);
                 RafInvertedIndex.getIndex_term_freq().get(term_freq_buffer, (int) offset_doc_id, size*4);
 
+                AuxObject auxObj=new AuxObject(0);
                 for (int i = 0; i < size; i++) {
-                    BitSet bitSet = BitSet.valueOf(term_freq_buffer);
-                    int term_freq = Compression.decodingUnary(bitSet, size);
+                    
+                    int term_freq=Compression.decodingUnaryList(BitSet.valueOf(term_freq_buffer),auxObj.getPosU());
+                    int doc_id = Compression.gammaDecodingList(BitSet.valueOf(doc_id_buffer),auxObj.getPosG());
 
-                    bitSet = BitSet.valueOf(doc_id_buffer);
-                    int doc_id = Compression.decodingGamma(bitSet, size);
-
-                    Posting posting = new Posting(doc_id, term_freq);
-                    query_posting_list.add(posting);
+                    query_posting_list.add(new Posting(doc_id, term_freq));
                 }
 
                 L.add(query_posting_list);
