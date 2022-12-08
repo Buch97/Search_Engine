@@ -12,9 +12,12 @@ public class RafInvertedIndex {
 
     public RafInvertedIndex(String inv_index_docid, String inv_index_term_freq) throws IOException {
         RandomAccessFile raf_docid = new RandomAccessFile(inv_index_docid, "rw");
+        FileChannel fileChannel_doc_id = raf_docid.getChannel();
         RandomAccessFile raf_term_freq = new RandomAccessFile(inv_index_term_freq, "rw");
-        index_doc_id = raf_docid.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, Files.size(Paths.get(inv_index_docid)));
-        index_term_freq = raf_term_freq.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, Files.size(Paths.get(inv_index_term_freq)));
+        FileChannel fileChannel_term_freq = raf_term_freq.getChannel();
+
+        index_doc_id = fileChannel_doc_id.map(FileChannel.MapMode.READ_WRITE, 0, fileChannel_doc_id.size());
+        index_term_freq = fileChannel_term_freq.map(FileChannel.MapMode.READ_WRITE, 0, fileChannel_term_freq.size());
     }
 
     public static MappedByteBuffer getIndex_doc_id() {

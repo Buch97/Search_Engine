@@ -11,11 +11,10 @@ import org.mapdb.HTreeMap;
 import java.io.*;
 import java.util.*;
 
-import static java.lang.Math.round;
-
 public class MergeBlocks {
 
-    private MergeBlocks (){}
+    private MergeBlocks() {
+    }
 
     public static void mergeBlocks(DB db, int blockNumber) throws IOException {
 
@@ -44,9 +43,9 @@ public class MergeBlocks {
         // BufferedWriter inv_ind_doc_id = new BufferedWriter(new FileWriter("./src/main/resources/output/inverted_index_doc_id.tsv"));
         // BufferedWriter inv_ind_term_frequency = new BufferedWriter(new FileWriter("./src/main/resources/output/inverted_index_term_frequency.tsv"));
         // From int to binary
-        DataOutputStream inv_ind_doc_id_bin = new DataOutputStream(new BufferedOutputStream
+        ObjectOutputStream inv_ind_doc_id_bin = new ObjectOutputStream(new BufferedOutputStream
                 (new FileOutputStream("./src/main/resources/output/inverted_index_doc_id_bin.dat")));
-        DataOutputStream inv_ind_term_frequency_bin = new DataOutputStream(new BufferedOutputStream
+        ObjectOutputStream inv_ind_term_frequency_bin = new ObjectOutputStream(new BufferedOutputStream
                 (new FileOutputStream("./src/main/resources/output/inverted_index_term_frequency_bin.dat")));
         //BufferedWriter lexicon = new BufferedWriter(new FileWriter("./src/main/resources/output/lexicon.tsv"));
         //String header = "TERM" + "\t" + "DOC_FREQUENCY" + "\t" + "COLL_FREQUENCY" + "\t" + "BYTE_OFFSET_PL" + "\n";
@@ -91,20 +90,26 @@ public class MergeBlocks {
                 if (Objects.equals(term, currentTerm)) {
                     // If equals, then update parameters of the term
                     doc_frequency += postings.size();
-                    size =  postings.size();
+                    size = postings.size();
+
+                    byte[] doc_id_compressed;
+                    byte[] term_freq;
+
                     for (Posting posting : postings) {
                         coll_frequency += posting.getTerm_frequency();
                         // inv_ind_doc_id.append((char) posting.getDoc_id()).append(" ");
                         // inv_ind_term_frequency.append((char) posting.getTerm_frequency()).append(" ");
-                        BitSet doc_id_compressed = Compression.gammaEncoding(posting.getDoc_id());
-                        inv_ind_doc_id_bin.write(doc_id_compressed.toByteArray());
+                        byte[] doc_id_compressed = Compression.gammaEncoding(posting.getDoc_id()).toByteArray();
+                        //inv_ind_doc_id_bin.write(doc_id_compressed.toByteArray());
 
-                        BitSet term_freq_compressed = Compression.unaryEncoding(posting.getTerm_frequency());
-                        inv_ind_term_frequency_bin.write(term_freq_compressed.toByteArray());
+                        //BitSet term_freq_compressed = Compression.unaryEncoding(posting.getTerm_frequency());
+                        //inv_ind_term_frequency_bin.write(term_freq_compressed.toByteArray());
 
-                        offset_doc_id += doc_id_compressed.size()/8;
-                        offset_term_freq += term_freq_compressed.size()/8;
                     }
+
+                    // offset_doc_id = doc_id_compressed.length;
+                    // offset_term_freq = term_freq_compressed.length;
+
                     inv_ind_doc_id_bin.flush();
                     inv_ind_term_frequency_bin.flush();
                 }
@@ -138,6 +143,7 @@ public class MergeBlocks {
         //lexicon.close();
         System.out.println("----------------------END MERGE PHASE----------------------");
     }
+
     private static void openBufferedReaders(PriorityQueue<TermPositionBlock> priorityQueue, List<BufferedReader> readerList) throws IOException {
         // For each reader read one line ad build an object TermPositionBlock
         // Add that object to priority queue
@@ -152,6 +158,7 @@ public class MergeBlocks {
                 reader.close();
         }
     }
+
     private static void moveForward(List<BufferedReader> readerList, String currentTerm, Iterator<TermPositionBlock> value, List<TermPositionBlock> itemsToAdd) throws IOException {
         // Check each object in priority queue
         // Remove only terms equals to current term and read the next line in each of these blocks
@@ -162,11 +169,11 @@ public class MergeBlocks {
 
             if (nextRow != null) {
                 itemsToAdd.add(BuildTermPositionBlock(readerList, readerList.get(termPositionBlock.getBlock_index()), nextRow));
-            }
-            else
+            } else
                 readerList.get(termPositionBlock.getBlock_index()).close();
         }
     }
+
     private static TermPositionBlock BuildTermPositionBlock(List<BufferedReader> readerList, BufferedReader reader, String line) {
         String term = line.split("\t")[0];
         String postingList = line.split("\t")[1];
@@ -178,5 +185,18 @@ public class MergeBlocks {
             postingArrayList.add(new Posting(doc_id, term_freq));
         }
         return new TermPositionBlock(term, postingArrayList, readerList.indexOf(reader));
+    }
+
+    private static void printBitSet(BitSet bi) {
+
+        StringBuilder s = new StringBuilder();
+        if (bi.cardinality() == 0) {
+            System.out.println(0);
+            return;
+        }
+        for (int i = 0; i < bi.length() + 1; i++) {
+            s.append(bi.get(i) ? 1 : 0);
+        }
+        System.out.println(s);
     }
 }

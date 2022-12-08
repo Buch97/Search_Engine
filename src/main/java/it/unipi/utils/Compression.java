@@ -1,5 +1,7 @@
 package it.unipi.utils;
 
+import it.unipi.builddatastructures.MergeBlocks;
+
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
@@ -42,9 +44,13 @@ public class Compression {
     }
 
     public static BitSet unaryEncoding(int n) {
-        BitSet bitSet = new BitSet(n + 1);
-        bitSet.set(0, n, true);
-        bitSet.set(n, false);
+        BitSet bitSet = new BitSet(n);
+        if (n == 1) {
+            bitSet.clear(0);
+            return bitSet;
+        }
+        bitSet.set(0, n - 1, true);
+        bitSet.clear(n - 1);
         return bitSet;
     }
 

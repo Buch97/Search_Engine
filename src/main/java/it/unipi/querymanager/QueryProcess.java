@@ -34,17 +34,13 @@ public class QueryProcess {
         long offset_doc_id;
         long offset_term_freq;
         int size;
-        Map<Integer, Integer> doc_scores;
+        Map<Integer, Integer> doc_scores = new HashMap<>();
 
-        ArrayList<List> L = new ArrayList<>(query_length);
+        ArrayList<List<Posting>> L = new ArrayList<List<Posting>>(query_length);
         PriorityQueue<Results> R = new PriorityQueue<>(k);
 
         int[] pos = new int[query_term_frequency.size()];
         Arrays.fill(pos,0);
-
-        // for all term w in Q
-        //    li <-- invertedList(wi, I)
-        //    L.add(li)
 
         for(String term : query_term_frequency.keySet()){
             List<Posting> query_posting_list = new ArrayList<>();
@@ -56,11 +52,11 @@ public class QueryProcess {
                 byte[] doc_id_buffer = new byte[size*4];
                 byte[] term_freq_buffer = new byte[size*4];
                 RafInvertedIndex.getIndex_doc_id().get(doc_id_buffer, (int) offset_doc_id, size*4);
-                RafInvertedIndex.getIndex_term_freq().get(term_freq_buffer, (int) offset_doc_id, size*4);
+                RafInvertedIndex.getIndex_term_freq().get(term_freq_buffer, (int) offset_term_freq, size*4);
 
                 AuxObject auxObj=new AuxObject(0);
                 for (int i = 0; i < size; i++) {
-                    
+
                     int term_freq=Compression.decodingUnaryList(BitSet.valueOf(term_freq_buffer),auxObj.getPosU());
                     int doc_id = Compression.gammaDecodingList(BitSet.valueOf(doc_id_buffer),auxObj.getPosG());
 
@@ -70,12 +66,32 @@ public class QueryProcess {
                 L.add(query_posting_list);
             }
             catch (NullPointerException e){
-                //significa che questo termine non sta nel lexicon e non ha quindi posting list
+                System.out.println("Term not in collection");
+                return;
             }
+
         }
 
-        int docid = minDocId(pos, num_docs);
-        int last_docid = maxDocId(pos, num_docs);
+        int currentDocId = minDocId(pos, num_docs);
+        int lastDocId = maxDocId(pos, num_docs);
+
+        while(currentDocId <= lastDocId){
+            doc_scores.put(currentDocId, 0);
+            // for all inverted list li in L
+            for (List<Posting> posting_list : L){
+                Iterator<Posting> iterator = posting_list.iterator();
+                while (iterator.hasNext()){
+                    Posting posting = iterator.next();
+                    int doc_id = posting.getDoc_id();
+                    int term_freq = posting.getTerm_frequency();
+
+                    if(currentDocId == doc_id){
+                        // aggiorna score
+                    }
+                }
+                currentDocId++;
+            }
+        }
 
         // Set score of each doc equal to 0
         // For all posting list in L

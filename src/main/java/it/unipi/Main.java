@@ -39,8 +39,8 @@ public class Main {
         IndexConstruction.buildDataStructures(db);
         num_docs = CollectionStatistics.computeDocs();
         num_terms = CollectionStatistics.computeTerms();
-        RafInvertedIndex rafInvertedIndex = new RafInvertedIndex("./src/main/resources/output/inverted_index_doc_id_bin.dat",
-                "./src/main/resources/output/inverted_index_term_frequency_bin.dat");
+        RafInvertedIndex rafInvertedIndex = new RafInvertedIndex("src/main/resources/output/inverted_index_doc_id_bin.dat",
+                "src/main/resources/output/inverted_index_term_frequency_bin.dat");
 
          for(;;) {
             System.out.println("Please, submit your query! Otherwise digit \"!exit\" to stop the execution.");
