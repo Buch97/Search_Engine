@@ -1,24 +1,26 @@
 package it.unipi.querymanager;
 
 
-import it.unipi.bean.RafInvertedIndex;
 import it.unipi.bean.Posting;
+import it.unipi.bean.RafInvertedIndex;
 import it.unipi.bean.Results;
 import it.unipi.bean.TermStats;
+import it.unipi.builddatastructures.MergeBlocks;
 import it.unipi.builddatastructures.Tokenizer;
-import it.unipi.utils.AuxObject;
 import it.unipi.utils.Compression;
 import org.mapdb.DB;
-import org.mapdb.HTreeMap;
+import org.mapdb.DataInput2;
 
-import java.io.*;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.*;
 
 import static it.unipi.Main.num_docs;
+import static org.mapdb.DataInput2.*;
 
 public class QueryProcess {
 
-    public static void parseQuery(String query, int k, DB db, RafInvertedIndex rafInvertedIndex) throws IOException {
+    public static void parseQuery(String query, int k, DB db) throws IOException {
         Tokenizer tokenizer = new Tokenizer(query);
         Map<String, Integer> query_term_frequency = tokenizer.tokenize();
         Integer query_length = 0;
@@ -27,75 +29,83 @@ public class QueryProcess {
             System.out.println(token + " " + query_term_frequency.get(token));
         }
         System.out.println("Query length = " + query_length);
-        daatScoring(query_term_frequency, query_length, k, db, rafInvertedIndex);
+        daatScoring(query_term_frequency, query_length, k, db);
     }
 
-    private static void daatScoring(Map<String, Integer> query_term_frequency, int query_length, int k, DB db, RafInvertedIndex rafInvertedIndex) throws IOException {
+    private static void daatScoring(Map<String, Integer> query_term_frequency, int query_length, int k, DB db) throws IOException {
 
-        long offset_doc_id;
-        long offset_term_freq;
-        int size;
+        long offset_doc_id_start;
+        long offset_doc_id_end;
+        long offset_term_freq_start;
+        long offset_term_freq_end;
+
         Map<Integer, Integer> doc_scores = new HashMap<>();
 
         ArrayList<List<Posting>> L = new ArrayList<List<Posting>>(query_length);
         PriorityQueue<Results> R = new PriorityQueue<>(k);
 
-        int[] pos = new int[query_term_frequency.size()];
-        Arrays.fill(pos,0);
-
-        for(String term : query_term_frequency.keySet()){
+        for (String term : query_term_frequency.keySet()) {
             List<Posting> query_posting_list = new ArrayList<>();
             try {
-                HTreeMap<String, TermStats> myMapLexicon =(HTreeMap<String, TermStats>) Objects.requireNonNull((db.hashMap("lexicon").open());
-                offset_doc_id = Objects.requireNonNull((TermStats) db.hashMap("lexicon").open().get(term)).getActual_offset_doc_id();
-                offset_term_freq = Objects.requireNonNull((TermStats) db.hashMap("lexicon").open().get(term)).getActual_offset_term_freq();
-                size = Objects.requireNonNull((TermStats) db.hashMap("lexicon").open().get(term)).getSize();
 
-                Objects.requireNonNull((TermStats) db.hashMap("lexicon").open().
+                TermStats termStats = Objects.requireNonNull((TermStats) db.hashMap("lexicon").open().get(term));
 
-                byte[] doc_id_buffer = new byte[size*4];
-                byte[] term_freq_buffer = new byte[size*4];
-                RafInvertedIndex.getIndex_doc_id().get(doc_id_buffer, (int) offset_doc_id, size*4);
-                RafInvertedIndex.getIndex_term_freq().get(term_freq_buffer, (int) offset_term_freq, size*4);
+                offset_doc_id_start = termStats.getOffset_doc_id_start();
+                offset_doc_id_end = termStats.getOffset_doc_id_end();
 
-                AuxObject auxObj=new AuxObject(0);
-                for (int i = 0; i < size; i++) {
+                int size_doc_id = (int) (offset_doc_id_end - offset_doc_id_start + 1);
 
-                    int term_freq=Compression.decodingUnaryList(BitSet.valueOf(term_freq_buffer),auxObj.getPosU());
-                    int doc_id = Compression.gammaDecodingList(BitSet.valueOf(doc_id_buffer),auxObj.getPosG());
+                offset_term_freq_start = termStats.getOffset_term_freq_start();
+                offset_term_freq_end = termStats.getOffset_term_freq_end();
 
-                    query_posting_list.add(new Posting(doc_id, term_freq));
-                }
+                int size_term_freq = (int) (offset_term_freq_end - offset_term_freq_start + 1);
+
+                ByteBuffer doc_id_buffer = ByteBuffer.allocate(size_doc_id);
+                ByteBuffer term_freq_buffer = ByteBuffer.allocate(size_term_freq);
+
+                RafInvertedIndex.fileChannel_doc_id.read(doc_id_buffer, (int)offset_doc_id_start);
+                //System.out.println("READ : " + read_doc_id);
+                RafInvertedIndex.fileChannel_term_freq.read(term_freq_buffer, (int)offset_term_freq_start);
+                //System.out.println("READ: " + read_term_freq);
+
+                Compression compression = new Compression();
+                // build posting list query term
+
+                MergeBlocks.printBitSet(BitSet.valueOf(term_freq_buffer), size_term_freq*8);
+                int term_freq = compression.decodingUnaryList(BitSet.valueOf(term_freq_buffer), size_term_freq*8);
+                System.out.println("TERM: " + term_freq);
+                int doc_id = compression.gammaDecodingList(BitSet.valueOf(doc_id_buffer), size_doc_id*8);
+                System.out.println("DOCID: " + doc_id);
+                query_posting_list.add(new Posting(doc_id, term_freq));
 
                 L.add(query_posting_list);
-            }
-            catch (NullPointerException e){
+            } catch (NullPointerException e) {
                 System.out.println("Term not in collection");
                 return;
             }
 
         }
 
-        int currentDocId = minDocId(pos, num_docs);
+        /*int currentDocId = minDocId(pos, num_docs);
         int lastDocId = maxDocId(pos, num_docs);
 
-        while(currentDocId <= lastDocId){
+        while (currentDocId <= lastDocId) {
             doc_scores.put(currentDocId, 0);
             // for all inverted list li in L
-            for (List<Posting> posting_list : L){
+            for (List<Posting> posting_list : L) {
                 Iterator<Posting> iterator = posting_list.iterator();
-                while (iterator.hasNext()){
+                while (iterator.hasNext()) {
                     Posting posting = iterator.next();
                     int doc_id = posting.getDoc_id();
                     int term_freq = posting.getTerm_frequency();
 
-                    if(currentDocId == doc_id){
+                    if (currentDocId == doc_id) {
                         // aggiorna score
                     }
                 }
                 currentDocId++;
             }
-        }
+        }*/
 
         // Set score of each doc equal to 0
         // For all posting list in L

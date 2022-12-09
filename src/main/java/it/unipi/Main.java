@@ -39,7 +39,7 @@ public class Main {
         IndexConstruction.buildDataStructures(db);
         num_docs = CollectionStatistics.computeDocs();
         num_terms = CollectionStatistics.computeTerms();
-        RafInvertedIndex rafInvertedIndex = new RafInvertedIndex("src/main/resources/output/inverted_index_doc_id_bin.dat",
+        new RafInvertedIndex("src/main/resources/output/inverted_index_doc_id_bin.dat",
                 "src/main/resources/output/inverted_index_term_frequency_bin.dat");
 
          for(;;) {
@@ -52,7 +52,7 @@ public class Main {
                 System.exit(0);
             }
             System.out.println("Your request: " + query);
-            QueryProcess.parseQuery(query, k, db, rafInvertedIndex);
+            QueryProcess.parseQuery(query, k, db);
         }
     }
 }

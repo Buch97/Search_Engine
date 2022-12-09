@@ -1,42 +1,40 @@
 package it.unipi.utils;
 
-import it.unipi.builddatastructures.MergeBlocks;
-
-import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.List;
 
 public class Compression {
 
-    private static BitSet bitUnary;
-    private static BitSet bitGamma;
-    private static int totUnary;
-    private static int totGamma;
+    private BitSet bitUnary;
+    private BitSet bitGamma;
+    private int posUnary;
+    private int posGamma;
 
-    public Compression(){
-        bitUnary=new BitSet();
-        totUnary=0;
+    public Compression() {
+        bitUnary = new BitSet();
+        bitGamma = new BitSet();
+        posUnary = 0;
+        posGamma = 0;
     }
 
-    public static void gammaEncoding(int n) {
-        String binN= Integer.toBinaryString(n);
-        bitGamma.set(totGamma,totGamma+binN.length() - 1);
-        bitGamma.clear(totGamma+binN.length()-1);
+    public void gammaEncoding(int n) {
+        String binN = Integer.toBinaryString(n);
+        bitGamma.set(posGamma, posGamma + binN.length() - 1);
+        bitGamma.clear(posGamma + binN.length() - 1);
         for (int i = 1; i < binN.length(); i++) {
-            if(binN.charAt(i)=='1')
-                bitGamma.set(totGamma+binN.length()-1+i);
+            if (binN.charAt(i) == '1')
+                bitGamma.set(posGamma + binN.length() - 1 + i);
             else
-                bitGamma.clear(totGamma+binN.length()-1+i);
+                bitGamma.clear(posGamma + binN.length() - 1 + i);
         }
-        totGamma+=(2*binN.length()-1);
+        posGamma += (2 * binN.length() - 1);
 
     }
 
-    public static int gammaDecodingList(BitSet bitSet,int pos) {
-        int i = pos;
+    public int gammaDecodingList(BitSet bitSet, int size) {
+        int i = posGamma;
         BitSet bs;
 
-        while (i < bitSet.size()) {
+        while (i < size) {
             if (!bitSet.get(i))
                 break;
             i++;
@@ -44,49 +42,34 @@ public class Compression {
         bs = new BitSet(i);
         bs.set(0, true);
         int cont = 1;
-        while (cont < bs.size()) {
+        while (cont < size) {
             i++;
             bs.set(cont, bitSet.get(i));
             cont++;
         }
-        AuxObject.setPosG(i);
+        posGamma = i;
         return toInt(bs);
     }
 
-    public static void unaryEncoding(int n) {
-        bitUnary.set(totUnary,totUnary+n - 1, true);
-        bitUnary.clear(totUnary+n-1);
-        totUnary+=n;
+    public void unaryEncoding(int n) {
+        bitUnary.set(posUnary, posUnary + n - 1);
+        bitUnary.clear(posUnary + n - 1);
+        posUnary += n;
     }
 
-    public static BitSet getUnaryBitSet(){
-        BitSet bitSet=new BitSet(totUnary);
-        bitSet=(BitSet) bitUnary.clone();
+    public BitSet getUnaryBitSet() {
+        BitSet bitSet;
+        bitSet = (BitSet) bitUnary.clone();
         return bitSet;
     }
 
-    public static BitSet getGammaBitSet(){
-        BitSet bitSet=new BitSet(totGamma);
-        bitSet=(BitSet) bitGamma.clone();
+    public BitSet getGammaBitSet() {
+        BitSet bitSet = new BitSet(posGamma);
+        bitSet = (BitSet) bitGamma.clone();
         return bitSet;
     }
 
-    public static BitSet intToBitSet(int value) {
-        BitSet bits = new BitSet();
-        int index = 0;
-        while (value != 0) {
-            if (value % 2 != 0) {
-                bits.set(index);
-            }
-            ++index;
-            value = value >>> 1;
-        }
-
-        return bits;
-
-    }
-
-    public static int toInt(BitSet bitSet) {
+    public int toInt(BitSet bitSet) {
         int intValue = 0;
         for (int bit = 0; bit < bitSet.length(); bit++) {
             if (bitSet.get(bit)) {
@@ -96,13 +79,11 @@ public class Compression {
         return intValue;
     }
 
-
-
-    public static int decodingUnaryList(BitSet bitSet, int pos) {
-        int count=0;
-        for (int i = pos; i < bitSet.size(); i++) {
+    public int decodingUnaryList(BitSet bitSet, int size) {
+        int count = 0;
+        for (int i = posUnary; i < size; i++) {
             if (!bitSet.get(i)) {
-                AuxObject.setPosU(++i);
+                posUnary = ++i;
                 return ++count;
             } else {
                 count++;
@@ -111,17 +92,35 @@ public class Compression {
         return 0;
     }
 
-    public static int unaryDecoding(BitSet bitSet) {
-        return bitSet.cardinality() + 1;
+    public BitSet getBitUnary() {
+        return bitUnary;
     }
 
-    public List<BitSet> listEncodingUnary(List<Integer> n) {
-        List<BitSet> bs = new ArrayList<BitSet>(n.size());
-        bs.add(unaryEncoding(n.get(0)));
+    public void setBitUnary(BitSet bitUnary) {
+        this.bitUnary = bitUnary;
+    }
 
-        for (int i = 1; i < n.size(); i++)
-            bs.add(unaryEncoding(n.get(i) - n.get(i - 1)));
+    public BitSet getBitGamma() {
+        return bitGamma;
+    }
 
-        return bs;
+    public void setBitGamma(BitSet bitGamma) {
+        this.bitGamma = bitGamma;
+    }
+
+    public int getPosUnary() {
+        return posUnary;
+    }
+
+    public void setPosUnary(int posUnary) {
+        this.posUnary = posUnary;
+    }
+
+    public int getPosGamma() {
+        return posGamma;
+    }
+
+    public void setPosGamma(int posGamma) {
+        this.posGamma = posGamma;
     }
 }

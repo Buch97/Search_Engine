@@ -28,13 +28,12 @@ public class MergeBlocks {
         List<BufferedReader> readerList = new ArrayList<>();
 
         // Definition of parameters that describe the term in the blocks
-        long offset_doc_id = 0;
-        long offset_term_freq = 0;
+        long offset_doc_id_start;
+        long offset_term_freq_start;
+        long offset_doc_id_end = 0;
+        long offset_term_freq_end = 0;
         int doc_frequency;
         int coll_frequency;
-        long actual_offset_doc_id;
-        long actual_offset_term_freq;
-        int size = 1;
 
         // Disk based lexicon using the HTreeMap
         HTreeMap<String, TermStats> myMapLexicon = (HTreeMap<String, TermStats>) db.hashMap("lexicon").createOrOpen();
@@ -73,8 +72,8 @@ public class MergeBlocks {
             //lexicon.write(currentTerm + "\t");
             doc_frequency = 0;
             coll_frequency = 0;
-            actual_offset_doc_id = offset_doc_id;
-            actual_offset_term_freq = offset_term_freq;
+            offset_doc_id_start = offset_doc_id_end;
+            offset_term_freq_start = offset_term_freq_end;
 
             // Definition of iterator to scan the priority queue
             Iterator<TermPositionBlock> value = priorityQueue.iterator();
@@ -90,29 +89,29 @@ public class MergeBlocks {
                 if (Objects.equals(term, currentTerm)) {
                     // If equals, then update parameters of the term
                     doc_frequency += postings.size();
-                    size = postings.size();
 
                     byte[] doc_id_compressed;
                     byte[] term_freq;
 
+                    Compression compression = new Compression();
                     for (Posting posting : postings) {
                         coll_frequency += posting.getTerm_frequency();
                         // inv_ind_doc_id.append((char) posting.getDoc_id()).append(" ");
                         // inv_ind_term_frequency.append((char) posting.getTerm_frequency()).append(" ");
                         //byte[] doc_id_compressed = Compression.gammaEncoding(posting.getDoc_id()).toByteArray();
                         //inv_ind_doc_id_bin.write(doc_id_compressed.toByteArray());
-                        Compression.gammaEncoding(posting.getDoc_id());
-                        Compression.unaryEncoding(posting.getTerm_frequency());
+                        compression.gammaEncoding(posting.getDoc_id());
+                        compression.unaryEncoding(posting.getTerm_frequency());
                     }
 
-                    doc_id_compressed=Compression.getGammaBitSet().toByteArray();
+                    doc_id_compressed = compression.getGammaBitSet().toByteArray();
                     inv_ind_doc_id_bin.write(doc_id_compressed);
 
-                    term_freq=Compression.getUnaryBitSet().toByteArray();
+                    term_freq = compression.getUnaryBitSet().toByteArray();
                     inv_ind_term_frequency_bin.write(term_freq);
 
-                    offset_doc_id += doc_id_compressed.length;
-                    offset_term_freq += term_freq.length;
+                    offset_doc_id_end += doc_id_compressed.length;
+                    offset_term_freq_end += term_freq.length;
 
                     inv_ind_doc_id_bin.flush();
                     inv_ind_term_frequency_bin.flush();
@@ -126,7 +125,7 @@ public class MergeBlocks {
             // Build lexicon
             // offset += "\n".getBytes().length;
             //lexicon.write(doc_frequency + "\t" + coll_frequency + "\t" + actual_offset + "\n");
-            myMapLexicon.put(currentTerm, new TermStats(doc_frequency, coll_frequency, actual_offset_doc_id, actual_offset_term_freq, size));
+            myMapLexicon.put(currentTerm, new TermStats(doc_frequency, coll_frequency, offset_doc_id_start, offset_term_freq_start, offset_doc_id_end, offset_term_freq_end));
 
             // Reset the iterator
             value = priorityQueue.iterator();
@@ -191,12 +190,15 @@ public class MergeBlocks {
         return new TermPositionBlock(term, postingArrayList, readerList.indexOf(reader));
     }
 
-    private static void printBitSet(BitSet bi) {
+    public static void printBitSet(BitSet bi, int size) {
 
-        StringBuilder s = new StringBuilder();
-        for (int i = 0; i < bi.length() + 1; i++) {
-            s.append(bi.get(i) ? 1 : 0);
+        //StringBuilder s = new StringBuilder();ù
+        System.out.println(bi.size());
+        for (int i = 0; i < size; i++) {
+            if (bi.get(i))
+                System.out.print("1");
+            else System.out.print("0");
         }
-        System.out.println(s);
+        //System.out.println(s);
     }
 }
