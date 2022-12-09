@@ -8,18 +8,28 @@ import java.util.List;
 
 public class Compression {
 
-    public static BitSet gammaEncoding(int n) {
-        BitSet binN = intToBitSet(n);
-        BitSet b = unaryEncoding(binN.size());
-        BitSet bitSet = new BitSet(2 * binN.size() - 1);
-        for (int i = 0; i < bitSet.size(); i++) {
-            if (i < binN.size()) {
-                bitSet.set(i, b.get(i));
-            } else {
-                bitSet.set(i, binN.get(b.size() - 2 + i - 3));
-            }
+    private static BitSet bitUnary;
+    private static BitSet bitGamma;
+    private static int totUnary;
+    private static int totGamma;
+
+    public Compression(){
+        bitUnary=new BitSet();
+        totUnary=0;
+    }
+
+    public static void gammaEncoding(int n) {
+        String binN= Integer.toBinaryString(n);
+        bitGamma.set(totGamma,totGamma+binN.length() - 1);
+        bitGamma.clear(totGamma+binN.length()-1);
+        for (int i = 1; i < binN.length(); i++) {
+            if(binN.charAt(i)=='1')
+                bitGamma.set(totGamma+binN.length()-1+i);
+            else
+                bitGamma.clear(totGamma+binN.length()-1+i);
         }
-        return bitSet;
+        totGamma+=(2*binN.length()-1);
+
     }
 
     public static int gammaDecodingList(BitSet bitSet,int pos) {
@@ -43,14 +53,21 @@ public class Compression {
         return toInt(bs);
     }
 
-    public static BitSet unaryEncoding(int n) {
-        BitSet bitSet = new BitSet(n);
-        if (n == 1) {
-            bitSet.clear(0);
-            return bitSet;
-        }
-        bitSet.set(0, n - 1, true);
-        bitSet.clear(n - 1);
+    public static void unaryEncoding(int n) {
+        bitUnary.set(totUnary,totUnary+n - 1, true);
+        bitUnary.clear(totUnary+n-1);
+        totUnary+=n;
+    }
+
+    public static BitSet getUnaryBitSet(){
+        BitSet bitSet=new BitSet(totUnary);
+        bitSet=(BitSet) bitUnary.clone();
+        return bitSet;
+    }
+
+    public static BitSet getGammaBitSet(){
+        BitSet bitSet=new BitSet(totGamma);
+        bitSet=(BitSet) bitGamma.clone();
         return bitSet;
     }
 

@@ -9,6 +9,7 @@ import it.unipi.builddatastructures.Tokenizer;
 import it.unipi.utils.AuxObject;
 import it.unipi.utils.Compression;
 import org.mapdb.DB;
+import org.mapdb.HTreeMap;
 
 import java.io.*;
 import java.util.*;
@@ -45,9 +46,12 @@ public class QueryProcess {
         for(String term : query_term_frequency.keySet()){
             List<Posting> query_posting_list = new ArrayList<>();
             try {
+                HTreeMap<String, TermStats> myMapLexicon =(HTreeMap<String, TermStats>) Objects.requireNonNull((db.hashMap("lexicon").open());
                 offset_doc_id = Objects.requireNonNull((TermStats) db.hashMap("lexicon").open().get(term)).getActual_offset_doc_id();
                 offset_term_freq = Objects.requireNonNull((TermStats) db.hashMap("lexicon").open().get(term)).getActual_offset_term_freq();
                 size = Objects.requireNonNull((TermStats) db.hashMap("lexicon").open().get(term)).getSize();
+
+                Objects.requireNonNull((TermStats) db.hashMap("lexicon").open().
 
                 byte[] doc_id_buffer = new byte[size*4];
                 byte[] term_freq_buffer = new byte[size*4];

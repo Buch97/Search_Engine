@@ -99,16 +99,20 @@ public class MergeBlocks {
                         coll_frequency += posting.getTerm_frequency();
                         // inv_ind_doc_id.append((char) posting.getDoc_id()).append(" ");
                         // inv_ind_term_frequency.append((char) posting.getTerm_frequency()).append(" ");
-                        byte[] doc_id_compressed = Compression.gammaEncoding(posting.getDoc_id()).toByteArray();
+                        //byte[] doc_id_compressed = Compression.gammaEncoding(posting.getDoc_id()).toByteArray();
                         //inv_ind_doc_id_bin.write(doc_id_compressed.toByteArray());
-
-                        //BitSet term_freq_compressed = Compression.unaryEncoding(posting.getTerm_frequency());
-                        //inv_ind_term_frequency_bin.write(term_freq_compressed.toByteArray());
-
+                        Compression.gammaEncoding(posting.getDoc_id());
+                        Compression.unaryEncoding(posting.getTerm_frequency());
                     }
 
-                    // offset_doc_id = doc_id_compressed.length;
-                    // offset_term_freq = term_freq_compressed.length;
+                    doc_id_compressed=Compression.getGammaBitSet().toByteArray();
+                    inv_ind_doc_id_bin.write(doc_id_compressed);
+
+                    term_freq=Compression.getUnaryBitSet().toByteArray();
+                    inv_ind_term_frequency_bin.write(term_freq);
+
+                    offset_doc_id += doc_id_compressed.length;
+                    offset_term_freq += term_freq.length;
 
                     inv_ind_doc_id_bin.flush();
                     inv_ind_term_frequency_bin.flush();
@@ -190,10 +194,6 @@ public class MergeBlocks {
     private static void printBitSet(BitSet bi) {
 
         StringBuilder s = new StringBuilder();
-        if (bi.cardinality() == 0) {
-            System.out.println(0);
-            return;
-        }
         for (int i = 0; i < bi.length() + 1; i++) {
             s.append(bi.get(i) ? 1 : 0);
         }
