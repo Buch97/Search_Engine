@@ -16,9 +16,12 @@ import java.nio.ByteBuffer;
 import java.util.*;
 
 import static it.unipi.Main.num_docs;
+import static it.unipi.bean.RafInvertedIndex.fileChannel_term_freq;
 import static org.mapdb.DataInput2.*;
 
 public class QueryProcess {
+
+    private static final String mode = "READ";
 
     public static void parseQuery(String query, int k, DB db) throws IOException {
         Tokenizer tokenizer = new Tokenizer(query);
@@ -44,6 +47,9 @@ public class QueryProcess {
         ArrayList<List<Posting>> L = new ArrayList<List<Posting>>(query_length);
         PriorityQueue<Results> R = new PriorityQueue<>(k);
 
+        new RafInvertedIndex("src/main/resources/output/inverted_index_doc_id_bin.dat",
+                "src/main/resources/output/inverted_index_term_frequency_bin.dat", mode);
+
         for (String term : query_term_frequency.keySet()) {
             List<Posting> query_posting_list = new ArrayList<>();
             try {
@@ -63,19 +69,27 @@ public class QueryProcess {
                 ByteBuffer doc_id_buffer = ByteBuffer.allocate(size_doc_id);
                 ByteBuffer term_freq_buffer = ByteBuffer.allocate(size_term_freq);
 
-                RafInvertedIndex.fileChannel_doc_id.read(doc_id_buffer, (int)offset_doc_id_start);
-                //System.out.println("READ : " + read_doc_id);
-                RafInvertedIndex.fileChannel_term_freq.read(term_freq_buffer, (int)offset_term_freq_start);
-                //System.out.println("READ: " + read_term_freq);
+                int read_doc_id = RafInvertedIndex.fileChannel_doc_id.read(doc_id_buffer, (int)offset_doc_id_start);
+                System.out.println("READ : " + read_doc_id);
+                int read_term_freq = RafInvertedIndex.fileChannel_term_freq.read(term_freq_buffer, (int)offset_term_freq_start);
+                System.out.println("READ: " + read_term_freq);
 
                 Compression compression = new Compression();
                 // build posting list query term
 
+                System.out.println("PRINT BIT SET DOC");
+                doc_id_buffer.flip();
+                MergeBlocks.printBitSet(BitSet.valueOf(doc_id_buffer), size_doc_id*8);
+
+                System.out.println("PRINT BIT SET TERM");
+                term_freq_buffer.flip();
                 MergeBlocks.printBitSet(BitSet.valueOf(term_freq_buffer), size_term_freq*8);
+
                 int term_freq = compression.decodingUnaryList(BitSet.valueOf(term_freq_buffer), size_term_freq*8);
                 System.out.println("TERM: " + term_freq);
                 int doc_id = compression.gammaDecodingList(BitSet.valueOf(doc_id_buffer), size_doc_id*8);
                 System.out.println("DOCID: " + doc_id);
+
                 query_posting_list.add(new Posting(doc_id, term_freq));
 
                 L.add(query_posting_list);
@@ -83,7 +97,6 @@ public class QueryProcess {
                 System.out.println("Term not in collection");
                 return;
             }
-
         }
 
         /*int currentDocId = minDocId(pos, num_docs);

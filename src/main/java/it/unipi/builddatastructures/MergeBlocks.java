@@ -1,17 +1,22 @@
 package it.unipi.builddatastructures;
 
 import it.unipi.bean.Posting;
+import it.unipi.bean.RafInvertedIndex;
 import it.unipi.bean.TermPositionBlock;
 import it.unipi.bean.TermStats;
 import it.unipi.utils.Compression;
 import it.unipi.utils.TermPositionBlockComparator;
+import org.eclipse.collections.api.map.primitive.ImmutableObjectDoubleMap;
 import org.mapdb.DB;
 import org.mapdb.HTreeMap;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 import java.util.*;
 
 public class MergeBlocks {
+
+    private static final String mode = "APPEND";
 
     private MergeBlocks() {
     }
@@ -19,6 +24,9 @@ public class MergeBlocks {
     public static void mergeBlocks(DB db, int blockNumber) throws IOException {
 
         System.out.println("----------------------START MERGE PHASE----------------------");
+
+        new RafInvertedIndex("src/main/resources/output/inverted_index_doc_id_bin.dat",
+                "src/main/resources/output/inverted_index_term_frequency_bin.dat", mode);
 
         // Definition of comparator, implemented in Class TermPositionBlock
         Comparator<TermPositionBlock> comparator = new TermPositionBlockComparator();
@@ -60,7 +68,6 @@ public class MergeBlocks {
         // First lines of each block are inserted in a priority queue
         // Sorted with a custom comparator
         openBufferedReaders(priorityQueue, readerList);
-
         // For loop is terminated when each bufferedReader reach the EOF
         while (priorityQueue.size() != 0) {
 
@@ -77,6 +84,7 @@ public class MergeBlocks {
 
             // Definition of iterator to scan the priority queue
             Iterator<TermPositionBlock> value = priorityQueue.iterator();
+            Compression compression = new Compression();
             while (value.hasNext()) {
 
                 // New object that has to be tested against the current term
@@ -91,9 +99,8 @@ public class MergeBlocks {
                     doc_frequency += postings.size();
 
                     byte[] doc_id_compressed;
-                    byte[] term_freq;
+                    byte[] term_freq_compressed;
 
-                    Compression compression = new Compression();
                     for (Posting posting : postings) {
                         coll_frequency += posting.getTerm_frequency();
                         // inv_ind_doc_id.append((char) posting.getDoc_id()).append(" ");
@@ -105,18 +112,22 @@ public class MergeBlocks {
                     }
 
                     doc_id_compressed = compression.getGammaBitSet().toByteArray();
-                    inv_ind_doc_id_bin.write(doc_id_compressed);
+                    //inv_ind_doc_id_bin.write(doc_id_compressed);
+                    RafInvertedIndex.fileChannel_doc_id.write(ByteBuffer.wrap(doc_id_compressed));
 
-                    term_freq = compression.getUnaryBitSet().toByteArray();
-                    inv_ind_term_frequency_bin.write(term_freq);
-
-                    offset_doc_id_end += doc_id_compressed.length;
-                    offset_term_freq_end += term_freq.length;
+                    term_freq_compressed = compression.getUnaryBitSet().toByteArray();
+                    //inv_ind_term_frequency_bin.write(term_freq_compressed);
+                    RafInvertedIndex.fileChannel_term_freq.write(ByteBuffer.wrap(term_freq_compressed));
+                    // offset_doc_id_end += doc_id_compressed.length;
+                    // offset_term_freq_end += term_freq_compressed.length;
 
                     inv_ind_doc_id_bin.flush();
                     inv_ind_term_frequency_bin.flush();
                 }
             }
+
+            offset_doc_id_end += Math.ceilDiv(compression.getPosGamma(), 8);
+            offset_term_freq_end += Math.ceilDiv(compression.getPosUnary(), 8);
 
             // Build inverted index
             //inv_ind_doc_id.write("\n");
@@ -143,6 +154,9 @@ public class MergeBlocks {
 
         inv_ind_term_frequency_bin.close();
         inv_ind_doc_id_bin.close();
+
+        RafInvertedIndex.fileChannel_doc_id.close();
+        RafInvertedIndex.fileChannel_term_freq.close();
         //lexicon.close();
         System.out.println("----------------------END MERGE PHASE----------------------");
     }
@@ -193,12 +207,11 @@ public class MergeBlocks {
     public static void printBitSet(BitSet bi, int size) {
 
         //StringBuilder s = new StringBuilder();ù
-        System.out.println(bi.size());
         for (int i = 0; i < size; i++) {
             if (bi.get(i))
                 System.out.print("1");
             else System.out.print("0");
         }
-        //System.out.println(s);
+        System.out.println("\n");
     }
 }

@@ -39,10 +39,11 @@ public class Compression {
                 break;
             i++;
         }
+
         bs = new BitSet(i);
         bs.set(0, true);
         int cont = 1;
-        while (cont < size) {
+        while (cont < size - i) {
             i++;
             bs.set(cont, bitSet.get(i));
             cont++;
