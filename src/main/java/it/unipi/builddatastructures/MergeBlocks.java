@@ -1,7 +1,7 @@
 package it.unipi.builddatastructures;
 
-import it.unipi.bean.Posting;
 import it.unipi.bean.FileChannelInvIndex;
+import it.unipi.bean.Posting;
 import it.unipi.bean.TermPositionBlock;
 import it.unipi.bean.TermStats;
 import it.unipi.utils.Compression;
@@ -24,9 +24,7 @@ public class MergeBlocks {
 
         System.out.println("----------------------START MERGE PHASE----------------------");
 
-        // Open file channel
-        new FileChannelInvIndex("src/main/resources/output/inverted_index_doc_id_bin.dat",
-                "src/main/resources/output/inverted_index_term_frequency_bin.dat", mode);
+        FileChannelInvIndex.openFileChannels(mode);
 
         // Definition of comparator, implemented in Class TermPositionBlock
         Comparator<TermPositionBlock> comparator = new TermPositionBlockComparator();
@@ -46,10 +44,6 @@ public class MergeBlocks {
         // Disk based lexicon using the HTreeMap
         HTreeMap<String, TermStats> myMapLexicon = (HTreeMap<String, TermStats>) db.hashMap("lexicon").createOrOpen();
 
-        //BufferedWriter lexicon = new BufferedWriter(new FileWriter("./src/main/resources/output/lexicon.tsv"));
-        //String header = "TERM" + "\t" + "DOC_FREQUENCY" + "\t" + "COLL_FREQUENCY" + "\t" + "BYTE_OFFSET_PL" + "\n";
-        //lexicon.write(header);
-
         // array of buffered reader to read each block at the same time
         for (int i = 0; i < blockNumber; i++) {
             readerList.add(new BufferedReader(new FileReader("./src/main/resources/intermediate_postings/" +
@@ -67,7 +61,6 @@ public class MergeBlocks {
             String currentTerm = priorityQueue.peek().getTerm();
 
             // Add to lexicon the current term
-            //lexicon.write(currentTerm + "\t");
             doc_frequency = 0;
             coll_frequency = 0;
             offset_doc_id_start = offset_doc_id_end;
@@ -95,8 +88,6 @@ public class MergeBlocks {
                     for (Posting posting : postings) {
 
                         coll_frequency += posting.getTerm_frequency();
-                        // inv_ind_doc_id.append((char) posting.getDoc_id()).append(" ");
-                        // inv_ind_term_frequency.append((char) posting.getTerm_frequency()).append(" ");
 
                         compression.gammaEncoding(posting.getDoc_id());
                         compression.unaryEncoding(posting.getTerm_frequency());
@@ -114,13 +105,7 @@ public class MergeBlocks {
             offset_doc_id_end += Math.ceilDiv(compression.getPosGamma(), 8);
             offset_term_freq_end += Math.ceilDiv(compression.getPosUnary(), 8);
 
-            // Build inverted index
-            // inv_ind_doc_id.write("\n");
-            // inv_ind_term_frequency.write("\n");
-
             // Build lexicon
-            // offset += "\n".getBytes().length;
-            //lexicon.write(doc_frequency + "\t" + coll_frequency + "\t" + actual_offset + "\n");
             myMapLexicon.put(currentTerm, new TermStats(doc_frequency, coll_frequency, offset_doc_id_start, offset_term_freq_start, offset_doc_id_end, offset_term_freq_end));
 
             // Reset the iterator
@@ -137,9 +122,107 @@ public class MergeBlocks {
         for (BufferedReader reader : readerList)
             reader.close();
 
-        FileChannelInvIndex.fileChannel_doc_id.close();
-        FileChannelInvIndex.fileChannel_term_freq.close();
-        //lexicon.close();
+        FileChannelInvIndex.closeFileChannels();
+
+        System.out.println("----------------------END MERGE PHASE----------------------");
+    }
+
+    public static void mergeBlocksText(DB db, int blockNumber) throws IOException {
+
+        System.out.println("----------------------START MERGE PHASE----------------------");
+
+        // Definition of comparator, implemented in Class TermPositionBlock
+        Comparator<TermPositionBlock> comparator = new TermPositionBlockComparator();
+        // Priority queue with size equal to the number of blocks
+        PriorityQueue<TermPositionBlock> priorityQueue = new PriorityQueue<>(blockNumber, comparator);
+        // List of terms added to the priority queue during the move forward phase
+        List<BufferedReader> readerList = new ArrayList<>();
+
+        // Definition of parameters that describe the term in the blocks
+        long actual_offset;
+        long offset = 0;
+        int doc_frequency;
+        int coll_frequency;
+
+        // Disk based lexicon using the HTreeMap
+        HTreeMap<String, TermStats> myMapLexiconText = (HTreeMap<String, TermStats>) db.hashMap("lexiconText").createOrOpen();
+
+        BufferedWriter inv_index = new BufferedWriter(new FileWriter("./src/main/resources/output/inv_index.tsv"));
+
+        // array of buffered reader to read each block at the same time
+        for (int i = 0; i < blockNumber; i++) {
+            readerList.add(new BufferedReader(new FileReader("./src/main/resources/intermediate_postings/" +
+                    "inverted_index" + i + ".tsv")));
+        }
+
+        // Open buffered readers, one for each block
+        // First lines of each block are inserted in a priority queue
+        // Sorted with a custom comparator
+        openBufferedReaders(priorityQueue, readerList);
+        // For loop is terminated when each bufferedReader reach the EOF
+        while (priorityQueue.size() != 0) {
+
+            // Peek first term
+            String currentTerm = priorityQueue.peek().getTerm();
+            inv_index.append(currentTerm).append(" ");
+
+            // Add to lexicon the current term
+            //lexicon.write(currentTerm + "\t");
+            doc_frequency = 0;
+            coll_frequency = 0;
+            actual_offset = offset;
+
+            // Definition of iterator to scan the priority queue
+            Iterator<TermPositionBlock> value = priorityQueue.iterator();
+
+            while (value.hasNext()) {
+
+                // New object that has to be tested against the current term
+                TermPositionBlock termPositionBlock = value.next();
+                // Retrieve term and list of postings of the new objects
+                String term = termPositionBlock.getTerm();
+                ArrayList<Posting> postings = termPositionBlock.getPostingArrayList();
+
+                // Compare new term with current term
+                if (Objects.equals(term, currentTerm)) {
+                    // If equals, then update parameters of the term
+                    doc_frequency += postings.size();
+
+                    for (Posting posting : postings) {
+
+                        coll_frequency += posting.getTerm_frequency();
+
+                        inv_index.write(posting.getDoc_id() + ":");
+                        offset += (posting.getDoc_id() + ":").length();
+
+                        inv_index.write(posting.getTerm_frequency() + " ");
+                        offset += (posting.getTerm_frequency() + " ").length();
+
+                        inv_index.flush();
+                    }
+                }
+            }
+            inv_index.newLine();
+            inv_index.write("\n");
+
+            // Build lexicon
+            myMapLexiconText.put(currentTerm, new TermStats(doc_frequency, coll_frequency, actual_offset));
+
+            // Reset the iterator
+            value = priorityQueue.iterator();
+            // List with new terms to add in the priority queue
+            List<TermPositionBlock> itemsToAdd = new ArrayList<>();
+
+            while (value.hasNext()) {
+                moveForward(readerList, currentTerm, value, itemsToAdd);
+            }
+            priorityQueue.addAll(itemsToAdd);
+        }
+
+        for (BufferedReader reader : readerList)
+            reader.close();
+
+        inv_index.close();
         System.out.println("----------------------END MERGE PHASE----------------------");
     }
 

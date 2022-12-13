@@ -9,6 +9,14 @@ public class TermStats implements Serializable {
     long offset_term_freq_start;
     long offset_doc_id_end;
     long offset_term_freq_end;
+    long actual_offset;
+
+    // Costruttore per la versione testuale dell'inverted index
+    public TermStats(int doc_frequency, int coll_frequency, long actual_offset) {
+        this.doc_frequency = doc_frequency;
+        this.coll_frequency = coll_frequency;
+        this.actual_offset = actual_offset;
+    }
 
     public long getOffset_doc_id_end() {
         return offset_doc_id_end;
