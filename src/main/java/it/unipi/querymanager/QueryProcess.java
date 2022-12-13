@@ -2,22 +2,17 @@ package it.unipi.querymanager;
 
 
 import it.unipi.bean.Posting;
-import it.unipi.bean.RafInvertedIndex;
+import it.unipi.bean.FileChannelInvIndex;
 import it.unipi.bean.Results;
 import it.unipi.bean.TermStats;
 import it.unipi.builddatastructures.MergeBlocks;
 import it.unipi.builddatastructures.Tokenizer;
 import it.unipi.utils.Compression;
 import org.mapdb.DB;
-import org.mapdb.DataInput2;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.*;
-
-import static it.unipi.Main.num_docs;
-import static it.unipi.bean.RafInvertedIndex.fileChannel_term_freq;
-import static org.mapdb.DataInput2.*;
 
 public class QueryProcess {
 
@@ -47,7 +42,7 @@ public class QueryProcess {
         ArrayList<List<Posting>> L = new ArrayList<List<Posting>>(query_length);
         PriorityQueue<Results> R = new PriorityQueue<>(k);
 
-        new RafInvertedIndex("src/main/resources/output/inverted_index_doc_id_bin.dat",
+        new FileChannelInvIndex("src/main/resources/output/inverted_index_doc_id_bin.dat",
                 "src/main/resources/output/inverted_index_term_frequency_bin.dat", mode);
 
         for (String term : query_term_frequency.keySet()) {
@@ -59,19 +54,19 @@ public class QueryProcess {
                 offset_doc_id_start = termStats.getOffset_doc_id_start();
                 offset_doc_id_end = termStats.getOffset_doc_id_end();
 
-                int size_doc_id = (int) (offset_doc_id_end - offset_doc_id_start + 1);
+                int size_doc_id = (int) (offset_doc_id_end - offset_doc_id_start);
 
                 offset_term_freq_start = termStats.getOffset_term_freq_start();
                 offset_term_freq_end = termStats.getOffset_term_freq_end();
 
-                int size_term_freq = (int) (offset_term_freq_end - offset_term_freq_start + 1);
+                int size_term_freq = (int) (offset_term_freq_end - offset_term_freq_start);
 
                 ByteBuffer doc_id_buffer = ByteBuffer.allocate(size_doc_id);
                 ByteBuffer term_freq_buffer = ByteBuffer.allocate(size_term_freq);
 
-                int read_doc_id = RafInvertedIndex.fileChannel_doc_id.read(doc_id_buffer, (int)offset_doc_id_start);
+                int read_doc_id = FileChannelInvIndex.fileChannel_doc_id.read(doc_id_buffer, (int)offset_doc_id_start);
                 System.out.println("READ : " + read_doc_id);
-                int read_term_freq = RafInvertedIndex.fileChannel_term_freq.read(term_freq_buffer, (int)offset_term_freq_start);
+                int read_term_freq = FileChannelInvIndex.fileChannel_term_freq.read(term_freq_buffer, (int)offset_term_freq_start);
                 System.out.println("READ: " + read_term_freq);
 
                 Compression compression = new Compression();

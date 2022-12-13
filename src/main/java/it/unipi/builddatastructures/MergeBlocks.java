@@ -1,12 +1,11 @@
 package it.unipi.builddatastructures;
 
 import it.unipi.bean.Posting;
-import it.unipi.bean.RafInvertedIndex;
+import it.unipi.bean.FileChannelInvIndex;
 import it.unipi.bean.TermPositionBlock;
 import it.unipi.bean.TermStats;
 import it.unipi.utils.Compression;
 import it.unipi.utils.TermPositionBlockComparator;
-import org.eclipse.collections.api.map.primitive.ImmutableObjectDoubleMap;
 import org.mapdb.DB;
 import org.mapdb.HTreeMap;
 
@@ -25,7 +24,8 @@ public class MergeBlocks {
 
         System.out.println("----------------------START MERGE PHASE----------------------");
 
-        new RafInvertedIndex("src/main/resources/output/inverted_index_doc_id_bin.dat",
+        // Open file channel
+        new FileChannelInvIndex("src/main/resources/output/inverted_index_doc_id_bin.dat",
                 "src/main/resources/output/inverted_index_term_frequency_bin.dat", mode);
 
         // Definition of comparator, implemented in Class TermPositionBlock
@@ -46,14 +46,6 @@ public class MergeBlocks {
         // Disk based lexicon using the HTreeMap
         HTreeMap<String, TermStats> myMapLexicon = (HTreeMap<String, TermStats>) db.hashMap("lexicon").createOrOpen();
 
-        // Open write buffers for lexicon and inverted index
-        // BufferedWriter inv_ind_doc_id = new BufferedWriter(new FileWriter("./src/main/resources/output/inverted_index_doc_id.tsv"));
-        // BufferedWriter inv_ind_term_frequency = new BufferedWriter(new FileWriter("./src/main/resources/output/inverted_index_term_frequency.tsv"));
-        // From int to binary
-        ObjectOutputStream inv_ind_doc_id_bin = new ObjectOutputStream(new BufferedOutputStream
-                (new FileOutputStream("./src/main/resources/output/inverted_index_doc_id_bin.dat")));
-        ObjectOutputStream inv_ind_term_frequency_bin = new ObjectOutputStream(new BufferedOutputStream
-                (new FileOutputStream("./src/main/resources/output/inverted_index_term_frequency_bin.dat")));
         //BufferedWriter lexicon = new BufferedWriter(new FileWriter("./src/main/resources/output/lexicon.tsv"));
         //String header = "TERM" + "\t" + "DOC_FREQUENCY" + "\t" + "COLL_FREQUENCY" + "\t" + "BYTE_OFFSET_PL" + "\n";
         //lexicon.write(header);
@@ -73,7 +65,6 @@ public class MergeBlocks {
 
             // Peek first term
             String currentTerm = priorityQueue.peek().getTerm();
-            //System.out.println("PROCESSING TERM " + currentTerm + "...");
 
             // Add to lexicon the current term
             //lexicon.write(currentTerm + "\t");
@@ -85,6 +76,9 @@ public class MergeBlocks {
             // Definition of iterator to scan the priority queue
             Iterator<TermPositionBlock> value = priorityQueue.iterator();
             Compression compression = new Compression();
+            byte[] doc_id_compressed;
+            byte[] term_freq_compressed;
+
             while (value.hasNext()) {
 
                 // New object that has to be tested against the current term
@@ -98,40 +92,31 @@ public class MergeBlocks {
                     // If equals, then update parameters of the term
                     doc_frequency += postings.size();
 
-                    byte[] doc_id_compressed;
-                    byte[] term_freq_compressed;
-
                     for (Posting posting : postings) {
+
                         coll_frequency += posting.getTerm_frequency();
                         // inv_ind_doc_id.append((char) posting.getDoc_id()).append(" ");
                         // inv_ind_term_frequency.append((char) posting.getTerm_frequency()).append(" ");
-                        //byte[] doc_id_compressed = Compression.gammaEncoding(posting.getDoc_id()).toByteArray();
-                        //inv_ind_doc_id_bin.write(doc_id_compressed.toByteArray());
+
                         compression.gammaEncoding(posting.getDoc_id());
                         compression.unaryEncoding(posting.getTerm_frequency());
                     }
-
-                    doc_id_compressed = compression.getGammaBitSet().toByteArray();
-                    //inv_ind_doc_id_bin.write(doc_id_compressed);
-                    RafInvertedIndex.fileChannel_doc_id.write(ByteBuffer.wrap(doc_id_compressed));
-
-                    term_freq_compressed = compression.getUnaryBitSet().toByteArray();
-                    //inv_ind_term_frequency_bin.write(term_freq_compressed);
-                    RafInvertedIndex.fileChannel_term_freq.write(ByteBuffer.wrap(term_freq_compressed));
-                    // offset_doc_id_end += doc_id_compressed.length;
-                    // offset_term_freq_end += term_freq_compressed.length;
-
-                    inv_ind_doc_id_bin.flush();
-                    inv_ind_term_frequency_bin.flush();
                 }
             }
+
+            doc_id_compressed = compression.getGammaBitSet().toByteArray();
+            // 0	140:1 146:1 404:2 738:1 911:1
+            term_freq_compressed = compression.getUnaryBitSet().toByteArray();
+
+            FileChannelInvIndex.fileChannel_doc_id.write(ByteBuffer.wrap(doc_id_compressed));
+            FileChannelInvIndex.fileChannel_term_freq.write(ByteBuffer.wrap(term_freq_compressed));
 
             offset_doc_id_end += Math.ceilDiv(compression.getPosGamma(), 8);
             offset_term_freq_end += Math.ceilDiv(compression.getPosUnary(), 8);
 
             // Build inverted index
-            //inv_ind_doc_id.write("\n");
-            //inv_ind_term_frequency.write("\n");
+            // inv_ind_doc_id.write("\n");
+            // inv_ind_term_frequency.write("\n");
 
             // Build lexicon
             // offset += "\n".getBytes().length;
@@ -152,11 +137,8 @@ public class MergeBlocks {
         for (BufferedReader reader : readerList)
             reader.close();
 
-        inv_ind_term_frequency_bin.close();
-        inv_ind_doc_id_bin.close();
-
-        RafInvertedIndex.fileChannel_doc_id.close();
-        RafInvertedIndex.fileChannel_term_freq.close();
+        FileChannelInvIndex.fileChannel_doc_id.close();
+        FileChannelInvIndex.fileChannel_term_freq.close();
         //lexicon.close();
         System.out.println("----------------------END MERGE PHASE----------------------");
     }
@@ -206,7 +188,6 @@ public class MergeBlocks {
 
     public static void printBitSet(BitSet bi, int size) {
 
-        //StringBuilder s = new StringBuilder();ù
         for (int i = 0; i < size; i++) {
             if (bi.get(i))
                 System.out.print("1");
@@ -215,3 +196,4 @@ public class MergeBlocks {
         System.out.println("\n");
     }
 }
+
