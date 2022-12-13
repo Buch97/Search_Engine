@@ -54,8 +54,8 @@ public class FileChannelInvIndex {
         FileChannelInvIndex.fileChannel_term_freq.read(term_freq_buffer, (int) offset_term_freq_start);
     }
 
-    public static void write(ByteBuffer doc_id_compressed, ByteBuffer term_freq_compressed) throws IOException {
-        FileChannelInvIndex.fileChannel_doc_id.write(doc_id_compressed);
-        FileChannelInvIndex.fileChannel_term_freq.write(term_freq_compressed);
+    public static void write(byte[] doc_id_compressed, byte[] term_freq_compressed) throws IOException {
+        FileChannelInvIndex.fileChannel_doc_id.write(ByteBuffer.wrap(doc_id_compressed));
+        FileChannelInvIndex.fileChannel_term_freq.write(ByteBuffer.wrap(term_freq_compressed));
     }
 }

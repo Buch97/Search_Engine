@@ -1,10 +1,10 @@
 package it.unipi.builddatastructures;
 
-import it.unipi.utils.FileChannelInvIndex;
 import it.unipi.bean.Posting;
 import it.unipi.bean.TermPositionBlock;
 import it.unipi.bean.TermStats;
 import it.unipi.utils.Compression;
+import it.unipi.utils.FileChannelInvIndex;
 import it.unipi.utils.TermPositionBlockComparator;
 import org.mapdb.DB;
 import org.mapdb.HTreeMap;
@@ -60,7 +60,7 @@ public class MergeBlocks {
             // Peek first term
             String currentTerm = priorityQueue.peek().getTerm();
 
-            // Add to lexicon the current term
+            // Set parameters to add in lexicon
             doc_frequency = 0;
             coll_frequency = 0;
             offset_doc_id_start = offset_doc_id_end;
@@ -84,9 +84,7 @@ public class MergeBlocks {
                     doc_frequency += postings.size();
 
                     for (Posting posting : postings) {
-
                         coll_frequency += posting.getTerm_frequency();
-
                         compression.gammaEncoding(posting.getDoc_id());
                         compression.unaryEncoding(posting.getTerm_frequency());
                     }
@@ -96,13 +94,13 @@ public class MergeBlocks {
             byte[] doc_id_compressed = compression.getGammaBitSet().toByteArray();
             byte[] term_freq_compressed;
 
-            if (compression.getUnaryBitSet().toByteArray().length == 0){
-                term_freq_compressed = new byte [Math.ceilDivExact(compression.getPosUnary(), 8)];
+            if (compression.getUnaryBitSet().toByteArray().length == 0) {
+                term_freq_compressed = new byte[Math.ceilDivExact(compression.getPosUnary(), 8)];
             } else {
                 term_freq_compressed = compression.getUnaryBitSet().toByteArray();
             }
 
-            FileChannelInvIndex.write(ByteBuffer.wrap(doc_id_compressed), ByteBuffer.wrap(term_freq_compressed));
+            FileChannelInvIndex.write(doc_id_compressed, term_freq_compressed);
 
             offset_doc_id_end += doc_id_compressed.length;
             offset_term_freq_end += term_freq_compressed.length;

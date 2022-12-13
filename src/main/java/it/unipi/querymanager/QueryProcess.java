@@ -2,12 +2,12 @@ package it.unipi.querymanager;
 
 
 import it.unipi.bean.Posting;
-import it.unipi.utils.FileChannelInvIndex;
 import it.unipi.bean.Results;
 import it.unipi.bean.TermStats;
 import it.unipi.builddatastructures.MergeBlocks;
 import it.unipi.builddatastructures.Tokenizer;
 import it.unipi.utils.Compression;
+import it.unipi.utils.FileChannelInvIndex;
 import org.mapdb.DB;
 
 import java.io.IOException;
@@ -57,11 +57,11 @@ public class QueryProcess {
                 // Solo per debug
                 printBitsetDecompressed(size_doc_id_list, size_term_freq_list, doc_id_buffer, term_freq_buffer);
 
-                int n_posting=0;
-                while (n_posting < termStats.getColl_frequency()){
-                    int term_freq = compression.decodingUnaryList(BitSet.valueOf(term_freq_buffer), size_term_freq*8);
+                int n_posting = 0;
+                while (n_posting < termStats.getColl_frequency()) {
+                    int term_freq = compression.decodingUnaryList(BitSet.valueOf(term_freq_buffer), size_term_freq_list * 8);
                     System.out.println("TERM: " + term_freq);
-                    int doc_id = compression.gammaDecodingList(BitSet.valueOf(doc_id_buffer), size_doc_id_list*8);
+                    int doc_id = compression.gammaDecodingList(BitSet.valueOf(doc_id_buffer), size_doc_id_list * 8);
                     System.out.println("DOCID: " + doc_id);
 
                     query_posting_list.add(new Posting(doc_id, term_freq));
@@ -103,16 +103,17 @@ public class QueryProcess {
     private static void printBitsetDecompressed(int size_doc_id, int size_term_freq, ByteBuffer doc_id_buffer, ByteBuffer term_freq_buffer) {
         System.out.println("PRINT BIT SET DOC");
         doc_id_buffer.flip();
-        MergeBlocks.printBitSet(BitSet.valueOf(doc_id_buffer), size_doc_id *8);
+        MergeBlocks.printBitSet(BitSet.valueOf(doc_id_buffer), size_doc_id * 8);
 
         System.out.println("PRINT BIT SET TERM");
         term_freq_buffer.flip();
-        MergeBlocks.printBitSet(BitSet.valueOf(term_freq_buffer), size_term_freq *8);
+        MergeBlocks.printBitSet(BitSet.valueOf(term_freq_buffer), size_term_freq * 8);
     }
 
-    private static int extractSize(long start, long end){
+    private static int extractSize(long start, long end) {
         return (int) (end - start);
     }
+
     private static int maxDocId(int[] pos, int num_docs) {
         return 0;
     }
