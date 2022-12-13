@@ -64,9 +64,7 @@ public class Compression {
     }
 
     public BitSet getUnaryBitSet() {
-        BitSet bitSet;
-        bitSet = (BitSet) bitUnary.clone();
-        return bitSet;
+        return bitUnary;
     }
 
     public BitSet getGammaBitSet() {
@@ -88,36 +86,8 @@ public class Compression {
         return 0;
     }
 
-    public BitSet getBitUnary() {
-        return bitUnary;
-    }
-
-    public void setBitUnary(BitSet bitUnary) {
-        this.bitUnary = bitUnary;
-    }
-
-    public BitSet getBitGamma() {
-        return bitGamma;
-    }
-
-    public void setBitGamma(BitSet bitGamma) {
-        this.bitGamma = bitGamma;
-    }
-
     public int getPosUnary() {
         return posUnary;
-    }
-
-    public void setPosUnary(int posUnary) {
-        this.posUnary = posUnary;
-    }
-
-    public int getPosGamma() {
-        return posGamma;
-    }
-
-    public void setPosGamma(int posGamma) {
-        this.posGamma = posGamma;
     }
 
     public static String BitSetToString(BitSet bi, int size) {

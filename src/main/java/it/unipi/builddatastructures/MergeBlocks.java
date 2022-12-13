@@ -7,6 +7,7 @@ import it.unipi.bean.TermStats;
 import it.unipi.utils.Compression;
 import it.unipi.utils.TermPositionBlockComparator;
 import org.mapdb.DB;
+import org.mapdb.DataInput2;
 import org.mapdb.HTreeMap;
 
 import java.io.*;
@@ -69,8 +70,6 @@ public class MergeBlocks {
             // Definition of iterator to scan the priority queue
             Iterator<TermPositionBlock> value = priorityQueue.iterator();
             Compression compression = new Compression();
-            byte[] doc_id_compressed;
-            byte[] term_freq_compressed;
 
             while (value.hasNext()) {
 
@@ -95,16 +94,20 @@ public class MergeBlocks {
                 }
             }
 
-            doc_id_compressed = compression.getGammaBitSet().toByteArray();
-            // 0	140:1 146:1 404:2 738:1 911:1
-            term_freq_compressed = compression.getUnaryBitSet().toByteArray();
+            byte[] doc_id_compressed = compression.getGammaBitSet().toByteArray();
+            byte[] term_freq_compressed;
+
+            if (compression.getUnaryBitSet().toByteArray().length == 0){
+                term_freq_compressed = new byte [Math.ceilDivExact(compression.getPosUnary(), 8)];
+            } else {
+                term_freq_compressed = compression.getUnaryBitSet().toByteArray();
+            }
 
             FileChannelInvIndex.fileChannel_doc_id.write(ByteBuffer.wrap(doc_id_compressed));
             FileChannelInvIndex.fileChannel_term_freq.write(ByteBuffer.wrap(term_freq_compressed));
 
-            offset_doc_id_end += Math.ceilDiv(compression.getPosGamma(), 8);
-            offset_term_freq_end += Math.ceilDiv(compression.getPosUnary(), 8);
-
+            offset_doc_id_end += doc_id_compressed.length;
+            offset_term_freq_end += term_freq_compressed.length;
             // Build lexicon
             myMapLexicon.put(currentTerm, new TermStats(doc_frequency, coll_frequency, offset_doc_id_start, offset_term_freq_start, offset_doc_id_end, offset_term_freq_end));
 

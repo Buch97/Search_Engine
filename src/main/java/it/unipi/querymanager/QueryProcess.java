@@ -71,22 +71,16 @@ public class QueryProcess {
                 Compression compression = new Compression();
                 // build posting list query term
 
-                System.out.println("PRINT BIT SET DOC");
-                doc_id_buffer.flip();
-                MergeBlocks.printBitSet(BitSet.valueOf(doc_id_buffer), size_doc_id*8);
+                while (true){
+                    int term_freq = compression.decodingUnaryList(BitSet.valueOf(term_freq_buffer), size_term_freq*8);
+                    System.out.println("TERM: " + term_freq);
+                    int doc_id = compression.gammaDecodingList(BitSet.valueOf(doc_id_buffer), size_doc_id*8);
+                    System.out.println("DOCID: " + doc_id);
 
-                System.out.println("PRINT BIT SET TERM");
-                term_freq_buffer.flip();
-                MergeBlocks.printBitSet(BitSet.valueOf(term_freq_buffer), size_term_freq*8);
+                    query_posting_list.add(new Posting(doc_id, term_freq));
 
-                int term_freq = compression.decodingUnaryList(BitSet.valueOf(term_freq_buffer), size_term_freq*8);
-                System.out.println("TERM: " + term_freq);
-                int doc_id = compression.gammaDecodingList(BitSet.valueOf(doc_id_buffer), size_doc_id*8);
-                System.out.println("DOCID: " + doc_id);
-
-                query_posting_list.add(new Posting(doc_id, term_freq));
-
-                L.add(query_posting_list);
+                    L.add(query_posting_list);
+                }
             } catch (NullPointerException e) {
                 System.out.println("Term not in collection");
                 return;
