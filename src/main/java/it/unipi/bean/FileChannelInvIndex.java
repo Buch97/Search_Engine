@@ -2,21 +2,19 @@ package it.unipi.bean;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
-public class RafInvertedIndex {
+public class FileChannelInvIndex {
     //private static MappedByteBuffer index_doc_id;
     //private static MappedByteBuffer index_term_freq;
 
     public static FileChannel fileChannel_doc_id;
     public static FileChannel fileChannel_term_freq;
 
-    public RafInvertedIndex(String inv_index_docid, String inv_index_term_freq, String mode) throws IOException {
+    public FileChannelInvIndex(String inv_index_docid, String inv_index_term_freq, String mode) throws IOException {
 
         File doc_id_bin = new File(inv_index_docid);
         doc_id_bin.createNewFile();

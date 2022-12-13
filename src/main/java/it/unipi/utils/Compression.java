@@ -1,5 +1,8 @@
 package it.unipi.utils;
 
+import it.unipi.builddatastructures.MergeBlocks;
+
+import java.util.Arrays;
 import java.util.BitSet;
 
 public class Compression {
@@ -40,16 +43,18 @@ public class Compression {
             i++;
         }
 
-        bs = new BitSet(i);
+        bs = new BitSet(i + 1);
+        int sizebs = i + 1;
+
         bs.set(0, true);
         int cont = 1;
-        while (cont < size - i) {
+        while (cont < sizebs) {
             i++;
             bs.set(cont, bitSet.get(i));
             cont++;
         }
-        posGamma = i;
-        return toInt(bs);
+        posGamma = i + 1;
+        return Integer.parseInt(BitSetToString(bs, sizebs), 2);
     }
 
     public void unaryEncoding(int n) {
@@ -68,16 +73,6 @@ public class Compression {
         BitSet bitSet = new BitSet(posGamma);
         bitSet = (BitSet) bitGamma.clone();
         return bitSet;
-    }
-
-    public int toInt(BitSet bitSet) {
-        int intValue = 0;
-        for (int bit = 0; bit < bitSet.length(); bit++) {
-            if (bitSet.get(bit)) {
-                intValue |= (1 << bit);
-            }
-        }
-        return intValue;
     }
 
     public int decodingUnaryList(BitSet bitSet, int size) {
@@ -123,5 +118,16 @@ public class Compression {
 
     public void setPosGamma(int posGamma) {
         this.posGamma = posGamma;
+    }
+
+    public static String BitSetToString(BitSet bi, int size) {
+
+        StringBuilder s = new StringBuilder();
+        for (int i = 0; i < size; i++) {
+            if (bi.get(i))
+                s.append("1");
+            else s.append("0");
+        }
+        return s.toString();
     }
 }

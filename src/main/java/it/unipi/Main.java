@@ -5,13 +5,11 @@ import it.unipi.querymanager.QueryProcess;
 import it.unipi.utils.CollectionStatistics;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
-import it.unipi.bean.RafInvertedIndex;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.channels.FileChannel;
 import java.util.Objects;
 
 public class Main {
