@@ -30,7 +30,7 @@ public class Compression {
 
     }
 
-    public int gammaDecodingList(BitSet bitSet, int size) {
+    public int gammaDecodingList(BitSet bitSet, int size) { 
         int i = posGamma;
         BitSet bs;
 
