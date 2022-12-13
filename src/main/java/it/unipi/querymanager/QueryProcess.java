@@ -42,8 +42,7 @@ public class QueryProcess {
         ArrayList<List<Posting>> L = new ArrayList<List<Posting>>(query_length);
         PriorityQueue<Results> R = new PriorityQueue<>(k);
 
-        new FileChannelInvIndex("src/main/resources/output/inverted_index_doc_id_bin.dat",
-                "src/main/resources/output/inverted_index_term_frequency_bin.dat", mode);
+        FileChannelInvIndex.openFileChannels(mode);
 
         for (String term : query_term_frequency.keySet()) {
             List<Posting> query_posting_list = new ArrayList<>();
