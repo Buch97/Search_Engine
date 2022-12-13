@@ -1,13 +1,12 @@
 package it.unipi.builddatastructures;
 
-import it.unipi.bean.FileChannelInvIndex;
+import it.unipi.utils.FileChannelInvIndex;
 import it.unipi.bean.Posting;
 import it.unipi.bean.TermPositionBlock;
 import it.unipi.bean.TermStats;
 import it.unipi.utils.Compression;
 import it.unipi.utils.TermPositionBlockComparator;
 import org.mapdb.DB;
-import org.mapdb.DataInput2;
 import org.mapdb.HTreeMap;
 
 import java.io.*;
@@ -103,8 +102,7 @@ public class MergeBlocks {
                 term_freq_compressed = compression.getUnaryBitSet().toByteArray();
             }
 
-            FileChannelInvIndex.fileChannel_doc_id.write(ByteBuffer.wrap(doc_id_compressed));
-            FileChannelInvIndex.fileChannel_term_freq.write(ByteBuffer.wrap(term_freq_compressed));
+            FileChannelInvIndex.write(ByteBuffer.wrap(doc_id_compressed), ByteBuffer.wrap(term_freq_compressed));
 
             offset_doc_id_end += doc_id_compressed.length;
             offset_term_freq_end += term_freq_compressed.length;

@@ -2,7 +2,7 @@ package it.unipi.querymanager;
 
 
 import it.unipi.bean.Posting;
-import it.unipi.bean.FileChannelInvIndex;
+import it.unipi.utils.FileChannelInvIndex;
 import it.unipi.bean.Results;
 import it.unipi.bean.TermStats;
 import it.unipi.builddatastructures.MergeBlocks;
@@ -32,11 +32,6 @@ public class QueryProcess {
 
     private static void daatScoring(Map<String, Integer> query_term_frequency, int query_length, int k, DB db) throws IOException {
 
-        long offset_doc_id_start;
-        long offset_doc_id_end;
-        long offset_term_freq_start;
-        long offset_term_freq_end;
-
         Map<Integer, Integer> doc_scores = new HashMap<>();
 
         ArrayList<List<Posting>> L = new ArrayList<List<Posting>>(query_length);
@@ -50,36 +45,28 @@ public class QueryProcess {
 
                 TermStats termStats = Objects.requireNonNull((TermStats) db.hashMap("lexicon").open().get(term));
 
-                offset_doc_id_start = termStats.getOffset_doc_id_start();
-                offset_doc_id_end = termStats.getOffset_doc_id_end();
+                int size_doc_id_list = extractSize(termStats.getOffset_doc_id_start(), termStats.getOffset_doc_id_end());
+                int size_term_freq_list = extractSize(termStats.getOffset_term_freq_start(), termStats.getOffset_term_freq_end());
 
-                int size_doc_id = (int) (offset_doc_id_end - offset_doc_id_start);
+                ByteBuffer doc_id_buffer = ByteBuffer.allocate(size_doc_id_list);
+                ByteBuffer term_freq_buffer = ByteBuffer.allocate(size_term_freq_list);
 
-                offset_term_freq_start = termStats.getOffset_term_freq_start();
-                offset_term_freq_end = termStats.getOffset_term_freq_end();
-
-                int size_term_freq = (int) (offset_term_freq_end - offset_term_freq_start);
-
-                ByteBuffer doc_id_buffer = ByteBuffer.allocate(size_doc_id);
-                ByteBuffer term_freq_buffer = ByteBuffer.allocate(size_term_freq);
-
-                int read_doc_id = FileChannelInvIndex.fileChannel_doc_id.read(doc_id_buffer, (int)offset_doc_id_start);
-                System.out.println("READ : " + read_doc_id);
-                int read_term_freq = FileChannelInvIndex.fileChannel_term_freq.read(term_freq_buffer, (int)offset_term_freq_start);
-                System.out.println("READ: " + read_term_freq);
-
+                FileChannelInvIndex.read(doc_id_buffer, term_freq_buffer, termStats.getOffset_doc_id_start(), termStats.getOffset_term_freq_start());
                 Compression compression = new Compression();
-                // build posting list query term
 
-                while (true){
-                    int term_freq = compression.decodingUnaryList(BitSet.valueOf(term_freq_buffer), size_term_freq*8);
+                // Solo per debug
+                printBitsetDecompressed(size_doc_id_list, size_term_freq_list, doc_id_buffer, term_freq_buffer);
+
+                while(true){
+                    int term_freq = compression.decodingUnaryList(BitSet.valueOf(term_freq_buffer), size_term_freq_list*8);
                     System.out.println("TERM: " + term_freq);
-                    int doc_id = compression.gammaDecodingList(BitSet.valueOf(doc_id_buffer), size_doc_id*8);
+                    int doc_id = compression.gammaDecodingList(BitSet.valueOf(doc_id_buffer), size_doc_id_list*8);
                     System.out.println("DOCID: " + doc_id);
 
                     query_posting_list.add(new Posting(doc_id, term_freq));
 
                     L.add(query_posting_list);
+                    break;
                 }
             } catch (NullPointerException e) {
                 System.out.println("Term not in collection");
@@ -112,6 +99,19 @@ public class QueryProcess {
         // For all posting list in L
     }
 
+    private static void printBitsetDecompressed(int size_doc_id, int size_term_freq, ByteBuffer doc_id_buffer, ByteBuffer term_freq_buffer) {
+        System.out.println("PRINT BIT SET DOC");
+        doc_id_buffer.flip();
+        MergeBlocks.printBitSet(BitSet.valueOf(doc_id_buffer), size_doc_id *8);
+
+        System.out.println("PRINT BIT SET TERM");
+        term_freq_buffer.flip();
+        MergeBlocks.printBitSet(BitSet.valueOf(term_freq_buffer), size_term_freq *8);
+    }
+
+    private static int extractSize(long start, long end){
+        return (int) (end - start);
+    }
     private static int maxDocId(int[] pos, int num_docs) {
         return 0;
     }
