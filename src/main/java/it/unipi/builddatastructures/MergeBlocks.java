@@ -92,12 +92,10 @@ public class MergeBlocks {
             }
 
             byte[] doc_id_compressed = compression.getGammaBitSet().toByteArray();
-            byte[] term_freq_compressed;
+            byte[] term_freq_compressed = new byte[Math.ceilDivExact(compression.getPosUnary(), 8)];
 
-            if (compression.getUnaryBitSet().toByteArray().length == 0) {
-                term_freq_compressed = new byte[Math.ceilDivExact(compression.getPosUnary(), 8)];
-            } else {
-                term_freq_compressed = compression.getUnaryBitSet().toByteArray();
+            if (compression.getUnaryBitSet().toByteArray().length != 0) {
+                System.arraycopy(compression.getUnaryBitSet().toByteArray(), 0, term_freq_compressed, 0, compression.getUnaryBitSet().toByteArray().length);
             }
 
             FileChannelInvIndex.write(doc_id_compressed, term_freq_compressed);

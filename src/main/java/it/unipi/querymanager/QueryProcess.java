@@ -39,6 +39,11 @@ public class QueryProcess {
 
         FileChannelInvIndex.openFileChannels(mode);
 
+        /* for all terms wi in Q do
+                 li !InvertedList(wi, I)
+                 L.add( li )
+           end for     */
+
         for (String term : query_term_frequency.keySet()) {
             List<Posting> query_posting_list = new ArrayList<>();
             try {
@@ -58,17 +63,13 @@ public class QueryProcess {
                 printBitsetDecompressed(size_doc_id_list, size_term_freq_list, doc_id_buffer, term_freq_buffer);
 
                 int n_posting = 0;
-                while (n_posting < termStats.getColl_frequency()) {
+                while (n_posting < termStats.getDoc_frequency()) {
                     int term_freq = compression.decodingUnaryList(BitSet.valueOf(term_freq_buffer), size_term_freq_list * 8);
-                    System.out.println("TERM: " + term_freq);
                     int doc_id = compression.gammaDecodingList(BitSet.valueOf(doc_id_buffer), size_doc_id_list * 8);
-                    System.out.println("DOCID: " + doc_id);
-
                     query_posting_list.add(new Posting(doc_id, term_freq));
                     n_posting++;
                 }
                 L.add(query_posting_list);
-
             } catch (NullPointerException e) {
                 System.out.println("Term not in collection");
                 return;

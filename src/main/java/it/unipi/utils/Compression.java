@@ -43,8 +43,8 @@ public class Compression {
             i++;
         }
 
-        bs = new BitSet(i + 1);
-        int sizebs = i + 1;
+        bs = new BitSet(i + 1 - posGamma);
+        int sizebs = i + 1 - posGamma;
 
         bs.set(0, true);
         int cont = 1;
@@ -68,13 +68,13 @@ public class Compression {
     }
 
     public BitSet getGammaBitSet() {
-        BitSet bitSet = new BitSet(posGamma);
-        bitSet = (BitSet) bitGamma.clone();
-        return bitSet;
+        return bitGamma;
     }
 
     public int decodingUnaryList(BitSet bitSet, int size) {
         int count = 0;
+        //System.out.println("posunary: " + posUnary);
+        //System.out.println("size: " + size);
         for (int i = posUnary; i < size; i++) {
             if (!bitSet.get(i)) {
                 posUnary = ++i;
@@ -88,6 +88,10 @@ public class Compression {
 
     public int getPosUnary() {
         return posUnary;
+    }
+
+    public int getPosGamma() {
+        return posGamma;
     }
 
     public static String BitSetToString(BitSet bi, int size) {
