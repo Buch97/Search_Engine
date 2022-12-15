@@ -44,8 +44,8 @@ public class IndexConstruction {
             writer_doc_index.close();
             myReader.close();
             System.out.println("----------------------INVERTED INDEX BLOCKS READY----------------------");
-            //MergeBlocks.mergeBlocks(db, BLOCK_NUMBER);
-            MergeBlocks.mergeBlocksText(db, BLOCK_NUMBER);
+            MergeBlocks.mergeBlocks(db, BLOCK_NUMBER);
+            //MergeBlocks.mergeBlocksText(db, BLOCK_NUMBER);
         } catch (FileNotFoundException e) {
             System.out.println("An error occurred.");
             e.printStackTrace();

@@ -67,6 +67,7 @@ public class QueryProcess {
                     int term_freq = compression.decodingUnaryList(BitSet.valueOf(term_freq_buffer), size_term_freq_list * 8);
                     int doc_id = compression.gammaDecodingList(BitSet.valueOf(doc_id_buffer), size_doc_id_list * 8);
                     query_posting_list.add(new Posting(doc_id, term_freq));
+                    System.out.println(doc_id + ":" + term_freq);
                     n_posting++;
                 }
                 L.add(query_posting_list);
