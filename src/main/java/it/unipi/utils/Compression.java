@@ -10,6 +10,7 @@ public class Compression {
     private BitSet bitUnary;
     private BitSet bitGamma;
     private int posUnary;
+    private int formerElem = 0;
     private int posGamma;
 
     public Compression() {
@@ -20,7 +21,10 @@ public class Compression {
     }
 
     public void gammaEncoding(int n) {
-        String binN = Integer.toBinaryString(n);
+        int gap = n - formerElem;
+        formerElem = n;
+
+        String binN = Integer.toBinaryString(gap);
         bitGamma.set(posGamma, posGamma + binN.length() - 1);
         bitGamma.clear(posGamma + binN.length() - 1);
         for (int i = 1; i < binN.length(); i++) {
@@ -54,7 +58,11 @@ public class Compression {
             cont++;
         }
         posGamma = i + 1;
-        return Integer.parseInt(BitSetToString(bs, sizebs), 2);
+
+        int gap = Integer.parseInt(BitSetToString(bs, sizebs), 2);
+        int n = gap + formerElem;
+        formerElem = n;
+        return n;
     }
 
     public void unaryEncoding(int n) {
