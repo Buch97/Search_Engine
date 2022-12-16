@@ -84,5 +84,6 @@ public class TermStats implements Serializable {
                 ", offset_term_freq_start=" + offset_term_freq_start +
                 '}';
     }
+
 }
 

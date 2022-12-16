@@ -4,3 +4,4 @@
 /src/main/resources/output/*
 /src/main/resources/collections/*
 /src/main/resources/collections/collection.tsv
+/src/main/resources/complete_collection_index/

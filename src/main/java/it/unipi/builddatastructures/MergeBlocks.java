@@ -1,12 +1,13 @@
 package it.unipi.builddatastructures;
 
 import it.unipi.bean.Posting;
-import it.unipi.bean.TermPositionBlock;
+import it.unipi.bean.InvertedList;
 import it.unipi.bean.TermStats;
 import it.unipi.utils.Compression;
 import it.unipi.utils.FileChannelInvIndex;
-import it.unipi.utils.TermPositionBlockComparator;
+import it.unipi.utils.InvertedListComparator;
 import org.mapdb.DB;
+import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
 
 import java.io.*;
@@ -15,20 +16,19 @@ import java.util.*;
 public class MergeBlocks {
 
     private static final String mode = "APPEND";
-
+    public static DB db_lexicon;
     private MergeBlocks() {
     }
-
-    public static void mergeBlocks(DB db, int blockNumber) throws IOException {
+    public static void mergeBlocks(int blockNumber) throws IOException {
 
         System.out.println("----------------------START MERGE PHASE----------------------");
 
         FileChannelInvIndex.openFileChannels(mode);
 
         // Definition of comparator, implemented in Class TermPositionBlock
-        Comparator<TermPositionBlock> comparator = new TermPositionBlockComparator();
+        Comparator<InvertedList> comparator = new InvertedListComparator();
         // Priority queue with size equal to the number of blocks
-        PriorityQueue<TermPositionBlock> priorityQueue = new PriorityQueue<>(blockNumber, comparator);
+        PriorityQueue<InvertedList> priorityQueue = new PriorityQueue<>(blockNumber, comparator);
         // List of terms added to the priority queue during the move forward phase
         List<BufferedReader> readerList = new ArrayList<>();
 
@@ -41,7 +41,13 @@ public class MergeBlocks {
         int coll_frequency;
 
         // Disk based lexicon using the HTreeMap
-        HTreeMap<String, TermStats> myMapLexicon = (HTreeMap<String, TermStats>) db.hashMap("lexicon").createOrOpen();
+        db_lexicon = DBMaker.fileDB("./src/main/resources/output/lexicon_disk_based.db")
+                .closeOnJvmShutdown()
+                .checksumHeaderBypass()
+                .make();
+        HTreeMap<String, TermStats> myMapLexicon = (HTreeMap<String, TermStats>) db_lexicon
+                .hashMap("lexicon")
+                .createOrOpen();
 
         // array of buffered reader to read each block at the same time
         for (int i = 0; i < blockNumber; i++) {
@@ -70,8 +76,8 @@ public class MergeBlocks {
 
             while (Objects.equals(currentTerm, Objects.requireNonNull(priorityQueue.peek()).getTerm())) {
 
-                int blockIndex = Objects.requireNonNull(priorityQueue.peek()).getBlock_index();
-                ArrayList<Posting> postings = Objects.requireNonNull(priorityQueue.peek()).getPostingArrayList();
+                int blockIndex = Objects.requireNonNull(priorityQueue.peek()).getPos();
+                List<Posting> postings = Objects.requireNonNull(priorityQueue.peek()).getPostingArrayList();
 
                 doc_frequency += postings.size();
 
@@ -102,6 +108,7 @@ public class MergeBlocks {
         for (BufferedReader reader : readerList)
             reader.close();
 
+        db_lexicon.close();
         FileChannelInvIndex.closeFileChannels();
 
         System.out.println("----------------------END MERGE PHASE----------------------");
@@ -112,9 +119,9 @@ public class MergeBlocks {
         System.out.println("----------------------START MERGE PHASE----------------------");
 
         // Definition of comparator, implemented in Class TermPositionBlock
-        Comparator<TermPositionBlock> comparator = new TermPositionBlockComparator();
+        Comparator<InvertedList> comparator = new InvertedListComparator();
         // Priority queue with size equal to the number of blocks
-        PriorityQueue<TermPositionBlock> priorityQueue = new PriorityQueue<>(blockNumber, comparator);
+        PriorityQueue<InvertedList> priorityQueue = new PriorityQueue<>(blockNumber, comparator);
         // List of terms added to the priority queue during the move forward phase
         List<BufferedReader> readerList = new ArrayList<>();
 
@@ -153,8 +160,8 @@ public class MergeBlocks {
             inv_index.write(currentTerm + "\t");
             while (Objects.equals(currentTerm, Objects.requireNonNull(priorityQueue.peek()).getTerm())) {
 
-                int blockIndex = Objects.requireNonNull(priorityQueue.peek()).getBlock_index();
-                ArrayList<Posting> postings = Objects.requireNonNull(priorityQueue.peek()).getPostingArrayList();
+                int blockIndex = Objects.requireNonNull(priorityQueue.peek()).getPos();
+                List<Posting> postings = Objects.requireNonNull(priorityQueue.peek()).getPostingArrayList();
 
                 // If equals, then update parameters of the term
                 doc_frequency += postings.size();
@@ -187,12 +194,12 @@ public class MergeBlocks {
         System.out.println("----------------------END MERGE PHASE----------------------");
     }
 
-    private static void updatePriorityQueue(PriorityQueue<TermPositionBlock> priorityQueue, BufferedReader block, int index) throws IOException {
+    private static void updatePriorityQueue(PriorityQueue<InvertedList> priorityQueue, BufferedReader block, int index) throws IOException {
         priorityQueue.poll();
         addNextTerm(block, priorityQueue, index);
     }
 
-    private static void openBufferedReaders(PriorityQueue<TermPositionBlock> priorityQueue, List<BufferedReader> readerList) throws IOException {
+    private static void openBufferedReaders(PriorityQueue<InvertedList> priorityQueue, List<BufferedReader> readerList) throws IOException {
         // For each reader read one line ad build an object TermPositionBlock
         // Add that object to priority queue
         for (BufferedReader reader : readerList) {
@@ -200,14 +207,14 @@ public class MergeBlocks {
             reader.readLine();
             String line = reader.readLine();
             if (line != null) {
-                TermPositionBlock termPositionBlock = BuildTermPositionBlock(line, readerList.indexOf(reader));
-                priorityQueue.add(termPositionBlock);
+                InvertedList invertedList = BuildTermPositionBlock(line, readerList.indexOf(reader));
+                priorityQueue.add(invertedList);
             } else
                 reader.close();
         }
     }
 
-    private static void addNextTerm(BufferedReader block, PriorityQueue<TermPositionBlock> priorityQueue, int index) throws IOException {
+    private static void addNextTerm(BufferedReader block, PriorityQueue<InvertedList> priorityQueue, int index) throws IOException {
 
         String nextRow = block.readLine();
         if (nextRow != null) {
@@ -216,7 +223,7 @@ public class MergeBlocks {
             block.close();
     }
 
-    private static TermPositionBlock BuildTermPositionBlock(String line, int index) {
+    private static InvertedList BuildTermPositionBlock(String line, int index) {
 
         String term = line.split("\t")[0];
         String postingList = line.split("\t")[1];
@@ -227,7 +234,7 @@ public class MergeBlocks {
             int term_freq = Integer.parseInt(posting.split(":")[1]);
             postingArrayList.add(new Posting(doc_id, term_freq));
         }
-        return new TermPositionBlock(term, postingArrayList, index);
+        return new InvertedList(term, postingArrayList, index);
     }
 
     public static void printBitSet(BitSet bi, int size) {

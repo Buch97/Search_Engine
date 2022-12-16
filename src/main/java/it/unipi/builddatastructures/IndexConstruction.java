@@ -1,8 +1,12 @@
 package it.unipi.builddatastructures;
 
+import it.unipi.bean.DocumentIndexStats;
 import it.unipi.bean.Posting;
 import it.unipi.bean.Token;
+import it.unipi.utils.CollectionStatistics;
 import org.mapdb.DB;
+import org.mapdb.DBMaker;
+import org.mapdb.HTreeMap;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -10,17 +14,24 @@ import java.util.*;
 
 public class IndexConstruction {
 
+    public static DB db_document_index;
     //dimensione per costruire i blocchi messa ora per prova a 3000 su una small collection
     public final static int SPIMI_TOKEN_STREAM_MAX_LIMIT = 3000;
     public final static List<Token> tokenStream = new ArrayList<>();
+    public static int max_doc_id = 0;
     public static int BLOCK_NUMBER = 0; //indice da usare per scrivere i file parziali dell'inverted index
-    public static void buildDataStructures(DB db) {
+    public static void buildDataStructures() {
         try {
             File myObj = new File("./src/main/resources/collections/small_collection.tsv");
 
             Scanner myReader = new Scanner(myObj, StandardCharsets.UTF_8);
-            BufferedWriter writer_doc_index = new BufferedWriter(new FileWriter("./src/main/resources/output/document_index.tsv"));
-            writer_doc_index.write("DOC_ID" + "\t" + "DOC_NO" + "\t" + "DOC_LEN" + "\n");
+            db_document_index = DBMaker.fileDB("./src/main/resources/output/document_index.db")
+                    .closeOnJvmShutdown()
+                    .checksumHeaderBypass()
+                    .make();
+            HTreeMap<Integer, DocumentIndexStats> document_index_map = (HTreeMap<Integer, DocumentIndexStats>) db_document_index
+                    .hashMap("document_index")
+                    .createOrOpen();
 
             System.out.println("----------------------START GENERATING INVERTED INDEX BLOCKS----------------------");
             while (myReader.hasNextLine()) {
@@ -34,17 +45,20 @@ public class IndexConstruction {
                 String doc_no = row[0];
                 String text = row[1];
 
-                // Add document to the document index
-                documentIndexAddition(doc_no, text, writer_doc_index);
-
                 // Parsing/tokenization of the document
                 parseDocumentBody(Integer.parseInt(doc_no), text);
+
+                // Add document to the document index
+                documentIndexAddition(doc_no, document_index_map);
+                max_doc_id = max_doc_id + 1;
             }
 
-            writer_doc_index.close();
+            CollectionStatistics.num_docs = max_doc_id + 1;
+
+            db_document_index.close();
             myReader.close();
             System.out.println("----------------------INVERTED INDEX BLOCKS READY----------------------");
-            MergeBlocks.mergeBlocks(db, BLOCK_NUMBER);
+            MergeBlocks.mergeBlocks(BLOCK_NUMBER);
             //MergeBlocks.mergeBlocksText(db, BLOCK_NUMBER);
         } catch (FileNotFoundException e) {
             System.out.println("An error occurred.");
@@ -125,9 +139,10 @@ public class IndexConstruction {
         vocabulary.put(token, postings_list);
         return postings_list;
     }
-    private static void documentIndexAddition(String doc_no, String text, BufferedWriter writer) throws IOException {
-        int doc_len = text.getBytes().length;
-        writer.write(Integer.parseInt(doc_no) + "\t" + doc_no + "\t" + doc_len + "\n");
+    private static void documentIndexAddition(String doc_no, HTreeMap<Integer, DocumentIndexStats> document_index_map) throws IOException {
+        int doc_len = Tokenizer.doc_len;
+        int doc_id = Integer.parseInt(doc_no);
+        DocumentIndexStats documentIndexStats = new DocumentIndexStats(doc_no, doc_len);
+        document_index_map.put(doc_id, documentIndexStats);
     }
-
 }

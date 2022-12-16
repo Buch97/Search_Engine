@@ -24,4 +24,11 @@ public class Results {
     public void setScore(double score) {
         this.score = score;
     }
+    @Override
+    public String toString() {
+        return "Results{" +
+                "doc_id=" + doc_id +
+                ", score=" + score +
+                '}';
+    }
 }

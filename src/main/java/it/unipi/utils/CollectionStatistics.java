@@ -10,16 +10,7 @@ import java.io.FileReader;
 import java.io.IOException;
 
 public class CollectionStatistics {
-
-    public static int computeDocs() throws IOException {
-        int docs = 0;
-        BufferedReader doc_index = new BufferedReader(new FileReader("./src/main/resources/output/document_index.tsv"));
-        while (doc_index.readLine() != null)
-            docs += 1;
-
-        return docs;
-    }
-
+    public static int num_docs;
     public static int computeTerms() throws IOException {
         int terms = 0;
         BufferedReader doc_index = new BufferedReader(new FileReader("./src/main/resources/output/document_index.tsv"));

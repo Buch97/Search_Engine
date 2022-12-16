@@ -1,36 +1,37 @@
 package it.unipi.bean;
 
 import java.util.ArrayList;
+import java.util.List;
 
-public class TermPositionBlock {
+public class InvertedList {
 
     String term;
-    int block_index;
-    ArrayList<Posting> postingArrayList;
+    int pos;
+    List<Posting> postingArrayList;
 
-    public TermPositionBlock(String term, ArrayList<Posting> postingArrayList, int block_index){
+    public InvertedList(String term, List<Posting> postingArrayList, int pos){
         this.term = term;
         this.postingArrayList = new ArrayList<>(postingArrayList);
-        this.block_index = block_index;
+        this.pos = pos;
     }
 
     public String getTerm() {
         return term;
     }
 
-    public int getBlock_index() {
-        return block_index;
+    public int getPos() {
+        return pos;
     }
 
     public void setTerm(String term) {
         this.term = term;
     }
 
-    public void setBlock_index(int block_index) {
-        this.block_index = block_index;
+    public void setPos(int pos) {
+        this.pos = pos;
     }
 
-    public ArrayList<Posting> getPostingArrayList() {
+    public List<Posting> getPostingArrayList() {
         return postingArrayList;
     }
 
@@ -42,7 +43,7 @@ public class TermPositionBlock {
     public String toString() {
         return "TermPositionBlock{" +
                 "term='" + term + '\'' +
-                ", block_index=" + block_index +
+                ", pos=" + pos +
                 ", postingArrayList=" + postingArrayList +
                 '}';
     }

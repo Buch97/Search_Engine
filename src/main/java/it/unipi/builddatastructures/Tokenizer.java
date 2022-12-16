@@ -4,6 +4,7 @@ import java.util.*;
 
 public class Tokenizer {
     private final String bodyText;
+    public static int doc_len;
     final Map<String, Integer> token_list = new HashMap<>();
     final String PATTERN_TOKEN = "\\$%{}[]()`<>='&:,;/.~ *\n|\"^_-+!?#\t@";
     final String[] STOPWORDS = {"a", "an", "and", "are", "as", "at", "be", "but", "by", "for",
@@ -39,6 +40,7 @@ public class Tokenizer {
         //final StringTokenizer normalTokenizer = new StringTokenizer(text, PATTERN_TOKEN);
         //space based tokenization
         final StringTokenizer normalTokenizer = new StringTokenizer(text, " ");
+        doc_len = normalTokenizer.countTokens();
         while (normalTokenizer.hasMoreTokens()) {
             String word = normalTokenizer.nextToken().trim();
             //word = word.replaceAll("[\\\\$%{}\\[\\]()`<>='&°§£€:,;/.~*|\"^_\\-+!?#\t@]","");
