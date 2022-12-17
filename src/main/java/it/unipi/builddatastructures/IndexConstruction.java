@@ -23,6 +23,7 @@ public class IndexConstruction {
     public static void buildDataStructures() {
         try {
             File myObj = new File("./src/main/resources/collections/small_collection.tsv");
+            BufferedWriter doc_index = new BufferedWriter(new FileWriter("./src/main/resources/output/doc_index.tsv"));
 
             Scanner myReader = new Scanner(myObj, StandardCharsets.UTF_8);
             db_document_index = DBMaker.fileDB("./src/main/resources/output/document_index.db")
@@ -50,6 +51,7 @@ public class IndexConstruction {
 
                 // Add document to the document index
                 documentIndexAddition(doc_no, document_index_map);
+                //documentIndexAdditionTextual(doc_no, doc_index);
                 max_doc_id = max_doc_id + 1;
             }
 
@@ -57,6 +59,7 @@ public class IndexConstruction {
 
             db_document_index.close();
             myReader.close();
+            doc_index.close();
             System.out.println("----------------------INVERTED INDEX BLOCKS READY----------------------");
             MergeBlocks.mergeBlocks(BLOCK_NUMBER);
             //MergeBlocks.mergeBlocksText(db, BLOCK_NUMBER);
@@ -67,6 +70,7 @@ public class IndexConstruction {
             e.printStackTrace();
         }
     }
+
     public static void parseDocumentBody(int doc_id, String text) {
         Tokenizer tokenizer = new Tokenizer(text);
         Map<String, Integer> results = tokenizer.tokenize();
@@ -144,5 +148,11 @@ public class IndexConstruction {
         int doc_id = Integer.parseInt(doc_no);
         DocumentIndexStats documentIndexStats = new DocumentIndexStats(doc_no, doc_len);
         document_index_map.put(doc_id, documentIndexStats);
+    }
+
+    private static void documentIndexAdditionTextual(String doc_no, BufferedWriter doc_index) throws IOException {
+        int doc_len = Tokenizer.doc_len;
+        int doc_id = Integer.parseInt(doc_no);
+        doc_index.write("DOC_ID: " + doc_id + " DOC_NO: " + doc_no + " DOC_LEN: " + doc_len + "\n");
     }
 }

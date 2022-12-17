@@ -22,28 +22,18 @@ public class Tokenizer {
         String text = bodyText.toLowerCase();
 
         text = text.replaceAll("[\\\\$%{}\\[\\]()`<>='&°»§£€:,;/.~*|\"^_\\-+!?#\t@]","");
-        text = text.replaceAll("<ref>.*?</ref>", "");
-        text = text.replaceAll("</?.*?>", "");
-        text = text.replaceAll("\\{\\{.*?}}", "");
-        text = text.replaceAll("\\[\\[.*?:.*?]]", "");
-        text = text.replaceAll("\\[\\[(.*?)]]", "");
-        text = text.replaceAll("\\s(.*?)\\|(\\w+\\s)", " $2");
-        text = text.replaceAll("\\[.*?]", " ");
-        text = text.replaceAll("(?s)<!--.*?-->", "");
-        text = text.replaceAll("\\b(https?|ftp|file)://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|]", "");
+        text = text.replaceAll("[^a-zA-Z0-9]", " ");
 
         extractToken(text);
         return token_list;
     }
 
     public void extractToken(final String text) {
-        //final StringTokenizer normalTokenizer = new StringTokenizer(text, PATTERN_TOKEN);
         //space based tokenization
         final StringTokenizer normalTokenizer = new StringTokenizer(text, " ");
         doc_len = normalTokenizer.countTokens();
         while (normalTokenizer.hasMoreTokens()) {
             String word = normalTokenizer.nextToken().trim();
-            //word = word.replaceAll("[\\\\$%{}\\[\\]()`<>='&°§£€:,;/.~*|\"^_\\-+!?#\t@]","");
             if (word.length() > 0 && !Arrays.asList(STOPWORDS).contains(word)) {
                 //se è la prima volta che si incontra si inserisce con valore 1 else si aumenta il valore di 1
                 token_list.merge(word, 1, Integer::sum);
