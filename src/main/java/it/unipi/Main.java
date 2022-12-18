@@ -35,11 +35,11 @@ public class Main {
                 System.out.println("New directory '/intermediate_postings' created");
         }
 
-        //if (!(new File(doc_id_path).exists()) || !(new File(term_freq_path).exists()))
-        IndexConstruction.buildDataStructures();
+        if (!(new File(doc_id_path).exists()) || !(new File(term_freq_path).exists()))
+            IndexConstruction.buildDataStructures();
 
-        db_lexicon = DBMaker.fileDB("./src/main/resources/output/lexicon_disk_based.db").closeOnJvmShutdown().make();
-        db_document_index = DBMaker.fileDB("./src/main/resources/output/document_index.db").closeOnJvmShutdown().make();
+        db_lexicon = DBMaker.fileDB("./src/main/resources/output/lexicon_disk_based.db").closeOnJvmShutdown().readOnly().make();
+        db_document_index = DBMaker.fileDB("./src/main/resources/output/document_index.db").closeOnJvmShutdown().readOnly().make();
 
         for (; ; ) {
 

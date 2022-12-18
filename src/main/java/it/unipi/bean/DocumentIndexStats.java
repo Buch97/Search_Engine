@@ -14,4 +14,12 @@ public class DocumentIndexStats implements Serializable {
     public int getDoc_len() {
         return doc_len;
     }
+
+    @Override
+    public String toString() {
+        return "DocumentIndexStats{" +
+                "doc_no='" + doc_no + '\'' +
+                ", doc_len=" + doc_len +
+                '}';
+    }
 }

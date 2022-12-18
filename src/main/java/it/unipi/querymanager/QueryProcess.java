@@ -3,9 +3,13 @@ package it.unipi.querymanager;
 
 import it.unipi.bean.*;
 import it.unipi.builddatastructures.Tokenizer;
-import it.unipi.utils.*;
+import it.unipi.utils.CollectionStatistics;
+import it.unipi.utils.Compression;
+import it.unipi.utils.FileChannelInvIndex;
+import it.unipi.utils.ResultsComparator;
 import org.mapdb.DB;
 
+import javax.swing.plaf.synth.SynthOptionPaneUI;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -39,7 +43,7 @@ public class QueryProcess {
             List<Posting> query_posting_list = new ArrayList<>();
             try {
 
-                TermStats termStats = Objects.requireNonNull((TermStats) db_lexicon.hashMap("lexicon").open().get(term));
+                TermStats termStats = Objects.requireNonNull((TermStats) db_lexicon.hashMap("lexicon").createOrOpen().get(term));
 
                 int size_doc_id_list = extractSize(termStats.getOffset_doc_id_start(), termStats.getOffset_doc_id_end());
                 int size_term_freq_list = extractSize(termStats.getOffset_term_freq_start(), termStats.getOffset_term_freq_end());
@@ -52,6 +56,7 @@ public class QueryProcess {
 
                 doc_id_buffer.flip();
                 term_freq_buffer.flip();
+
 
                 int n_posting = 0;
                 while (n_posting < termStats.getDoc_frequency()) {
@@ -67,8 +72,8 @@ public class QueryProcess {
             }
         }
 
-        int num_docs = CollectionStatistics.num_docs;
 
+        int num_docs = 1001;
         int current_doc_id = min_doc_id(L);
         while (current_doc_id != num_docs) {
             double score = 0;
@@ -82,7 +87,9 @@ public class QueryProcess {
                     int term_freq = posting.getTerm_frequency();
 
                     if (current_doc_id == doc_id) {
-                        score += getScore(query_term_frequency, query_length, db_document_index, invertedList, doc_id, term_freq);
+                        int doc_len = Objects.requireNonNull((DocumentIndexStats) db_document_index.hashMap("document_index")
+                                .createOrOpen().get(doc_id)).getDoc_len();
+                        score += getScore(query_term_frequency, query_length, doc_len, invertedList, term_freq);
                         invertedList.setPos(invertedList.getPos() + 1);
                     }
                 }
@@ -91,23 +98,18 @@ public class QueryProcess {
             current_doc_id = min_doc_id(L);
         }
 
-        int count = 0;
-        while (count < k){
+        for (int i = 0; i < k; i++) {
             Results results = R.peek();
-            double score = results.getScore();
-            int doc_id = results.getDoc_id();
+            assert results != null;
+            System.out.println("DOC ID: " + results.getDoc_id() + " SCORE: " + results.getScore());
             R.poll();
             if (R.size() == 0)
                 break;
-            System.out.println("DOC ID: " + doc_id + " SCORE: " + score);
-            count++;
         }
     }
 
-    private static double getScore(Map<String, Integer> query_term_frequency, int query_length, DB db_document_index, InvertedList invertedList, int doc_id, int term_freq) {
+    private static double getScore(Map<String, Integer> query_term_frequency, int query_length, int doc_len, InvertedList invertedList, int term_freq) {
 
-        int doc_len = Objects.requireNonNull((DocumentIndexStats) db_document_index.hashMap("document_index")
-                        .open().get(doc_id)).getDoc_len();
         int query_term_freq = query_term_frequency.get(invertedList.getTerm());
 
         double w_td = (double) term_freq / (double) doc_len;
@@ -116,10 +118,10 @@ public class QueryProcess {
     }
 
     private static int min_doc_id(ArrayList<InvertedList> L) {
-        int min_doc_id = CollectionStatistics.num_docs;
+        int min_doc_id = 1001;
 
-        for (InvertedList invertedList : L){
-            if (invertedList.getPos() < invertedList.getPostingArrayList().size()){
+        for (InvertedList invertedList : L) {
+            if (invertedList.getPos() < invertedList.getPostingArrayList().size()) {
                 min_doc_id = Math.min(invertedList.getPostingArrayList().get(invertedList.getPos()).getDoc_id(), min_doc_id);
             }
         }
