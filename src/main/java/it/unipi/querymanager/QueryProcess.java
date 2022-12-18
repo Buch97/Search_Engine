@@ -43,7 +43,7 @@ public class QueryProcess {
             List<Posting> query_posting_list = new ArrayList<>();
             try {
 
-                TermStats termStats = Objects.requireNonNull((TermStats) db_lexicon.hashMap("lexicon").createOrOpen().get(term));
+                TermStats termStats = Objects.requireNonNull((TermStats) db_lexicon.hashMap("lexicon").open().get(term));
 
                 int size_doc_id_list = extractSize(termStats.getOffset_doc_id_start(), termStats.getOffset_doc_id_end());
                 int size_term_freq_list = extractSize(termStats.getOffset_term_freq_start(), termStats.getOffset_term_freq_end());
@@ -88,7 +88,7 @@ public class QueryProcess {
 
                     if (current_doc_id == doc_id) {
                         int doc_len = Objects.requireNonNull((DocumentIndexStats) db_document_index.hashMap("document_index")
-                                .createOrOpen().get(doc_id)).getDoc_len();
+                                .open().get(doc_id)).getDoc_len();
                         score += getScore(query_term_frequency, query_length, doc_len, invertedList, term_freq);
                         invertedList.setPos(invertedList.getPos() + 1);
                     }
