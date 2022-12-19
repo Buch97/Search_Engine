@@ -3,6 +3,7 @@ package it.unipi;
 import it.unipi.builddatastructures.IndexConstruction;
 import it.unipi.querymanager.QueryProcess;
 import it.unipi.utils.CollectionStatistics;
+import it.unipi.utils.FileChannelInvIndex;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 
@@ -40,6 +41,8 @@ public class Main {
 
         db_lexicon = DBMaker.fileDB("./src/main/resources/output/lexicon_disk_based.db").closeOnJvmShutdown().readOnly().make();
         db_document_index = DBMaker.fileDB("./src/main/resources/output/document_index.db").closeOnJvmShutdown().readOnly().make();
+        FileChannelInvIndex.openFileChannels("READ");
+        FileChannelInvIndex.MapFileChannel();
 
         for (;;) {
             System.out.println("Please, submit your query! Otherwise digit \"!exit\" to stop the execution.");
@@ -49,6 +52,8 @@ public class Main {
             if (Objects.equals(query, "!exit")) {
                 db_lexicon.close();
                 db_document_index.close();
+                //FileChannelInvIndex.unmapBuffer();
+                FileChannelInvIndex.closeFileChannels();
                 System.exit(0);
             }
             System.out.println("Select the kind of the query: Disjunctive (0) | Conjunctive (1)");

@@ -42,7 +42,7 @@ public class QueryProcess {
         Comparator<Results> comparator = new ResultsComparator();
         PriorityQueue<Results> R = new PriorityQueue<>(k, comparator);
 
-        FileChannelInvIndex.openFileChannels(mode);
+        //FileChannelInvIndex.openFileChannels(mode);
 
         for (String term : query_term_frequency.keySet()) {
 
@@ -54,14 +54,18 @@ public class QueryProcess {
                 int size_doc_id_list = extractSize(termStats.getOffset_doc_id_start(), termStats.getOffset_doc_id_end());
                 int size_term_freq_list = extractSize(termStats.getOffset_term_freq_start(), termStats.getOffset_term_freq_end());
 
-                ByteBuffer doc_id_buffer = ByteBuffer.allocate(size_doc_id_list);
-                ByteBuffer term_freq_buffer = ByteBuffer.allocate(size_term_freq_list);
+                //ByteBuffer doc_id_buffer = ByteBuffer.allocate(size_doc_id_list);
+                //ByteBuffer term_freq_buffer = ByteBuffer.allocate(size_term_freq_list);
+                byte[] doc_id_buffer=new byte[size_doc_id_list];
+                byte[] term_freq_buffer=new byte[size_term_freq_list];
 
-                FileChannelInvIndex.read(doc_id_buffer, term_freq_buffer, termStats.getOffset_doc_id_start(), termStats.getOffset_term_freq_start());
+                //FileChannelInvIndex.read(doc_id_buffer, term_freq_buffer, termStats.getOffset_doc_id_start(), termStats.getOffset_term_freq_start());
+                FileChannelInvIndex.readMappedFile(doc_id_buffer, term_freq_buffer, termStats.getOffset_doc_id_start(), termStats.getOffset_term_freq_start(),size_doc_id_list,size_term_freq_list);
+
                 Compression compression = new Compression();
 
-                doc_id_buffer.flip();
-                term_freq_buffer.flip();
+                //doc_id_buffer.flip();
+                //term_freq_buffer.flip();
 
 
                 int n_posting = 0;
