@@ -42,49 +42,13 @@ public class QueryProcess {
         Comparator<Results> comparator = new ResultsComparator();
         PriorityQueue<Results> R = new PriorityQueue<>(k, comparator);
 
-        //FileChannelInvIndex.openFileChannels(mode);
+        FileChannelInvIndex.openFileChannels(mode);
 
-        for (String term : query_term_frequency.keySet()) {
-
-            try {
-
-                TermStats termStats = Objects.requireNonNull((TermStats) db_lexicon.hashMap("lexicon").open().get(term));
-
-                List<Posting> query_posting_list = new ArrayList<>();
-                int size_doc_id_list = extractSize(termStats.getOffset_doc_id_start(), termStats.getOffset_doc_id_end());
-                int size_term_freq_list = extractSize(termStats.getOffset_term_freq_start(), termStats.getOffset_term_freq_end());
-
-                //ByteBuffer doc_id_buffer = ByteBuffer.allocate(size_doc_id_list);
-                //ByteBuffer term_freq_buffer = ByteBuffer.allocate(size_term_freq_list);
-                byte[] doc_id_buffer=new byte[size_doc_id_list];
-                byte[] term_freq_buffer=new byte[size_term_freq_list];
-
-                //FileChannelInvIndex.read(doc_id_buffer, term_freq_buffer, termStats.getOffset_doc_id_start(), termStats.getOffset_term_freq_start());
-                FileChannelInvIndex.readMappedFile(doc_id_buffer, term_freq_buffer, termStats.getOffset_doc_id_start(), termStats.getOffset_term_freq_start(),size_doc_id_list,size_term_freq_list);
-
-                Compression compression = new Compression();
-
-                //doc_id_buffer.flip();
-                //term_freq_buffer.flip();
+        retrievePostingLists(query_term_frequency, db_lexicon, L);
 
 
-                int n_posting = 0;
-                while (n_posting < termStats.getDoc_frequency()) {
-                    int term_freq = compression.decodingUnaryList(BitSet.valueOf(term_freq_buffer), size_term_freq_list * 8);
-                    int doc_id = compression.gammaDecodingList(BitSet.valueOf(doc_id_buffer), size_doc_id_list * 8);
-                    query_posting_list.add(new Posting(doc_id, term_freq));
-                    n_posting++;
-                }
-                L.add(new InvertedList(term, query_posting_list, 0));
-
-            } catch (NullPointerException e) {
-                System.out.println("Term " + term + " not in collection");
-            }
-        }
-
-        for (InvertedList term : L)
-            System.out.println(term.getTerm());
         int current_doc_id = min_doc_id(L);
+
         while (current_doc_id != CollectionStatistics.num_docs) {
             double score = 0;
 
@@ -126,6 +90,42 @@ public class QueryProcess {
     }
 
     private static void daatScoringConjunctive() {
+    }
+
+    private static void retrievePostingLists(Map<String, Integer> query_term_frequency, DB db_lexicon, ArrayList<InvertedList> L) throws IOException {
+        for (String term : query_term_frequency.keySet()) {
+            List<Posting> query_posting_list = new ArrayList<>();
+
+            try {
+
+                TermStats termStats = Objects.requireNonNull((TermStats) db_lexicon.hashMap("lexicon").open().get(term));
+
+                int size_doc_id_list = extractSize(termStats.getOffset_doc_id_start(), termStats.getOffset_doc_id_end());
+                int size_term_freq_list = extractSize(termStats.getOffset_term_freq_start(), termStats.getOffset_term_freq_end());
+
+                ByteBuffer doc_id_buffer = ByteBuffer.allocate(size_doc_id_list);
+                ByteBuffer term_freq_buffer = ByteBuffer.allocate(size_term_freq_list);
+
+                FileChannelInvIndex.read(doc_id_buffer, term_freq_buffer, termStats.getOffset_doc_id_start(), termStats.getOffset_term_freq_start());
+                Compression compression = new Compression();
+
+                doc_id_buffer.flip();
+                term_freq_buffer.flip();
+
+
+                int n_posting = 0;
+                while (n_posting < termStats.getDoc_frequency()) {
+                    int term_freq = compression.decodingUnaryList(BitSet.valueOf(term_freq_buffer), size_term_freq_list * 8);
+                    int doc_id = compression.gammaDecodingList(BitSet.valueOf(doc_id_buffer), size_doc_id_list * 8);
+                    query_posting_list.add(new Posting(doc_id, term_freq));
+                    n_posting++;
+                }
+                L.add(new InvertedList(term, query_posting_list, 0));
+
+            } catch (NullPointerException e) {
+                System.out.println("Term " + term + " not in collection");
+            }
+        }
     }
 
     private static double tfIdfScore(int term_freq, int doc_freq) {
