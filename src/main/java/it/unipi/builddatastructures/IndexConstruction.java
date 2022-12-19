@@ -18,18 +18,18 @@ public class IndexConstruction {
     //dimensione per costruire i blocchi messa ora per prova a 3000 su una small collection
     public final static int SPIMI_TOKEN_STREAM_MAX_LIMIT = 3000;
     public final static List<Token> tokenStream = new ArrayList<>();
-    public static int max_doc_id = 0;
     public static int BLOCK_NUMBER = 0; //indice da usare per scrivere i file parziali dell'inverted index
     public static void buildDataStructures() {
         try {
             File myObj = new File("./src/main/resources/collections/small_collection.tsv");
-            BufferedWriter doc_index = new BufferedWriter(new FileWriter("./src/main/resources/output/doc_index.tsv"));
+            //BufferedWriter doc_index = new BufferedWriter(new FileWriter("./src/main/resources/output/doc_index.tsv"));
 
             Scanner myReader = new Scanner(myObj, StandardCharsets.UTF_8);
             db_document_index = DBMaker.fileDB("./src/main/resources/output/document_index.db")
                     .closeOnJvmShutdown()
                     .checksumHeaderBypass()
                     .make();
+
             HTreeMap<Integer, DocumentIndexStats> document_index_map = (HTreeMap<Integer, DocumentIndexStats>) db_document_index
                     .hashMap("document_index")
                     .createOrOpen();
@@ -52,17 +52,14 @@ public class IndexConstruction {
                 // Add document to the document index
                 documentIndexAddition(doc_no, document_index_map);
                 //documentIndexAdditionTextual(doc_no, doc_index);
-                max_doc_id = max_doc_id + 1;
             }
-
-            CollectionStatistics.num_docs = max_doc_id + 1;
 
             db_document_index.close();
             myReader.close();
-            doc_index.close();
+            //doc_index.close();
             System.out.println("----------------------INVERTED INDEX BLOCKS READY----------------------");
             MergeBlocks.mergeBlocks(BLOCK_NUMBER);
-            //MergeBlocks.mergeBlocksText(db, BLOCK_NUMBER);
+            //MergeBlocks.mergeBlocksText(BLOCK_NUMBER);
         } catch (FileNotFoundException e) {
             System.out.println("An error occurred.");
             e.printStackTrace();

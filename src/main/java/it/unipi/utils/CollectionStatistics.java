@@ -11,13 +11,12 @@ import java.io.IOException;
 
 public class CollectionStatistics {
     public static int num_docs;
-    public static int computeTerms() throws IOException {
-        int terms = 0;
-        BufferedReader doc_index = new BufferedReader(new FileReader("./src/main/resources/output/document_index.tsv"));
-        //BufferedReader lexicon = new BufferedReader(new FileReader("./src/main/resources/output/lexicon.tsv"));
-        //while (lexicon.readLine() != null)
-          //  terms += 1;
 
-        return terms;
+    public static void computeNumDocs() throws IOException {
+        int rows = 0;
+        BufferedReader collection = new BufferedReader(new FileReader("./src/main/resources/collections/small_collection.tsv"));
+        while (collection.readLine() != null)
+            rows += 1;
+        CollectionStatistics.num_docs = rows;
     }
 }

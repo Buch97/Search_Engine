@@ -45,6 +45,7 @@ public class MergeBlocks {
                 .closeOnJvmShutdown()
                 .checksumHeaderBypass()
                 .make();
+
         HTreeMap<String, TermStats> myMapLexicon = (HTreeMap<String, TermStats>) db_lexicon
                 .hashMap("lexicon")
                 .createOrOpen();
@@ -114,7 +115,7 @@ public class MergeBlocks {
         System.out.println("----------------------END MERGE PHASE----------------------");
     }
 
-    public static void mergeBlocksText(DB db, int blockNumber) throws IOException {
+    public static void mergeBlocksText(int blockNumber) throws IOException {
 
         System.out.println("----------------------START MERGE PHASE----------------------");
 
@@ -131,8 +132,13 @@ public class MergeBlocks {
         int doc_frequency;
         int coll_frequency;
 
+        db_lexicon = DBMaker.fileDB("./src/main/resources/output/lexicon_disk_based.db")
+                .closeOnJvmShutdown()
+                .checksumHeaderBypass()
+                .make();
+
         // Disk based lexicon using the HTreeMap
-        HTreeMap<String, TermStats> myMapLexiconText = (HTreeMap<String, TermStats>) db.hashMap("lexiconText").createOrOpen();
+        HTreeMap<String, TermStats> myMapLexiconText = (HTreeMap<String, TermStats>) db_lexicon.hashMap("lexiconText").createOrOpen();
 
         BufferedWriter inv_index = new BufferedWriter(new FileWriter("./src/main/resources/output/inv_index.tsv"));
 

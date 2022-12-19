@@ -17,16 +17,18 @@ import java.util.*;
 public class QueryProcess {
 
     private static final String mode = "READ";
+    private static long startTime;
 
     public static void parseQuery(String query, int k, DB db_lexicon, DB db_document_index) throws IOException {
+        startTime = System.nanoTime();
         Tokenizer tokenizer = new Tokenizer(query);
         Map<String, Integer> query_term_frequency = tokenizer.tokenize();
         int query_length = 0;
         for (String token : query_term_frequency.keySet()) {
             query_length += query_term_frequency.get(token);
-            System.out.println(token + " " + query_term_frequency.get(token));
+            System.out.println("Term: " + token + " Query_Freq: " + query_term_frequency.get(token));
         }
-        System.out.println("Query length = " + query_length);
+        System.out.println("\n" + "Query length = " + query_length + "\n");
         daatScoring(query_term_frequency, query_length, k, db_lexicon, db_document_index);
     }
 
@@ -67,15 +69,13 @@ public class QueryProcess {
                 }
                 L.add(new InvertedList(term, query_posting_list, 0));
             } catch (NullPointerException e) {
-                System.out.println("Term not in collection");
-                return;
+                System.out.println("Term " + term + " not in collection");
+                break;
             }
         }
 
-
-        int num_docs = 1001;
         int current_doc_id = min_doc_id(L);
-        while (current_doc_id != num_docs) {
+        while (current_doc_id != CollectionStatistics.num_docs) {
             double score = 0;
 
             for (InvertedList invertedList : L) {
@@ -85,11 +85,14 @@ public class QueryProcess {
                     Posting posting = iterator.next();
                     int doc_id = posting.getDoc_id();
                     int term_freq = posting.getTerm_frequency();
+                    if (doc_id > current_doc_id)
+                        break;
 
                     if (current_doc_id == doc_id) {
                         int doc_len = Objects.requireNonNull((DocumentIndexStats) db_document_index.hashMap("document_index")
                                 .open().get(doc_id)).getDoc_len();
-                        score += getScore(query_term_frequency, query_length, doc_len, invertedList, term_freq);
+                        //score += getScore(query_term_frequency, query_length, doc_len, invertedList, term_freq);
+                        score += tfIdfScoring(invertedList, term_freq);
                         invertedList.setPos(invertedList.getPos() + 1);
                     }
                 }
@@ -106,6 +109,15 @@ public class QueryProcess {
             if (R.size() == 0)
                 break;
         }
+        long elapsedTime = System.nanoTime() - startTime;
+        System.out.println("Total execution time to have an answer: " + elapsedTime/1000000);
+    }
+
+    private static double tfIdfScoring(InvertedList invertedList, int term_freq) {
+        double tf, idf;
+        tf = Math.log(term_freq);
+        idf = Math.log((double) CollectionStatistics.num_docs / (double) invertedList.getPostingArrayList().size());
+        return (tf + 1)*(idf);
     }
 
     private static double getScore(Map<String, Integer> query_term_frequency, int query_length, int doc_len, InvertedList invertedList, int term_freq) {
@@ -118,7 +130,7 @@ public class QueryProcess {
     }
 
     private static int min_doc_id(ArrayList<InvertedList> L) {
-        int min_doc_id = 1001;
+        int min_doc_id = CollectionStatistics.num_docs;
 
         for (InvertedList invertedList : L) {
             if (invertedList.getPos() < invertedList.getPostingArrayList().size()) {
