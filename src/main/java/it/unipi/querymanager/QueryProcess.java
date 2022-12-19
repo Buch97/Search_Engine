@@ -19,7 +19,7 @@ public class QueryProcess {
     private static final String mode = "READ";
     private static long startTime;
 
-    public static void parseQuery(String query, int k, DB db_lexicon, DB db_document_index) throws IOException {
+    public static void parseQuery(String query, int mode, int k, DB db_lexicon, DB db_document_index) throws IOException {
         startTime = System.nanoTime();
         Tokenizer tokenizer = new Tokenizer(query);
         Map<String, Integer> query_term_frequency = tokenizer.tokenize();
@@ -29,10 +29,13 @@ public class QueryProcess {
             System.out.println("Term: " + token + " Query_Freq: " + query_term_frequency.get(token));
         }
         System.out.println("\n" + "Query length = " + query_length + "\n");
-        daatScoring(query_term_frequency, query_length, k, db_lexicon, db_document_index);
+        if (mode == 0)
+            daatScoringDisjunctive(query_term_frequency, query_length, k, db_lexicon, db_document_index);
+        else if (mode == 1)
+            daatScoringConjunctive();
     }
 
-    private static void daatScoring(Map<String, Integer> query_term_frequency, int query_length, int k, DB db_lexicon, DB db_document_index) throws IOException {
+    private static void daatScoringDisjunctive(Map<String, Integer> query_term_frequency, int query_length, int k, DB db_lexicon, DB db_document_index) throws IOException {
 
         ArrayList<InvertedList> L = new ArrayList<>(query_length);
 
@@ -42,11 +45,12 @@ public class QueryProcess {
         FileChannelInvIndex.openFileChannels(mode);
 
         for (String term : query_term_frequency.keySet()) {
-            List<Posting> query_posting_list = new ArrayList<>();
+
             try {
 
                 TermStats termStats = Objects.requireNonNull((TermStats) db_lexicon.hashMap("lexicon").open().get(term));
 
+                List<Posting> query_posting_list = new ArrayList<>();
                 int size_doc_id_list = extractSize(termStats.getOffset_doc_id_start(), termStats.getOffset_doc_id_end());
                 int size_term_freq_list = extractSize(termStats.getOffset_term_freq_start(), termStats.getOffset_term_freq_end());
 
@@ -68,12 +72,14 @@ public class QueryProcess {
                     n_posting++;
                 }
                 L.add(new InvertedList(term, query_posting_list, 0));
+
             } catch (NullPointerException e) {
                 System.out.println("Term " + term + " not in collection");
-                break;
             }
         }
 
+        for (InvertedList term : L)
+            System.out.println(term.getTerm());
         int current_doc_id = min_doc_id(L);
         while (current_doc_id != CollectionStatistics.num_docs) {
             double score = 0;
@@ -91,8 +97,10 @@ public class QueryProcess {
                     if (current_doc_id == doc_id) {
                         int doc_len = Objects.requireNonNull((DocumentIndexStats) db_document_index.hashMap("document_index")
                                 .open().get(doc_id)).getDoc_len();
+                        int doc_freq = Objects.requireNonNull((TermStats) db_lexicon.hashMap("lexicon").open()
+                                .get(invertedList.getTerm())).getDoc_frequency();
                         //score += getScore(query_term_frequency, query_length, doc_len, invertedList, term_freq);
-                        score += tfIdfScoring(invertedList, term_freq);
+                        score += tfIdfScore(term_freq, doc_freq);
                         invertedList.setPos(invertedList.getPos() + 1);
                     }
                 }
@@ -113,10 +121,13 @@ public class QueryProcess {
         System.out.println("Total execution time to have an answer: " + elapsedTime/1000000);
     }
 
-    private static double tfIdfScoring(InvertedList invertedList, int term_freq) {
+    private static void daatScoringConjunctive() {
+    }
+
+    private static double tfIdfScore(int term_freq, int doc_freq) {
         double tf, idf;
         tf = Math.log(term_freq);
-        idf = Math.log((double) CollectionStatistics.num_docs / (double) invertedList.getPostingArrayList().size());
+        idf = Math.log((double) CollectionStatistics.num_docs / (double) doc_freq);
         return (tf + 1)*(idf);
     }
 

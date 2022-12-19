@@ -42,7 +42,6 @@ public class Main {
         db_document_index = DBMaker.fileDB("./src/main/resources/output/document_index.db").closeOnJvmShutdown().readOnly().make();
 
         for (;;) {
-
             System.out.println("Please, submit your query! Otherwise digit \"!exit\" to stop the execution.");
             BufferedReader reader = new BufferedReader(
                     new InputStreamReader(System.in));
@@ -52,8 +51,22 @@ public class Main {
                 db_document_index.close();
                 System.exit(0);
             }
-            System.out.println("Your request: " + query + "\n");
-            QueryProcess.parseQuery(query, k, db_lexicon, db_document_index);
+            System.out.println("Select the kind of the query: Disjunctive (0) | Conjunctive (1)");
+            String type = reader.readLine();
+            int mode;
+            try {
+                if ((Integer.parseInt(type) != 0) && (Integer.parseInt(type) != 1)) {
+                    System.out.println("Not valid input, mode is set to default (0)");
+                    mode = 0;
+                } else
+                    mode = Integer.parseInt(type);
+                System.out.println("Your request: " + query + "\n");
+            }
+            catch (NumberFormatException e){
+                System.out.println("Not valid input, mode is set to default (0)");
+                mode = 0;
+            }
+            QueryProcess.parseQuery(query, mode, k, db_lexicon, db_document_index);
         }
     }
 }
