@@ -37,29 +37,14 @@ public class Compression {
 
     }
 
-    public int gammaDecodingList(BitSet bitSet, int size) { 
-        int i = posGamma;
-        BitSet bs;
-
-        while (i < size) {
-            if (!bitSet.get(i))
-                break;
-            i++;
-        }
-
-        bs = new BitSet(i + 1 - posGamma);
+    public int gammaDecodingList(BitSet bitSet) {
+        int i = bitSet.nextClearBit(posGamma);
         int sizebs = i + 1 - posGamma;
 
-        bs.set(0, true);
-        int cont = 1;
-        while (cont < sizebs) {
-            i++;
-            bs.set(cont, bitSet.get(i));
-            cont++;
-        }
-        posGamma = i + 1;
+        BitSet bs = bitSet.get(i + 1, i + sizebs);
+        posGamma = i + sizebs;
 
-        int gap = Integer.parseInt(BitSetToString(bs, sizebs), 2);
+        int gap = (int) (Math.pow(2, sizebs) + convert(bs));
         int n = gap + formerElem;
         formerElem = n;
         return n;
@@ -79,18 +64,10 @@ public class Compression {
         return bitGamma;
     }
 
-    public int decodingUnaryList(BitSet bitSet, int size) {
-        int count = 0;
-
-        for (int i = posUnary; i < size; i++) {
-            if (!bitSet.get(i)) {
-                posUnary = ++i;
-                return ++count;
-            } else {
-                count++;
-            }
-        }
-        return 0;
+    public int decodingUnaryList(BitSet bitSet) {
+        int count = bitSet.nextClearBit(posUnary) + 1 - posUnary;
+        posUnary = posUnary + count;
+        return count;
     }
 
     public int getPosUnary() {
@@ -101,14 +78,12 @@ public class Compression {
         return posGamma;
     }
 
-    public static String BitSetToString(BitSet bi, int size) {
 
-        StringBuilder s = new StringBuilder();
-        for (int i = 0; i < size; i++) {
-            if (bi.get(i))
-                s.append("1");
-            else s.append("0");
+    public static int convert(BitSet bits) {
+        int value = 0;
+        for (int i = 0; i < bits.length(); ++i) {
+            value += bits.get(i) ? (1 << i) : 0;
         }
-        return s.toString();
+        return value;
     }
 }

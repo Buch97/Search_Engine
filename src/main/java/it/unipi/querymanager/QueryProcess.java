@@ -36,13 +36,16 @@ public class QueryProcess {
 
     private static void daatScoringDisjunctive(Map<String, Integer> query_term_frequency, int query_length, int k, DB db_lexicon, DB db_document_index) throws IOException {
 
+        System.out.println("INIZIALIZE DATA STRUCTURES");
         ArrayList<InvertedList> L = new ArrayList<>(query_length);
 
         Comparator<Results> comparator = new ResultsComparator();
         PriorityQueue<Results> R = new PriorityQueue<>(k, comparator);
 
+        System.out.println("RETRIEVE POSTING LIST");
         retrievePostingLists(query_term_frequency, db_lexicon, L);
 
+        System.out.println("SCORING FUNCTION");
         int current_doc_id = min_doc_id(L);
         while (current_doc_id != CollectionStatistics.num_docs) {
             double score = 0;
@@ -72,6 +75,7 @@ public class QueryProcess {
             current_doc_id = min_doc_id(L);
         }
 
+        System.out.println("RESULTS: ");
         for (int i = 0; i < k; i++) {
             Results results = R.peek();
             assert results != null;
@@ -103,9 +107,10 @@ public class QueryProcess {
                 FileChannelInvIndex.readMappedFile(doc_id_buffer, term_freq_buffer, termStats.getOffset_doc_id_start(), termStats.getOffset_term_freq_start());
                 Compression compression = new Compression();
 
+                System.out.println("DECOMPRESSION");
                 for (int i = 0; i < termStats.getDoc_frequency(); i++) {
-                    int term_freq = compression.decodingUnaryList(BitSet.valueOf(term_freq_buffer), size_term_freq_list * 8);
-                    int doc_id = compression.gammaDecodingList(BitSet.valueOf(doc_id_buffer), size_doc_id_list * 8);
+                    int term_freq = compression.decodingUnaryList(BitSet.valueOf(term_freq_buffer));
+                    int doc_id = compression.gammaDecodingList(BitSet.valueOf(doc_id_buffer));
                     query_posting_list.add(new Posting(doc_id, term_freq));
                 }
                 L.add(new InvertedList(term, query_posting_list, 0));

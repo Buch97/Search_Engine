@@ -53,7 +53,7 @@ public class Main {
             if (Objects.equals(query, "!exit")) {
                 db_lexicon.close();
                 db_document_index.close();
-                //FileChannelInvIndex.unmapBuffer();
+                FileChannelInvIndex.unmapBuffer();
                 FileChannelInvIndex.closeFileChannels();
                 System.exit(0);
             }
