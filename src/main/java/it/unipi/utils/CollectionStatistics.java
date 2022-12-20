@@ -8,15 +8,17 @@ package it.unipi.utils;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.stream.Stream;
 
 public class CollectionStatistics {
     public static int num_docs;
 
     public static void computeNumDocs() throws IOException {
         int rows = 0;
-        BufferedReader collection = new BufferedReader(new FileReader("./src/main/resources/collections/small_collection.tsv"));
-        while (collection.readLine() != null)
-            rows += 1;
+        BufferedReader collection = new BufferedReader(new FileReader("./src/main/resources/collections/collection.tsv"));
+        while (collection.readLine() != null) rows++;
         CollectionStatistics.num_docs = rows;
     }
 }

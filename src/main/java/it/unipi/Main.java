@@ -18,6 +18,7 @@ public class Main {
     private static final String term_freq_path = "src/main/resources/output/inverted_index_term_frequency_bin.dat";
     public static int k = 20;
     public static DB db_document_index;
+    private static final String mode = "READ";
     public static DB db_lexicon;
 
     public static void main(String[] args) throws IOException {
@@ -41,7 +42,7 @@ public class Main {
 
         db_lexicon = DBMaker.fileDB("./src/main/resources/output/lexicon_disk_based.db").closeOnJvmShutdown().readOnly().make();
         db_document_index = DBMaker.fileDB("./src/main/resources/output/document_index.db").closeOnJvmShutdown().readOnly().make();
-        FileChannelInvIndex.openFileChannels("READ");
+        FileChannelInvIndex.openFileChannels(mode);
         FileChannelInvIndex.MapFileChannel();
 
         for (;;) {

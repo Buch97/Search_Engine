@@ -25,7 +25,7 @@ public class FileChannelInvIndex {
     }
 
     public static void MapFileChannel() throws IOException {
-        MappedTermFreqBuffer= fileChannel_term_freq.map(FileChannel.MapMode.READ_ONLY, 0, fileChannel_term_freq.size());
+        MappedTermFreqBuffer = fileChannel_term_freq.map(FileChannel.MapMode.READ_ONLY, 0, fileChannel_term_freq.size());
         MappedDocIdBuffer = fileChannel_doc_id.map(FileChannel.MapMode.READ_ONLY, 0, fileChannel_doc_id.size());
     }
 
@@ -60,7 +60,7 @@ public class FileChannelInvIndex {
         fileChannel_term_freq.close();
     }
 
-    public static void unmapBuffer(){
+    public static void unmapBuffer() {
         Cleaner cleanerTerm = ((DirectBuffer) MappedTermFreqBuffer).cleaner();
         Cleaner cleanerDoc = ((DirectBuffer) MappedDocIdBuffer).cleaner();
         if (cleanerTerm != null) cleanerTerm.clean();
@@ -68,10 +68,9 @@ public class FileChannelInvIndex {
     }
 
 
-
-    public static void readMappedFile(byte[] doc_id_buffer, byte[] term_freq_buffer, long offset_doc_id_start, long offset_term_freq_start,int size_doc_id_list,int size_term_freq_list) throws IOException {
-        FileChannelInvIndex.MappedTermFreqBuffer.get(term_freq_buffer, (int) offset_term_freq_start,size_term_freq_list);
-        FileChannelInvIndex.MappedDocIdBuffer.get(doc_id_buffer, (int) offset_doc_id_start,size_doc_id_list);
+    public static void readMappedFile(byte[] doc_id_buffer, byte[] term_freq_buffer, long offset_doc_id_start, long offset_term_freq_start) throws IOException {
+        FileChannelInvIndex.MappedTermFreqBuffer.get((int) offset_term_freq_start, term_freq_buffer);
+        FileChannelInvIndex.MappedDocIdBuffer.get((int) offset_doc_id_start, doc_id_buffer);
     }
 
     public static void read(ByteBuffer doc_id_buffer, ByteBuffer term_freq_buffer, long offset_doc_id_start, long offset_term_freq_start) throws IOException {

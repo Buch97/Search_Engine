@@ -81,8 +81,7 @@ public class Compression {
 
     public int decodingUnaryList(BitSet bitSet, int size) {
         int count = 0;
-        //System.out.println("posunary: " + posUnary);
-        //System.out.println("size: " + size);
+
         for (int i = posUnary; i < size; i++) {
             if (!bitSet.get(i)) {
                 posUnary = ++i;
