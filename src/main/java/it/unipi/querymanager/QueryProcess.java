@@ -111,6 +111,7 @@ public class QueryProcess {
                 for (int i = 0; i < termStats.getDoc_frequency(); i++) {
                     int term_freq = compression.decodingUnaryList(BitSet.valueOf(term_freq_buffer));
                     int doc_id = compression.gammaDecodingList(BitSet.valueOf(doc_id_buffer));
+                    //int doc_id = compression.decodingVariableByte(doc_id_buffer);
                     query_posting_list.add(new Posting(doc_id, term_freq));
                 }
                 L.add(new InvertedList(term, query_posting_list, 0));

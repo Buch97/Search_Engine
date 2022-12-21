@@ -1,24 +1,63 @@
 package it.unipi.utils;
 
-import it.unipi.builddatastructures.MergeBlocks;
-
-import java.util.Arrays;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.BitSet;
+
+import static java.lang.Math.log;
 
 public class Compression {
 
     private BitSet bitUnary;
     private BitSet bitGamma;
+    private ByteArrayOutputStream variableByteBuffer;
     private int posUnary;
     private int formerElem = 0;
     private int posGamma;
+    private int posVarByte;
 
     public Compression() {
         bitUnary = new BitSet();
         bitGamma = new BitSet();
+        variableByteBuffer=new ByteArrayOutputStream();
         posUnary = 0;
         posGamma = 0;
+        posVarByte=0;
     }
+
+    public void encodingVariableByte(int n) throws IOException {
+        int gap = n - formerElem;
+        formerElem = n;
+
+        int i = (int) (log(gap) / log(128)) + 1;
+        byte[] rv = new byte[i];
+        int j = i - 1;
+        do {
+            rv[j--] = (byte) (gap % 128);
+            gap /= 128;
+        } while (j >= 0);
+        rv[i - 1] += 128;
+        variableByteBuffer.write(rv);
+    }
+
+
+    public int decodingVariableByte(byte[] byteStream){
+        int n = 0;
+        int num=0;
+        for(int i=posVarByte;i<byteStream.length;i++){
+            if ((byteStream[i] & 0xff) < 128) {
+                n = 128 * n + byteStream[i];
+            } else {
+                int gap = (128 * n + ((byteStream[i] - 128) & 0xff));
+                posVarByte=++i;
+                num = gap + formerElem;
+                formerElem = num;
+                return num;
+            }
+        }
+        return num;
+    }
+
 
     public void gammaEncoding(int n) {
         int gap = n - formerElem;
@@ -56,6 +95,12 @@ public class Compression {
         posUnary += n;
     }
 
+    public int decodingUnaryList(BitSet bitSet) {
+        int count = bitSet.nextClearBit(posUnary) + 1 - posUnary;
+        posUnary = posUnary + count;
+        return count;
+    }
+
     public BitSet getUnaryBitSet() {
         return bitUnary;
     }
@@ -64,11 +109,10 @@ public class Compression {
         return bitGamma;
     }
 
-    public int decodingUnaryList(BitSet bitSet) {
-        int count = bitSet.nextClearBit(posUnary) + 1 - posUnary;
-        posUnary = posUnary + count;
-        return count;
+    public ByteArrayOutputStream getVariableByteBuffer(){
+        return variableByteBuffer;
     }
+
 
     public int getPosUnary() {
         return posUnary;

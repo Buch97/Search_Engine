@@ -85,12 +85,14 @@ public class MergeBlocks {
                 for (Posting posting : postings) {
                     coll_frequency += posting.getTerm_frequency();
                     compression.gammaEncoding(posting.getDoc_id());
+                    //compression.encodingVariableByte(posting.getDoc_id());
                     compression.unaryEncoding(posting.getTerm_frequency());
                 }
                 updatePriorityQueue(priorityQueue, readerList.get(blockIndex), blockIndex);
                 if (priorityQueue.size() == 0) break;
             }
 
+            //byte[] doc_id_compressed = compression.getVariableByteBuffer().toByteArray();
             byte[] doc_id_compressed = compression.getGammaBitSet().toByteArray();
             byte[] term_freq_compressed = new byte[Math.ceilDivExact(compression.getPosUnary(), 8)];
 
