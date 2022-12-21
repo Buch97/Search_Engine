@@ -28,16 +28,19 @@ public class Compression {
     public void encodingVariableByte(int n) throws IOException {
         int gap = n - formerElem;
         formerElem = n;
-
-        int i = (int) (log(gap) / log(128)) + 1;
-        byte[] rv = new byte[i];
-        int j = i - 1;
-        do {
-            rv[j--] = (byte) (gap % 128);
-            gap /= 128;
-        } while (j >= 0);
-        rv[i - 1] += 128;
-        variableByteBuffer.write(rv);
+        if (n != 0) {
+            int i = (int) (log(gap) / log(128)) + 1;
+            byte[] rv = new byte[i];
+            int j = i - 1;
+            do {
+                rv[j--] = (byte) (gap % 128);
+                gap /= 128;
+            } while (j >= 0);
+            rv[i - 1] += 128;
+            variableByteBuffer.write(rv);
+        }else{
+            variableByteBuffer.write(new byte[]{0});
+        }
     }
 
 
@@ -45,7 +48,12 @@ public class Compression {
         int n = 0;
         int num=0;
         for(int i=posVarByte;i<byteStream.length;i++){
-            if ((byteStream[i] & 0xff) < 128) {
+            if (byteStream[i] == 0 && n == 0) {
+                posVarByte = ++i;
+                num = formerElem;
+                formerElem = num;
+                return num;
+            }else if ((byteStream[i] & 0xff) < 128) {
                 n = 128 * n + byteStream[i];
             } else {
                 int gap = (128 * n + ((byteStream[i] - 128) & 0xff));
