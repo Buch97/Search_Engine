@@ -88,10 +88,10 @@ public class Compression {
         int i = bitSet.nextClearBit(posGamma);
         int sizebs = i + 1 - posGamma;
 
-        BitSet bs = bitSet.get(i + 1, i + sizebs);
         posGamma = i + sizebs;
+        BitSet bs = bitSet.get(i + 1, posGamma);
 
-        int gap = (int) (Math.pow(2, sizebs) + convert(bs));
+        int gap = (int) (Math.pow(2, sizebs-1) + convert(bs));
         int n = gap + formerElem;
         formerElem = n;
         return n;
