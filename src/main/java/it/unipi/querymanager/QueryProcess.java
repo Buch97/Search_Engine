@@ -25,16 +25,14 @@ public class QueryProcess {
         int query_length = 0;
         for (String token : query_term_frequency.keySet()) {
             query_length += query_term_frequency.get(token);
-            System.out.println("Term: " + token + " Query_Freq: " + query_term_frequency.get(token));
         }
-        System.out.println("\n" + "Query length = " + query_length + "\n");
         if (mode == 0)
-            daatScoringDisjunctive(query_term_frequency, query_length, k, db_lexicon, db_document_index);
+            daatScoringDisjunctive(query_term_frequency, query_length, k, db_lexicon);
         else if (mode == 1)
-            daatScoringConjunctive();
+            daatScoringConjunctive(query_term_frequency, query_length, k, db_lexicon);
     }
 
-    private static void daatScoringDisjunctive(Map<String, Integer> query_term_frequency, int query_length, int k, DB db_lexicon, DB db_document_index) throws IOException {
+    private static void daatScoringDisjunctive(Map<String, Integer> query_term_frequency, int query_length, int k, DB db_lexicon) throws IOException {
 
         ArrayList<InvertedList> L = new ArrayList<>(query_length);
 
@@ -44,6 +42,7 @@ public class QueryProcess {
         retrievePostingLists(query_term_frequency, db_lexicon, L);
 
         int current_doc_id = min_doc_id(L);
+        int cicli = 0;
 
         HashMap<String, ListIterator<Posting>> iteratorList = new HashMap<>();
         for (InvertedList invertedList : L){
@@ -54,6 +53,7 @@ public class QueryProcess {
             double score = 0;
 
             for (InvertedList invertedList : L) {
+                cicli ++;
                 if (iteratorList.get(invertedList.getTerm()).hasNext()) {
 
                     Posting posting = iteratorList.get(invertedList.getTerm()).next();
@@ -63,7 +63,6 @@ public class QueryProcess {
                     if (current_doc_id == doc_id) {
                         int doc_freq = Objects.requireNonNull((TermStats) db_lexicon.hashMap("lexicon").open()
                                 .get(invertedList.getTerm())).getDoc_frequency();
-                        //score += getScore(query_term_frequency, query_length, doc_len, invertedList, term_freq);
                         score += tfIdfScore(term_freq, doc_freq);
                         invertedList.setPos(invertedList.getPos() + 1);
                     }
@@ -76,19 +75,103 @@ public class QueryProcess {
             current_doc_id = min_doc_id(L);
         }
 
+        System.out.println("CICLI " + cicli);
+        printRankedResults(k, R);
+    }
+
+    private static void daatScoringConjunctive(Map<String, Integer> query_term_frequency, int query_length, int k, DB db_lexicon) throws IOException {
+        ArrayList<InvertedList> L = new ArrayList<>(query_length);
+
+        Comparator<Results> comparator = new ResultsComparator();
+        PriorityQueue<Results> R = new PriorityQueue<>(k, comparator);
+
+        retrievePostingLists(query_term_frequency, db_lexicon, L);
+
+        HashMap<String, ListIterator<Posting>> iteratorList = new HashMap<>();
+
+        int min = CollectionStatistics.num_docs;
+        String term_to_delete = null;
+        int index_to_remove = 0;
+        ListIterator<Posting> min_list = null;
+
+        for (InvertedList invertedList : L){
+            iteratorList.put(invertedList.getTerm(), invertedList.getPostingArrayList().listIterator());
+            if(invertedList.getPostingArrayList().size() < min) {
+                index_to_remove = L.indexOf(invertedList);
+                min = invertedList.getPostingArrayList().size();
+                min_list = invertedList.getPostingArrayList().listIterator();
+                term_to_delete = invertedList.getTerm();
+            }
+        }
+
+        System.out.println("Term: " + term_to_delete);
+        iteratorList.remove(term_to_delete);
+        System.out.println("Size: " + iteratorList.size());
+        L.remove(index_to_remove);
+
+        //young	160:1 181:1 |182:1 326:1 370:1 391:1 413:1 414:1 451:1
+        //yourself	179:1 |181:1 186:2 188:1 712:1 715:1 932:1
+        while (min_list.hasNext()) {
+            double score = 0;
+            boolean flag = true;
+            boolean flag2 = false;
+
+            Posting posting = min_list.next();
+            int doc_id = posting.getDoc_id();
+
+            System.out.println("docid: " + doc_id);
+            for (InvertedList invertedList : L) {
+                Posting current_posting = skipPosting(doc_id, iteratorList.get(invertedList.getTerm()));
+                System.out.println("Current docid: " + current_posting.getDoc_id());
+
+                if (current_posting == null) {
+                    flag = false;
+                    break;
+                }
+
+                if(current_posting.getDoc_id() > doc_id)
+                    doc_id = min_list.next().getDoc_id();
+
+                if (doc_id == current_posting.getDoc_id()) {
+                    System.out.println("FACCIO LO SCORING");
+                    flag2 = true;
+                    int doc_freq = Objects.requireNonNull((TermStats) db_lexicon.hashMap("lexicon").open()
+                            .get(invertedList.getTerm())).getDoc_frequency();
+                    score += tfIdfScore(current_posting.getTerm_frequency(), doc_freq);
+                }
+            }
+            if (!flag)
+                break;
+
+            if (flag2)
+                R.add(new Results(doc_id, score));
+        }
+
+        printRankedResults(k, R);
+    }
+
+    private static Posting skipPosting(int doc_id, ListIterator<Posting> postingListIterator) {
+        while (postingListIterator.hasNext()){
+            Posting posting = postingListIterator.next();
+            System.out.println("skip_docid: " + posting.getDoc_id());
+            if(posting.getDoc_id() >= doc_id){
+                return posting;
+            }
+        }
+        return null;
+    }
+
+    private static void printRankedResults(int k, PriorityQueue<Results> r) {
         for (int i = 0; i < k; i++) {
-            Results results = R.peek();
+            Results results = r.peek();
             assert results != null;
-            System.out.println((i+1) + ". " + "DOC ID: " + results.getDoc_id() + " SCORE: " + results.getScore());
-            R.poll();
-            if (R.size() == 0)
+            System.out.println((i + 1) + ". " + "DOC ID: " + results.getDoc_id() + " SCORE: " + results.getScore());
+            r.poll();
+            if (r.size() == 0)
                 break;
         }
         long elapsedTime = System.nanoTime() - startTime;
         System.out.println("Total elapsed time: " + elapsedTime / 1000000 + " ms");
-    }
-
-    private static void daatScoringConjunctive() {
     }
 
     private static void retrievePostingLists(Map<String, Integer> query_term_frequency, DB db_lexicon, ArrayList<InvertedList> L) throws IOException {
@@ -101,13 +184,12 @@ public class QueryProcess {
                 int size_doc_id_list = extractSize(termStats.getOffset_doc_id_start(), termStats.getOffset_doc_id_end());
                 int size_term_freq_list = extractSize(termStats.getOffset_term_freq_start(), termStats.getOffset_term_freq_end());
 
-                byte[] doc_id_buffer=new byte[size_doc_id_list];
-                byte[] term_freq_buffer=new byte[size_term_freq_list];
+                byte[] doc_id_buffer = new byte[size_doc_id_list];
+                byte[] term_freq_buffer = new byte[size_term_freq_list];
 
                 FileChannelInvIndex.readMappedFile(doc_id_buffer, term_freq_buffer, termStats.getOffset_doc_id_start(), termStats.getOffset_term_freq_start());
                 Compression compression = new Compression();
 
-                System.out.println("DECOMPRESSION");
                 for (int i = 0; i < termStats.getDoc_frequency(); i++) {
                     int term_freq = compression.decodingUnaryList(BitSet.valueOf(term_freq_buffer));
                     //int doc_id = compression.gammaDecodingList(BitSet.valueOf(doc_id_buffer));
