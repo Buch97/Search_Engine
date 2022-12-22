@@ -36,33 +36,25 @@ public class QueryProcess {
 
     private static void daatScoringDisjunctive(Map<String, Integer> query_term_frequency, int query_length, int k, DB db_lexicon, DB db_document_index) throws IOException {
 
-        System.out.println("INIZIALIZE DATA STRUCTURES");
         ArrayList<InvertedList> L = new ArrayList<>(query_length);
 
         Comparator<Results> comparator = new ResultsComparator();
         PriorityQueue<Results> R = new PriorityQueue<>(k, comparator);
 
-        System.out.println("RETRIEVE POSTING LIST");
         retrievePostingLists(query_term_frequency, db_lexicon, L);
 
-        System.out.println("SCORING FUNCTION");
         int current_doc_id = min_doc_id(L);
 
-        HashMap<String, Iterator<Posting>> iteratorList = new HashMap<>();
+        HashMap<String, ListIterator<Posting>> iteratorList = new HashMap<>();
         for (InvertedList invertedList : L){
-            iteratorList.put(invertedList.getTerm(), invertedList.getPostingArrayList().iterator());
+            iteratorList.put(invertedList.getTerm(), invertedList.getPostingArrayList().listIterator());
         }
 
         while (current_doc_id != CollectionStatistics.num_docs) {
             double score = 0;
 
-            //int doc_id = -1;
             for (InvertedList invertedList : L) {
                 if (iteratorList.get(invertedList.getTerm()).hasNext()) {
-
-                    /*if (current_doc_id < doc_id && Objects.equals(invertedList.getTerm(), oldTerm)) {
-                        break;
-                    };*/
 
                     Posting posting = iteratorList.get(invertedList.getTerm()).next();
                     int doc_id = posting.getDoc_id();
@@ -75,13 +67,15 @@ public class QueryProcess {
                         score += tfIdfScore(term_freq, doc_freq);
                         invertedList.setPos(invertedList.getPos() + 1);
                     }
+                    else {
+                        iteratorList.get(invertedList.getTerm()).previous();
+                    }
                 }
             }
             R.add(new Results(current_doc_id, score));
             current_doc_id = min_doc_id(L);
         }
 
-        System.out.println("RESULTS: ");
         for (int i = 0; i < k; i++) {
             Results results = R.peek();
             assert results != null;
@@ -151,7 +145,6 @@ public class QueryProcess {
                 min_doc_id = Math.min(invertedList.getPostingArrayList().get(invertedList.getPos()).getDoc_id(), min_doc_id);
             }
         }
-        System.out.println("NUOVO MIN DOC ID: " + min_doc_id);
         return min_doc_id;
     }
 
