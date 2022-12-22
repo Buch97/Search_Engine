@@ -41,7 +41,7 @@ public class InvertedList {
 
     @Override
     public String toString() {
-        return "TermPositionBlock{" +
+        return "InvertedList{" +
                 "term='" + term + '\'' +
                 ", pos=" + pos +
                 ", postingArrayList=" + postingArrayList +

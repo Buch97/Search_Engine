@@ -47,22 +47,28 @@ public class QueryProcess {
 
         System.out.println("SCORING FUNCTION");
         int current_doc_id = min_doc_id(L);
+
+        HashMap<String, Iterator<Posting>> iteratorList = new HashMap<>();
+        for (InvertedList invertedList : L){
+            iteratorList.put(invertedList.getTerm(), invertedList.getPostingArrayList().iterator());
+        }
+
         while (current_doc_id != CollectionStatistics.num_docs) {
             double score = 0;
 
+            //int doc_id = -1;
             for (InvertedList invertedList : L) {
-                Iterator<Posting> iterator = invertedList.getPostingArrayList().iterator();
-                while (iterator.hasNext()) {
+                if (iteratorList.get(invertedList.getTerm()).hasNext()) {
 
-                    Posting posting = iterator.next();
+                    /*if (current_doc_id < doc_id && Objects.equals(invertedList.getTerm(), oldTerm)) {
+                        break;
+                    };*/
+
+                    Posting posting = iteratorList.get(invertedList.getTerm()).next();
                     int doc_id = posting.getDoc_id();
                     int term_freq = posting.getTerm_frequency();
-                    if (doc_id > current_doc_id)
-                        break;
 
                     if (current_doc_id == doc_id) {
-                        /*int doc_len = Objects.requireNonNull((DocumentIndexStats) db_document_index.hashMap("document_index")
-                                .open().get(doc_id)).getDoc_len();*/
                         int doc_freq = Objects.requireNonNull((TermStats) db_lexicon.hashMap("lexicon").open()
                                 .get(invertedList.getTerm())).getDoc_frequency();
                         //score += getScore(query_term_frequency, query_length, doc_len, invertedList, term_freq);
@@ -110,8 +116,8 @@ public class QueryProcess {
                 System.out.println("DECOMPRESSION");
                 for (int i = 0; i < termStats.getDoc_frequency(); i++) {
                     int term_freq = compression.decodingUnaryList(BitSet.valueOf(term_freq_buffer));
-                    int doc_id = compression.gammaDecodingList(BitSet.valueOf(doc_id_buffer));
-                    //int doc_id = compression.decodingVariableByte(doc_id_buffer);
+                    //int doc_id = compression.gammaDecodingList(BitSet.valueOf(doc_id_buffer));
+                    int doc_id = compression.decodingVariableByte(doc_id_buffer);
                     query_posting_list.add(new Posting(doc_id, term_freq));
                 }
                 L.add(new InvertedList(term, query_posting_list, 0));
@@ -145,6 +151,7 @@ public class QueryProcess {
                 min_doc_id = Math.min(invertedList.getPostingArrayList().get(invertedList.getPos()).getDoc_id(), min_doc_id);
             }
         }
+        System.out.println("NUOVO MIN DOC ID: " + min_doc_id);
         return min_doc_id;
     }
 

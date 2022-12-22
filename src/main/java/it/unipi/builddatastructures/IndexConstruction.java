@@ -3,7 +3,6 @@ package it.unipi.builddatastructures;
 import it.unipi.bean.DocumentIndexStats;
 import it.unipi.bean.Posting;
 import it.unipi.bean.Token;
-import it.unipi.utils.CollectionStatistics;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
@@ -14,11 +13,12 @@ import java.util.*;
 
 public class IndexConstruction {
 
-    public static DB db_document_index;
     //dimensione per costruire i blocchi messa ora per prova a 3000 su una small collection
     public final static int SPIMI_TOKEN_STREAM_MAX_LIMIT = 3000;
     public final static List<Token> tokenStream = new ArrayList<>();
+    public static DB db_document_index;
     public static int BLOCK_NUMBER = 0; //indice da usare per scrivere i file parziali dell'inverted index
+
     public static void buildDataStructures() {
         try {
             File myObj = new File("./src/main/resources/collections/small_collection.tsv");
@@ -84,6 +84,7 @@ public class IndexConstruction {
             BLOCK_NUMBER++;
         }
     }
+
     private static void invertedIndexSPIMI() {
 
         // Pseudocode at slide 59
@@ -134,12 +135,14 @@ public class IndexConstruction {
         }
 
     }
+
     private static ArrayList<Posting> addToDictionary(Map<String, ArrayList<Posting>> vocabulary, String token) {
         int capacity = 1;
         ArrayList<Posting> postings_list = new ArrayList<>(capacity);
         vocabulary.put(token, postings_list);
         return postings_list;
     }
+
     private static void documentIndexAddition(String doc_no, HTreeMap<Integer, DocumentIndexStats> document_index_map) throws IOException {
         int doc_len = Tokenizer.doc_len;
         int doc_id = Integer.parseInt(doc_no);

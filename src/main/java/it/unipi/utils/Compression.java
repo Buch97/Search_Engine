@@ -8,9 +8,9 @@ import static java.lang.Math.log;
 
 public class Compression {
 
-    private BitSet bitUnary;
-    private BitSet bitGamma;
-    private ByteArrayOutputStream variableByteBuffer;
+    private final BitSet bitUnary;
+    private final BitSet bitGamma;
+    private final ByteArrayOutputStream variableByteBuffer;
     private int posUnary;
     private int formerElem = 0;
     private int posGamma;
@@ -19,10 +19,18 @@ public class Compression {
     public Compression() {
         bitUnary = new BitSet();
         bitGamma = new BitSet();
-        variableByteBuffer=new ByteArrayOutputStream();
+        variableByteBuffer = new ByteArrayOutputStream();
         posUnary = 0;
         posGamma = 0;
-        posVarByte=0;
+        posVarByte = 0;
+    }
+
+    public static int convert(BitSet bits) {
+        int value = 0;
+        for (int i = 0; i < bits.length(); ++i) {
+            value += bits.get(i) ? (1 << i) : 0;
+        }
+        return value;
     }
 
     public void encodingVariableByte(int n) throws IOException {
@@ -38,26 +46,24 @@ public class Compression {
             } while (j >= 0);
             rv[i - 1] += 128;
             variableByteBuffer.write(rv);
-        }else{
+        } else {
             variableByteBuffer.write(new byte[]{0});
         }
     }
 
-
-    public int decodingVariableByte(byte[] byteStream){
+    public int decodingVariableByte(byte[] byteStream) {
         int n = 0;
-        int num=0;
-        for(int i=posVarByte;i<byteStream.length;i++){
+        int num = 0;
+        for (int i = posVarByte; i < byteStream.length; i++) {
             if (byteStream[i] == 0 && n == 0) {
                 posVarByte = ++i;
                 num = formerElem;
-                formerElem = num;
                 return num;
-            }else if ((byteStream[i] & 0xff) < 128) {
+            } else if ((byteStream[i] & 0xff) < 128) {
                 n = 128 * n + byteStream[i];
             } else {
                 int gap = (128 * n + ((byteStream[i] - 128) & 0xff));
-                posVarByte=++i;
+                posVarByte = ++i;
                 num = gap + formerElem;
                 formerElem = num;
                 return num;
@@ -65,7 +71,6 @@ public class Compression {
         }
         return num;
     }
-
 
     public void gammaEncoding(int n) {
         int gap = n - formerElem;
@@ -91,7 +96,7 @@ public class Compression {
         posGamma = i + sizebs;
         BitSet bs = bitSet.get(i + 1, posGamma);
 
-        int gap = (int) (Math.pow(2, sizebs-1) + convert(bs));
+        int gap = (int) (Math.pow(2, sizebs - 1) + convert(bs));
         int n = gap + formerElem;
         formerElem = n;
         return n;
@@ -117,10 +122,9 @@ public class Compression {
         return bitGamma;
     }
 
-    public ByteArrayOutputStream getVariableByteBuffer(){
+    public ByteArrayOutputStream getVariableByteBuffer() {
         return variableByteBuffer;
     }
-
 
     public int getPosUnary() {
         return posUnary;
@@ -128,14 +132,5 @@ public class Compression {
 
     public int getPosGamma() {
         return posGamma;
-    }
-
-
-    public static int convert(BitSet bits) {
-        int value = 0;
-        for (int i = 0; i < bits.length(); ++i) {
-            value += bits.get(i) ? (1 << i) : 0;
-        }
-        return value;
     }
 }
