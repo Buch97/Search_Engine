@@ -104,13 +104,9 @@ public class QueryProcess {
             }
         }
 
-        System.out.println("Term: " + term_to_delete);
         iteratorList.remove(term_to_delete);
-        System.out.println("Size: " + iteratorList.size());
         L.remove(index_to_remove);
 
-        //young	160:1 181:1 |182:1 326:1 370:1 391:1 413:1 414:1 451:1
-        //yourself	179:1 |181:1 186:2 188:1 712:1 715:1 932:1
         while (min_list.hasNext()) {
             double score = 0;
             boolean flag = true;
@@ -119,21 +115,24 @@ public class QueryProcess {
             Posting posting = min_list.next();
             int doc_id = posting.getDoc_id();
 
-            System.out.println("docid: " + doc_id);
             for (InvertedList invertedList : L) {
                 Posting current_posting = skipPosting(doc_id, iteratorList.get(invertedList.getTerm()));
-                System.out.println("Current docid: " + current_posting.getDoc_id());
 
-                if (current_posting == null) {
+                if (current_posting == null){
                     flag = false;
                     break;
                 }
 
-                if(current_posting.getDoc_id() > doc_id)
-                    doc_id = min_list.next().getDoc_id();
+                if(current_posting.getDoc_id() > doc_id) {
+                    if(!min_list.hasNext()){
+                        flag = false;
+                        break;
+                    }
+                    Posting p = min_list.next();
+                    doc_id = p.getDoc_id();
+                }
 
                 if (doc_id == current_posting.getDoc_id()) {
-                    System.out.println("FACCIO LO SCORING");
                     flag2 = true;
                     int doc_freq = Objects.requireNonNull((TermStats) db_lexicon.hashMap("lexicon").open()
                             .get(invertedList.getTerm())).getDoc_frequency();
@@ -153,7 +152,6 @@ public class QueryProcess {
     private static Posting skipPosting(int doc_id, ListIterator<Posting> postingListIterator) {
         while (postingListIterator.hasNext()){
             Posting posting = postingListIterator.next();
-            System.out.println("skip_docid: " + posting.getDoc_id());
             if(posting.getDoc_id() >= doc_id){
                 return posting;
             }
@@ -162,14 +160,21 @@ public class QueryProcess {
     }
 
     private static void printRankedResults(int k, PriorityQueue<Results> r) {
-        for (int i = 0; i < k; i++) {
-            Results results = r.peek();
-            assert results != null;
-            System.out.println((i + 1) + ". " + "DOC ID: " + results.getDoc_id() + " SCORE: " + results.getScore());
-            r.poll();
-            if (r.size() == 0)
-                break;
+        try {
+            for (int i = 0; i < k; i++) {
+                Results results = r.peek();
+                assert results != null;
+                System.out.println((i + 1) + ". " + "DOC ID: " + results.getDoc_id() + " SCORE: " + results.getScore());
+                r.poll();
+                if (r.size() == 0)
+                    break;
+            }
         }
+
+        catch (NullPointerException e){
+            System.out.println("No results found for this query");
+        }
+
         long elapsedTime = System.nanoTime() - startTime;
         System.out.println("Total elapsed time: " + elapsedTime / 1000000 + " ms");
     }
