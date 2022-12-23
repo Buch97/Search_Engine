@@ -1,24 +1,30 @@
 package it.unipi.builddatastructures;
 
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.StringTokenizer;
 
 public class Tokenizer {
     private final String bodyText;
     public static int doc_len;
     final Map<String, Integer> token_list = new HashMap<>();
     final String PATTERN_TOKEN = "\\$%{}[]()`<>='&:,;/.~ *\n|\"^_-+!?#\t@";
-    final String[] STOPWORDS = {"a", "an", "and", "are", "as", "at", "be", "but", "by", "for",
-            "if", "in", "into", "is", "it", "no", "not", "of", "on", "or", "such", "that", "the", "their", "then",
-            "there", "these", "they", "this", "to", "was", "will", "with"};
+
+    BufferedReader bufferedReader = new BufferedReader(new FileReader("src/main/resources/stopwords/stopwords.txt"));
+    final String[] STOPWORDS;
 
 
-    public Tokenizer(String bodyText) {
+    public Tokenizer(String bodyText) throws IOException {
         this.bodyText = bodyText;
+        STOPWORDS = bufferedReader.readLine().split(" ");
     }
 
     public Map<String, Integer> tokenize() {
-        // QUESTI REPLACE LI AVEVO COPIATI DA UN CODICE CHE AVEVO VISTO, ALCUNI POSSONO SERVIRE, ALTRI MAGARI NO
-        // E ALTRI VANNO AGGIUNTI
+
         String text = bodyText.toLowerCase();
 
         text = text.replaceAll("[\\\\$%{}\\[\\]()`<>='&°»§£€:,;/.~*|\"^_\\-+!?#\t@]","");

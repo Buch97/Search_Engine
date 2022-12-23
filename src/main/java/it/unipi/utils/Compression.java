@@ -57,8 +57,7 @@ public class Compression {
         for (int i = posVarByte; i < byteStream.length; i++) {
             if (byteStream[i] == 0 && n == 0) {
                 posVarByte = ++i;
-                num = formerElem;
-                return num;
+                return formerElem;
             } else if ((byteStream[i] & 0xff) < 128) {
                 n = 128 * n + byteStream[i];
             } else {

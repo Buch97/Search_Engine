@@ -40,8 +40,18 @@ public class Main {
         if (!(new File(doc_id_path).exists()) || !(new File(term_freq_path).exists()))
             IndexConstruction.buildDataStructures();
 
-        db_lexicon = DBMaker.fileDB("./src/main/resources/output/lexicon_disk_based.db").closeOnJvmShutdown().readOnly().make();
-        db_document_index = DBMaker.fileDB("./src/main/resources/output/document_index.db").closeOnJvmShutdown().readOnly().make();
+        db_lexicon = DBMaker.fileDB("./src/main/resources/output/lexicon_disk_based.db")
+                .fileMmapEnable()
+                .fileMmapPreclearDisable()
+                .closeOnJvmShutdown()
+                .readOnly()
+                .make();
+        db_document_index = DBMaker.fileDB("./src/main/resources/output/document_index.db")
+                .fileMmapEnable()
+                .fileMmapPreclearDisable()
+                .closeOnJvmShutdown()
+                .readOnly()
+                .make();
         FileChannelInvIndex.openFileChannels(mode);
         FileChannelInvIndex.MapFileChannel();
 
@@ -72,7 +82,7 @@ public class Main {
                 System.out.println("Not valid input, mode is set to default (0)");
                 mode = 0;
             }
-            QueryProcess.parseQuery(query, mode, k, db_lexicon, db_document_index);
+            QueryProcess.parseQuery(query, mode, k, db_lexicon);
         }
     }
 }

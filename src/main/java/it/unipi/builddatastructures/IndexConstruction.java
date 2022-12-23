@@ -14,14 +14,14 @@ import java.util.*;
 public class IndexConstruction {
 
     //dimensione per costruire i blocchi messa ora per prova a 3000 su una small collection
-    public final static int SPIMI_TOKEN_STREAM_MAX_LIMIT = 3000;
+    public final static int SPIMI_TOKEN_STREAM_MAX_LIMIT = 3000000;
     public final static List<Token> tokenStream = new ArrayList<>();
     public static DB db_document_index;
     public static int BLOCK_NUMBER = 0; //indice da usare per scrivere i file parziali dell'inverted index
 
     public static void buildDataStructures() {
         try {
-            File myObj = new File("./src/main/resources/collections/small_collection.tsv");
+            File myObj = new File("./src/main/resources/collections/collection.tsv");
             //BufferedWriter doc_index = new BufferedWriter(new FileWriter("./src/main/resources/output/doc_index.tsv"));
 
             Scanner myReader = new Scanner(myObj, StandardCharsets.UTF_8);
@@ -68,7 +68,7 @@ public class IndexConstruction {
         }
     }
 
-    public static void parseDocumentBody(int doc_id, String text) {
+    public static void parseDocumentBody(int doc_id, String text) throws IOException {
         Tokenizer tokenizer = new Tokenizer(text);
         Map<String, Integer> results = tokenizer.tokenize();
 
