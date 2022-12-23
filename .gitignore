@@ -6,3 +6,8 @@
 /src/main/resources/collections/collection.tsv
 /src/main/resources/complete_collection_index/
 /src/main/resources/datastructure/
+/src/main/resources/complete/document_index.db
+/src/main/resources/complete/inv_index.tsv
+/src/main/resources/complete/inverted_index_doc_id_bin.dat
+/src/main/resources/complete/inverted_index_term_frequency_bin.dat
+/src/main/resources/complete/lexicon_disk_based.db

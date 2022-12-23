@@ -13,6 +13,7 @@ import it.unipi.utils.ResultsComparator;
 import org.mapdb.DB;
 import org.mapdb.HTreeMap;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -20,23 +21,41 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import static it.unipi.Main.db_lexicon;
+import static it.unipi.Main.k;
 import static it.unipi.querymanager.Score.tfIdfScore;
 
 public class QueryProcess {
     private static long startTime;
 
-    public static void parseQuery(String query, int mode, int k, DB db_lexicon) throws IOException {
-        startTime = System.nanoTime();
+    public static void submitQuery(BufferedReader reader, String query) throws IOException {
         Tokenizer tokenizer = new Tokenizer(query);
         Map<String, Integer> query_term_frequency = tokenizer.tokenize();
 
-        if (mode == 0)
-            daatScoringDisjunctive(query_term_frequency, k, db_lexicon);
-        else if (mode == 1)
-            daatScoringConjunctive(query_term_frequency, k, db_lexicon);
+        if (query_term_frequency.size() == 1) {
+            startTime = System.nanoTime();
+            daat(query_term_frequency, k, db_lexicon, 0);
+        } else {
+            int mode;
+            System.out.println("Select which method to use to parse the query: Disjunctive(0) Conjunctive(1)");
+            String type = reader.readLine();
+            try {
+                if ((Integer.parseInt(type) != 0) && (Integer.parseInt(type) != 1)) {
+                    System.out.println("Not valid input, mode is set to default (0)");
+                    mode = 0;
+                } else
+                    mode = Integer.parseInt(type);
+                System.out.println("Your request: " + query + "\n");
+            } catch (NumberFormatException e) {
+                System.out.println("Not valid input, mode is set to default (0)");
+                mode = 0;
+            }
+            startTime = System.nanoTime();
+            daat(query_term_frequency, k, db_lexicon, mode);
+        }
     }
 
-    private static void daatScoringDisjunctive(Map<String, Integer> query_term_frequency, int k, DB db_lexicon) {
+    private static void daat(Map<String, Integer> query_term_frequency, int k, DB db_lexicon, int mode){
         Comparator<Results> comparator = new ResultsComparator();
         PriorityQueue<Results> R = new PriorityQueue<>(k, comparator);
 
@@ -45,7 +64,16 @@ public class QueryProcess {
         HTreeMap<?, ?> lexicon = db_lexicon.hashMap("lexicon").open();
 
         ArrayList<InvertedList> L = getL(query_term_frequency, executor, futures, lexicon);
+        if (L.isEmpty()) return;
 
+        if (mode == 0)
+            daatScoringDisjunctive(L, lexicon, R);
+        else daatScoringConjunctive(L, lexicon, R);
+
+        printRankedResults(k, R);
+    }
+
+    private static void daatScoringDisjunctive(ArrayList<InvertedList> L, HTreeMap<?, ?> lexicon, PriorityQueue<Results> R) {
         int current_doc_id = min_doc_id(L);
 
         HashMap<String, ListIterator<Posting>> iteratorList = new HashMap<>();
@@ -75,20 +103,11 @@ public class QueryProcess {
             R.add(new Results(current_doc_id, score));
             current_doc_id = min_doc_id(L);
         }
-        System.out.println("Results");
-        printRankedResults(k, R);
+        System.out.println("Results: ");
     }
 
-    private static void daatScoringConjunctive(Map<String, Integer> query_term_frequency, int k, DB db_lexicon) {
+    private static void daatScoringConjunctive(ArrayList<InvertedList> L, HTreeMap<?, ?> lexicon, PriorityQueue<Results> R) {
 
-        Comparator<Results> comparator = new ResultsComparator();
-        PriorityQueue<Results> R = new PriorityQueue<>(k, comparator);
-
-        final ExecutorService executor = Executors.newFixedThreadPool(query_term_frequency.size());
-        final List<Future<?>> futures = new ArrayList<>();
-        HTreeMap<?, ?> lexicon = db_lexicon.hashMap("lexicon").open();
-
-        ArrayList<InvertedList> L = getL(query_term_frequency, executor, futures, lexicon);
         HashMap<String, ListIterator<Posting>> iteratorList = new HashMap<>();
 
         int min = CollectionStatistics.num_docs;
@@ -136,8 +155,7 @@ public class QueryProcess {
 
                 if (doc_id == current_posting.getDoc_id()) {
                     flag2 = true;
-                    int doc_freq = Objects.requireNonNull((TermStats) db_lexicon.hashMap("lexicon").open()
-                            .get(invertedList.getTerm())).getDoc_frequency();
+                    int doc_freq = Objects.requireNonNull((TermStats) lexicon.get(invertedList.getTerm())).getDoc_frequency();
                     score += tfIdfScore(current_posting.getTerm_frequency(), doc_freq);
                 }
             }
@@ -165,7 +183,8 @@ public class QueryProcess {
         }
         try {
             for (Future<?> future : futures) {
-                L.add((InvertedList) future.get());
+                if (future.get() != null)
+                    L.add((InvertedList) future.get());
             }
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();

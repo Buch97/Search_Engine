@@ -1,7 +1,6 @@
 package it.unipi;
 
 import it.unipi.builddatastructures.IndexConstruction;
-import it.unipi.querymanager.QueryProcess;
 import it.unipi.utils.CollectionStatistics;
 import it.unipi.utils.FileChannelInvIndex;
 import org.mapdb.DB;
@@ -12,6 +11,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Objects;
+
+import static it.unipi.querymanager.QueryProcess.submitQuery;
 
 public class Main {
     private static final String doc_id_path = "src/main/resources/output/inverted_index_doc_id_bin.dat";
@@ -67,22 +68,10 @@ public class Main {
                 FileChannelInvIndex.closeFileChannels();
                 System.exit(0);
             }
-            System.out.println("Select the kind of the query: Disjunctive (0) | Conjunctive (1)");
-            String type = reader.readLine();
-            int mode;
-            try {
-                if ((Integer.parseInt(type) != 0) && (Integer.parseInt(type) != 1)) {
-                    System.out.println("Not valid input, mode is set to default (0)");
-                    mode = 0;
-                } else
-                    mode = Integer.parseInt(type);
-                System.out.println("Your request: " + query + "\n");
+            else if (Objects.equals(query, "") || query.trim().length() == 0) {
+                System.out.println("The query is empty.");
             }
-            catch (NumberFormatException e){
-                System.out.println("Not valid input, mode is set to default (0)");
-                mode = 0;
-            }
-            QueryProcess.parseQuery(query, mode, k, db_lexicon);
+            else submitQuery(reader, query);
         }
     }
 }
