@@ -68,10 +68,12 @@ public class QueryProcess {
         else daatScoringConjunctive(L, lexicon, R);
 
         printRankedResults(k, R);
+        System.out.println(GuavaCacheService.invertedListLoadingCache.stats());
     }
 
     private static void daatScoringDisjunctive(ArrayList<InvertedList> L, HTreeMap<?, ?> lexicon, PriorityQueue<Results> R) {
         int current_doc_id = min_doc_id(L);
+        System.out.println("Scoring");
 
         HashMap<String, ListIterator<Posting>> iteratorList = new HashMap<>();
         for (InvertedList invertedList : L) {
@@ -144,7 +146,7 @@ public class QueryProcess {
 
             if (current_doc_id < max) {
                 //current_doc_id exceeded on reference posting list, so we need to reach a valid posting
-                posting = nextGeqReferencePostingList(shortest_pl, current_postings, current_doc_id, max, term_shortest_pl);
+                posting = nextGeqReferencePostingList(shortest_pl, current_postings, current_doc_id, term_shortest_pl);
                 if (posting == null)
                     break;
                 else {
@@ -171,7 +173,7 @@ public class QueryProcess {
             }
 
             //go to next posting on reference list
-            posting = nextGeqReferencePostingList(shortest_pl, current_postings, current_doc_id, max, term_shortest_pl);
+            posting = nextGeqReferencePostingList(shortest_pl, current_postings, current_doc_id, term_shortest_pl);
             if (posting == null)
                 break;
             else
@@ -179,11 +181,10 @@ public class QueryProcess {
         }
     }
 
-    private static Posting nextGeqReferencePostingList(ListIterator<Posting> min_list, HashMap<String, Posting> current_postings, int doc_id, int max, String term_shortest_pl) {
+    private static Posting nextGeqReferencePostingList(ListIterator<Posting> min_list, HashMap<String, Posting> current_postings, int max, String term_shortest_pl) {
         while (min_list.hasNext()) {
             Posting p = min_list.next();
             if (p.getDoc_id() >= max) {
-                doc_id = p.getDoc_id();
                 current_postings.put(term_shortest_pl, p);
                 return p;
             }
@@ -260,11 +261,9 @@ public class QueryProcess {
             FileChannelInvIndex.readMappedFile(doc_id_buffer, term_freq_buffer, termStats.getOffset_doc_id_start(), termStats.getOffset_term_freq_start());
             Compression compression = new Compression();
 
-            InvertedList newObj = GuavaCacheService.invertedListLoadingCache.getIfPresent(term);
-            if (newObj != null) {
-                System.out.println("dentro if " + newObj.getPos());
-                newObj.setPos(0);
-                return newObj;
+            List<Posting> posting_list = GuavaCacheService.invertedListLoadingCache.getIfPresent(term);
+            if (posting_list != null) {
+                return new InvertedList(term, posting_list, 0);
             }
 
             for (int i = 0; i < termStats.getDoc_frequency(); i++) {
@@ -273,11 +272,8 @@ public class QueryProcess {
                 query_posting_list.add(new Posting(doc_id, term_freq));
             }
             System.out.println("Decompressed " + term);
-
-            newObj = new InvertedList(term, query_posting_list, 0);
-            GuavaCacheService.invertedListLoadingCache.put(term, newObj);
-
-            return newObj;
+            GuavaCacheService.invertedListLoadingCache.put(term, query_posting_list);
+            return new InvertedList(term, query_posting_list, 0);
         } catch (NullPointerException e) {
             System.out.println("Term " + term + " not in collection");
             return null;
