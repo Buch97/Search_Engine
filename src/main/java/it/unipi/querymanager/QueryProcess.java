@@ -55,7 +55,7 @@ public class QueryProcess {
         }
     }
 
-    private static void daat(Map<String, Integer> query_term_frequency, int k, DB db_lexicon, int mode){
+    private static void daat(Map<String, Integer> query_term_frequency, int k, DB db_lexicon, int mode) {
         Comparator<Results> comparator = new ResultsComparator();
         PriorityQueue<Results> R = new PriorityQueue<>(k, comparator);
 
@@ -108,10 +108,11 @@ public class QueryProcess {
 
     private static void daatScoringConjunctive(ArrayList<InvertedList> L, HTreeMap<?, ?> lexicon, PriorityQueue<Results> R) {
 
+        //System.out.println("CONJUNCTIVE");
         HashMap<String, ListIterator<Posting>> iteratorList = new HashMap<>();
 
         int min = CollectionStatistics.num_docs;
-        String term_to_delete = null;
+        String term_shortest_pl = null;
         int index_to_remove = 0;
         ListIterator<Posting> min_list = null;
 
@@ -121,52 +122,109 @@ public class QueryProcess {
                 index_to_remove = L.indexOf(invertedList);
                 min = invertedList.getPostingArrayList().size();
                 min_list = invertedList.getPostingArrayList().listIterator();
-                term_to_delete = invertedList.getTerm();
+                term_shortest_pl = invertedList.getTerm();
             }
         }
 
-        iteratorList.remove(term_to_delete);
+        iteratorList.remove(term_shortest_pl);
         L.remove(index_to_remove);
+        /*for (InvertedList inv : L)
+            System.out.println(inv.getTerm());*/
 
-        while (min_list.hasNext()) {
+        int doc_id = 0;
+        assert min_list != null;
+        Posting starting_posting = null;
+        if(min_list.hasNext()) {
+            starting_posting = min_list.next();
+            doc_id = starting_posting.getDoc_id();
+        }
+        Posting p = starting_posting;
+        int size = iteratorList.size();
+        //System.out.println(size);
+
+        while (true){
             double score = 0;
-            boolean flag = true;
-            boolean flag2 = false;
+            boolean finished = false;
 
-            Posting posting = min_list.next();
-            int doc_id = posting.getDoc_id();
+            HashMap<String, Posting> current_postings = new HashMap<>();
+            current_postings.put(term_shortest_pl, p);
 
-            for (InvertedList invertedList : L) {
-                Posting current_posting = skipPosting(doc_id, iteratorList.get(invertedList.getTerm()));
-
-                if (current_posting == null) {
-                    flag = false;
-                    break;
-                }
-
-                if (current_posting.getDoc_id() > doc_id) {
-                    if (!min_list.hasNext()) {
-                        flag = false;
+            int max = doc_id;
+            //skippo tutte le posting, tranne quella cardine fino a nextGEQ e mi salvo in un array le posting nella posizione
+            //a cui mi fermo
+            for (Map.Entry<String, ListIterator<Posting>> entry : iteratorList.entrySet()) {
+                while (entry.getValue().hasNext()) {
+                    p = entry.getValue().next();
+                    if (p.getDoc_id() >= doc_id) {
+                        if(p.getDoc_id() >= max)
+                            max = p.getDoc_id();
+                        //System.out.println("Skippo a questa: " + p.getDoc_id());
+                        current_postings.put(entry.getKey(), p);
                         break;
                     }
-                    Posting p = min_list.next();
-                    doc_id = p.getDoc_id();
-                }
-
-                if (doc_id == current_posting.getDoc_id()) {
-                    flag2 = true;
-                    int doc_freq = Objects.requireNonNull((TermStats) lexicon.get(invertedList.getTerm())).getDoc_frequency();
-                    score += tfIdfScore(current_posting.getTerm_frequency(), doc_freq);
                 }
             }
-            if (!flag)
+            //System.out.println("MAX: " + max);
+
+            if (doc_id < max) {
+                //se ho superato il doc_id corrente allora devo andare avanti sulla posting di riferimento
+                finished = true;
+                while (min_list.hasNext()) {
+                    p = min_list.next();
+                    if (p.getDoc_id() >= max) {
+                        doc_id = p.getDoc_id();
+                        max = doc_id;
+                        current_postings.put(term_shortest_pl, p);
+                        finished = false;
+                        break;
+                    }
+                }
+            }
+            else if (doc_id > max)
+                continue;
+
+            if (finished)
                 break;
 
-            if (flag2)
-                R.add(new Results(doc_id, score));
-        }
+            //System.out.println("DOC_ID: " + doc_id);
+            int needToScore = 0;
+            //scorro le posting correnti e guardo se hanno tutte stesso docid allora devo fare lo score, altrimenti mi salvo
+            //il massimo docid
+            for (Map.Entry<String, Posting> entry : current_postings.entrySet()) {
+                /*if (entry.getValue().getDoc_id() > max)
+                    max = entry.getValue().getDoc_id();*/
+                if (entry.getValue().getDoc_id() == max && doc_id == max) {
+                    //System.out.println("+++++++");
+                    needToScore++;
+                }
+                //System.out.println("Actual docid: " + doc_id + " max: " + max + " current_posting: " + entry.getValue());
+            }
 
-        printRankedResults(k, R);
+            //System.out.println("\n" + "needTOSCORE= " + needToScore);
+
+            //devo fare lo score perche ho trovato un docid comune a tutte le posting list
+            if (needToScore == size + 1){
+                //System.out.println("FACCIO LO SCORE DI " + doc_id);
+                for(Map.Entry<String, Posting> entry : current_postings.entrySet()) {
+                    int doc_freq = Objects.requireNonNull((TermStats) lexicon.get(entry.getKey())).getDoc_frequency();
+                    score += tfIdfScore(entry.getValue().getTerm_frequency(), doc_freq);
+                }
+                R.add(new Results(doc_id, score));
+            }
+
+            finished = true;
+            while (min_list.hasNext()) {
+                p = min_list.next();
+                if (p.getDoc_id() >= max) {
+                    doc_id = p.getDoc_id();
+                    current_postings.put(term_shortest_pl, p);
+                    finished = false;
+                    break;
+                }
+            }
+            if (finished)
+                break;
+        }
     }
 
     private static ArrayList<InvertedList> getL(Map<String, Integer> query_term_frequency, ExecutorService executor, List<Future<?>> futures, HTreeMap<?, ?> lexicon) {
@@ -192,14 +250,17 @@ public class QueryProcess {
         return L;
     }
 
-    private static Posting skipPosting(int doc_id, ListIterator<Posting> postingListIterator) {
-        while (postingListIterator.hasNext()) {
-            Posting posting = postingListIterator.next();
-            if (posting.getDoc_id() >= doc_id) {
-                return posting;
+    private static ArrayList<Posting> skipPostings(int doc_id, HashMap<String, ListIterator<Posting>> iteratorList, ArrayList<InvertedList> L) {
+        ArrayList<Posting> current_postings = new ArrayList<>();
+        for (InvertedList invertedList : L) {
+            while (iteratorList.get(invertedList.getTerm()).hasNext()) {
+                Posting posting = iteratorList.get(invertedList.getTerm()).next();
+                if (posting.getDoc_id() >= doc_id) {
+                    current_postings.add(posting);
+                }
             }
         }
-        return null;
+        return current_postings;
     }
 
     private static void printRankedResults(int k, PriorityQueue<Results> r) {
@@ -262,3 +323,54 @@ public class QueryProcess {
         return (int) (end - start);
     }
 }
+
+
+ /*       while (min_list.hasNext()) {
+                double score = 0;
+                boolean flag = true;
+                boolean flag2 = false;
+
+                Posting posting = min_list.next();
+                int doc_id = posting.getDoc_id();
+                System.out.println("DOC_ID: " + doc_id);
+
+
+                ArrayList<Posting> current_postings = skipPostings(doc_id, iteratorList, L);
+
+        if (current_postings.size() == 0) {
+        flag = false;
+        break;
+        }
+
+        int max = 0;
+        Posting max_posting = null;
+        for (Posting p : current_postings) {
+        if (p.getDoc_id() > max) {
+        max = p.getDoc_id();
+        max_posting = new Posting(p.getDoc_id(), p.getTerm_frequency());
+        }
+        }
+
+        while (max_posting.getDoc_id() > doc_id) {
+        if (!min_list.hasNext()) {
+        flag = false;
+        break;
+        }
+        Posting p = min_list.next();
+        doc_id = p.getDoc_id();
+        }
+
+        if (doc_id == current_posting.getDoc_id()) {
+        flag2 = true;
+        int doc_freq = Objects.requireNonNull((TermStats) lexicon.get(invertedList.getTerm())).getDoc_frequency();
+        score += tfIdfScore(current_posting.getTerm_frequency(), doc_freq);
+        }
+
+        if (!flag)
+        break;
+
+        if (flag2)
+        R.add(new Results(doc_id, score));}
+
+
+  */
