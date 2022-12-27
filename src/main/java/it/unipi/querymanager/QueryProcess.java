@@ -6,10 +6,7 @@ import it.unipi.bean.Posting;
 import it.unipi.bean.Results;
 import it.unipi.bean.TermStats;
 import it.unipi.builddatastructures.Tokenizer;
-import it.unipi.utils.CollectionStatistics;
-import it.unipi.utils.Compression;
-import it.unipi.utils.FileChannelInvIndex;
-import it.unipi.utils.ResultsComparator;
+import it.unipi.utils.*;
 import org.mapdb.DB;
 import org.mapdb.HTreeMap;
 
@@ -103,7 +100,6 @@ public class QueryProcess {
             R.add(new Results(current_doc_id, score));
             current_doc_id = min_doc_id(L);
         }
-        System.out.println("Results: ");
     }
 
     private static void daatScoringConjunctive(ArrayList<InvertedList> L, HTreeMap<?, ?> lexicon, PriorityQueue<Results> R) {
@@ -165,8 +161,6 @@ public class QueryProcess {
             if (flag2)
                 R.add(new Results(doc_id, score));
         }
-
-        printRankedResults(k, R);
     }
 
     private static ArrayList<InvertedList> getL(Map<String, Integer> query_term_frequency, ExecutorService executor, List<Future<?>> futures, HTreeMap<?, ?> lexicon) {
@@ -203,12 +197,12 @@ public class QueryProcess {
     }
 
     private static void printRankedResults(int k, PriorityQueue<Results> r) {
+        System.out.println("Results: ");
         try {
             for (int i = 0; i < k; i++) {
-                Results results = r.peek();
+                Results results = r.poll();
                 assert results != null;
                 System.out.println((i + 1) + ". " + "DOC ID: " + results.getDoc_id() + " SCORE: " + results.getScore());
-                r.poll();
                 if (r.size() == 0)
                     break;
             }
@@ -234,13 +228,24 @@ public class QueryProcess {
             FileChannelInvIndex.readMappedFile(doc_id_buffer, term_freq_buffer, termStats.getOffset_doc_id_start(), termStats.getOffset_term_freq_start());
             Compression compression = new Compression();
 
+            InvertedList newObj = GuavaCacheService.invertedListLoadingCache.getIfPresent(term);
+            if (newObj != null) {
+                System.out.println("dentro if " + newObj.getPos());
+                newObj.setPos(0);
+                return newObj;
+            }
+
             for (int i = 0; i < termStats.getDoc_frequency(); i++) {
                 int term_freq = compression.decodingUnaryList(BitSet.valueOf(term_freq_buffer));
                 int doc_id = compression.decodingVariableByte(doc_id_buffer);
                 query_posting_list.add(new Posting(doc_id, term_freq));
             }
             System.out.println("Decompressed " + term);
-            return new InvertedList(term, query_posting_list, 0);
+
+            newObj = new InvertedList(term, query_posting_list, 0);
+            GuavaCacheService.invertedListLoadingCache.put(term, newObj);
+
+            return newObj;
         } catch (NullPointerException e) {
             System.out.println("Term " + term + " not in collection");
             return null;
