@@ -6,10 +6,7 @@ import it.unipi.bean.Posting;
 import it.unipi.bean.Results;
 import it.unipi.bean.TermStats;
 import it.unipi.builddatastructures.Tokenizer;
-import it.unipi.utils.CollectionStatistics;
-import it.unipi.utils.Compression;
-import it.unipi.utils.FileChannelInvIndex;
-import it.unipi.utils.ResultsComparator;
+import it.unipi.utils.*;
 import org.mapdb.DB;
 import org.mapdb.HTreeMap;
 
@@ -250,26 +247,23 @@ public class QueryProcess {
         return L;
     }
 
-    private static ArrayList<Posting> skipPostings(int doc_id, HashMap<String, ListIterator<Posting>> iteratorList, ArrayList<InvertedList> L) {
-        ArrayList<Posting> current_postings = new ArrayList<>();
-        for (InvertedList invertedList : L) {
-            while (iteratorList.get(invertedList.getTerm()).hasNext()) {
-                Posting posting = iteratorList.get(invertedList.getTerm()).next();
-                if (posting.getDoc_id() >= doc_id) {
-                    current_postings.add(posting);
-                }
+    private static Posting skipPosting(int doc_id, ListIterator<Posting> postingListIterator) {
+        while (postingListIterator.hasNext()) {
+            Posting posting = postingListIterator.next();
+            if (posting.getDoc_id() >= doc_id) {
+                return posting;
             }
         }
-        return current_postings;
+        return null;
     }
 
     private static void printRankedResults(int k, PriorityQueue<Results> r) {
+        System.out.println("Results: ");
         try {
             for (int i = 0; i < k; i++) {
-                Results results = r.peek();
+                Results results = r.poll();
                 assert results != null;
                 System.out.println((i + 1) + ". " + "DOC ID: " + results.getDoc_id() + " SCORE: " + results.getScore());
-                r.poll();
                 if (r.size() == 0)
                     break;
             }
@@ -295,13 +289,24 @@ public class QueryProcess {
             FileChannelInvIndex.readMappedFile(doc_id_buffer, term_freq_buffer, termStats.getOffset_doc_id_start(), termStats.getOffset_term_freq_start());
             Compression compression = new Compression();
 
+            InvertedList newObj = GuavaCacheService.invertedListLoadingCache.getIfPresent(term);
+            if (newObj != null) {
+                System.out.println("dentro if " + newObj.getPos());
+                newObj.setPos(0);
+                return newObj;
+            }
+
             for (int i = 0; i < termStats.getDoc_frequency(); i++) {
                 int term_freq = compression.decodingUnaryList(BitSet.valueOf(term_freq_buffer));
                 int doc_id = compression.decodingVariableByte(doc_id_buffer);
                 query_posting_list.add(new Posting(doc_id, term_freq));
             }
             System.out.println("Decompressed " + term);
-            return new InvertedList(term, query_posting_list, 0);
+
+            newObj = new InvertedList(term, query_posting_list, 0);
+            GuavaCacheService.invertedListLoadingCache.put(term, newObj);
+
+            return newObj;
         } catch (NullPointerException e) {
             System.out.println("Term " + term + " not in collection");
             return null;
@@ -323,54 +328,3 @@ public class QueryProcess {
         return (int) (end - start);
     }
 }
-
-
- /*       while (min_list.hasNext()) {
-                double score = 0;
-                boolean flag = true;
-                boolean flag2 = false;
-
-                Posting posting = min_list.next();
-                int doc_id = posting.getDoc_id();
-                System.out.println("DOC_ID: " + doc_id);
-
-
-                ArrayList<Posting> current_postings = skipPostings(doc_id, iteratorList, L);
-
-        if (current_postings.size() == 0) {
-        flag = false;
-        break;
-        }
-
-        int max = 0;
-        Posting max_posting = null;
-        for (Posting p : current_postings) {
-        if (p.getDoc_id() > max) {
-        max = p.getDoc_id();
-        max_posting = new Posting(p.getDoc_id(), p.getTerm_frequency());
-        }
-        }
-
-        while (max_posting.getDoc_id() > doc_id) {
-        if (!min_list.hasNext()) {
-        flag = false;
-        break;
-        }
-        Posting p = min_list.next();
-        doc_id = p.getDoc_id();
-        }
-
-        if (doc_id == current_posting.getDoc_id()) {
-        flag2 = true;
-        int doc_freq = Objects.requireNonNull((TermStats) lexicon.get(invertedList.getTerm())).getDoc_frequency();
-        score += tfIdfScore(current_posting.getTerm_frequency(), doc_freq);
-        }
-
-        if (!flag)
-        break;
-
-        if (flag2)
-        R.add(new Results(doc_id, score));}
-
-
-  */
