@@ -53,6 +53,9 @@ public class Main {
                 .closeOnJvmShutdown()
                 .readOnly()
                 .make();
+
+        CollectionStatistics.computeAvgDocLen(db_document_index);
+
         FileChannelInvIndex.openFileChannels(mode);
         FileChannelInvIndex.MapFileChannel();
 

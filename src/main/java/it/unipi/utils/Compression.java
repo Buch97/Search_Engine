@@ -51,10 +51,10 @@ public class Compression {
         }
     }
 
-    public int decodingVariableByte(byte[] byteStream) {
+    public int decodingVariableByte(byte[] byteStream){
         int n = 0;
         int num = 0;
-        for (int i = posVarByte; i < byteStream.length; i++) {
+        for (int i = posVarByte; i < byteStream.length; i++){
             if (byteStream[i] == 0 && n == 0) {
                 posVarByte = ++i;
                 return formerElem;
