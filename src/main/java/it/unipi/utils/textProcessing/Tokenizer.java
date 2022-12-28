@@ -1,4 +1,4 @@
-package it.unipi.builddatastructures;
+package it.unipi.utils.textProcessing;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -27,8 +27,15 @@ public class Tokenizer {
 
         String text = bodyText.toLowerCase();
 
-        text = text.replaceAll("[\\\\$%{}\\[\\]()`<>='&°»§£€:,;/.~*|\"^_\\-+!?#\t@]","");
-        text = text.replaceAll("[^a-zA-Z0-9]", " ");
+        //Remove punctuation
+        text = text.replaceAll("\\p{Punct}", " ");
+        //Remove non-ascii chars
+        text = text.replaceAll("[^\\x00-\\x7F]", "");
+        //Remove useless whitespaces (starting-ending and double+)
+        text = text.trim().replaceAll(" +"," ");
+
+        /*text = text.replaceAll("[\\\\$%{}\\[\\]()`<>='&°»§£€:,;/.~*|\"^_\\-+!?#\t@]","");
+        text = text.replaceAll("[^a-zA-Z0-9]", " ");*/
 
         extractToken(text);
         return token_list;
@@ -41,7 +48,7 @@ public class Tokenizer {
         while (normalTokenizer.hasMoreTokens()) {
             String word = normalTokenizer.nextToken().trim();
             if (word.length() > 0 && !Arrays.asList(STOPWORDS).contains(word)) {
-                //se è la prima volta che si incontra si inserisce con valore 1 else si aumenta il valore di 1
+                word = Stemmer.stemming(word);
                 token_list.merge(word, 1, Integer::sum);
             }
         }

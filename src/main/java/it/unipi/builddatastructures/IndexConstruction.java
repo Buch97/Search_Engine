@@ -3,6 +3,7 @@ package it.unipi.builddatastructures;
 import it.unipi.bean.DocumentIndexStats;
 import it.unipi.bean.Posting;
 import it.unipi.bean.Token;
+import it.unipi.utils.textProcessing.Tokenizer;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
@@ -12,12 +13,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class IndexConstruction {
-
-    //dimensione per costruire i blocchi messa ora per prova a 3000 su una small collection
     public final static int SPIMI_TOKEN_STREAM_MAX_LIMIT = 3000000;
     public final static List<Token> tokenStream = new ArrayList<>();
     public static DB db_document_index;
-    public static int BLOCK_NUMBER = 0; //indice da usare per scrivere i file parziali dell'inverted index
+    public static int BLOCK_NUMBER = 0;
 
     public static void buildDataStructures() {
         try {

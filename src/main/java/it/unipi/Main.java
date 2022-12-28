@@ -17,14 +17,14 @@ import static it.unipi.querymanager.QueryProcess.submitQuery;
 public class Main {
     private static final String doc_id_path = "src/main/resources/output/inverted_index_doc_id_bin.dat";
     private static final String term_freq_path = "src/main/resources/output/inverted_index_term_frequency_bin.dat";
+    private static final String stats = "src/main/resources/Stats/stats.txt";
     public static int k = 20;
     public static DB db_document_index;
     private static final String mode = "READ";
     public static DB db_lexicon;
 
     public static void main(String[] args) throws IOException {
-        //semplice roba di utility per creare le directory in cui ci vanno salvati i files
-        CollectionStatistics.computeNumDocs();
+
         File theDir = new File("./src/main/resources/output");
 
         if (!theDir.exists()) {
@@ -54,7 +54,13 @@ public class Main {
                 .readOnly()
                 .make();
 
-        CollectionStatistics.computeAvgDocLen(db_document_index);
+        if (!new File(stats).exists()){
+            CollectionStatistics.computeNumDocs();
+            CollectionStatistics.computeAvgDocLen(db_document_index);
+        }
+        else {
+            CollectionStatistics.setParameters();
+        }
 
         FileChannelInvIndex.openFileChannels(mode);
         FileChannelInvIndex.MapFileChannel();

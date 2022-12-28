@@ -2,7 +2,8 @@ package it.unipi.querymanager;
 
 
 import it.unipi.bean.*;
-import it.unipi.builddatastructures.Tokenizer;
+import it.unipi.utils.Comparator.ResultsComparator;
+import it.unipi.utils.textProcessing.Tokenizer;
 import it.unipi.utils.*;
 import org.mapdb.DB;
 import org.mapdb.HTreeMap;
@@ -15,11 +16,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import static it.unipi.Main.db_lexicon;
-import static it.unipi.Main.db_document_index;
-import static it.unipi.Main.k;
+import static it.unipi.Main.*;
 import static it.unipi.querymanager.Score.BM25Score;
-import static it.unipi.querymanager.Score.tfIdfScore;
 
 public class QueryProcess {
     private static long startTime;
@@ -30,7 +28,7 @@ public class QueryProcess {
 
         if (query_term_frequency.size() == 1) {
             startTime = System.nanoTime();
-            daat(query_term_frequency, k, db_lexicon,db_document_index,0);
+            daat(query_term_frequency, k, db_lexicon, db_document_index, 0);
         } else {
             int mode;
             System.out.println("Select which method to use to parse the query: Disjunctive(0) Conjunctive(1)");
@@ -47,31 +45,31 @@ public class QueryProcess {
                 mode = 0;
             }
             startTime = System.nanoTime();
-            daat(query_term_frequency, k, db_lexicon,db_document_index, mode);
+            daat(query_term_frequency, k, db_lexicon, db_document_index, mode);
         }
     }
 
-    private static void daat(Map<String, Integer> query_term_frequency, int k, DB db_lexicon,DB db_document_index, int mode) {
+    private static void daat(Map<String, Integer> query_term_frequency, int k, DB db_lexicon, DB db_document_index, int mode) {
         Comparator<Results> comparator = new ResultsComparator();
         PriorityQueue<Results> R = new PriorityQueue<>(k, comparator);
 
         final ExecutorService executor = Executors.newFixedThreadPool(query_term_frequency.size());
         final List<Future<?>> futures = new ArrayList<>();
         HTreeMap<?, ?> lexicon = db_lexicon.hashMap("lexicon").open();
-        HTreeMap<?,?> document_index=db_document_index.hashMap("document_index").open();
+        HTreeMap<?, ?> document_index = db_document_index.hashMap("document_index").open();
 
         ArrayList<InvertedList> L = getL(query_term_frequency, executor, futures, lexicon);
         if (L.isEmpty()) return;
 
         if (mode == 0)
-            daatScoringDisjunctive(L, lexicon,document_index, R);
-        else daatScoringConjunctive(L, lexicon,document_index, R);
+            daatScoringDisjunctive(L, lexicon, document_index, R);
+        else daatScoringConjunctive(L, lexicon, document_index, R);
 
         printRankedResults(k, R);
         System.out.println(GuavaCacheService.invertedListLoadingCache.stats());
     }
 
-    private static void daatScoringDisjunctive(ArrayList<InvertedList> L, HTreeMap<?, ?> lexicon,HTreeMap<?, ?> document_index, PriorityQueue<Results> R) {
+    private static void daatScoringDisjunctive(ArrayList<InvertedList> L, HTreeMap<?, ?> lexicon, HTreeMap<?, ?> document_index, PriorityQueue<Results> R) {
         int current_doc_id = min_doc_id(L);
         System.out.println("Scoring");
 
@@ -93,8 +91,8 @@ public class QueryProcess {
                     if (current_doc_id == doc_id) {
                         int doc_freq = Objects.requireNonNull((TermStats) lexicon.get(invertedList.getTerm())).getDoc_frequency();
                         //score += tfIdfScore(term_freq, doc_freq);
-                        int doc_len=Objects.requireNonNull((DocumentIndexStats)document_index.get(invertedList.getTerm())).getDoc_len();
-                        score += BM25Score(term_freq, doc_freq,doc_len);
+                        int doc_len = Objects.requireNonNull((DocumentIndexStats) document_index.get(doc_id)).getDoc_len();
+                        score += BM25Score(term_freq, doc_freq, doc_len);
                         invertedList.setPos(invertedList.getPos() + 1);
                     } else {
                         iteratorList.get(invertedList.getTerm()).previous();
@@ -106,7 +104,7 @@ public class QueryProcess {
         }
     }
 
-    private static void daatScoringConjunctive(ArrayList<InvertedList> L, HTreeMap<?, ?> lexicon,HTreeMap<?, ?> document_index, PriorityQueue<Results> R) {
+    private static void daatScoringConjunctive(ArrayList<InvertedList> L, HTreeMap<?, ?> lexicon, HTreeMap<?, ?> document_index, PriorityQueue<Results> R) {
 
         HashMap<String, ListIterator<Posting>> iteratorList = new HashMap<>();
 
@@ -129,13 +127,13 @@ public class QueryProcess {
         int current_doc_id = 0;
         assert shortest_pl != null;
         Posting posting = null;
-        if(shortest_pl.hasNext()) {
+        if (shortest_pl.hasNext()) {
             posting = shortest_pl.next();
             current_doc_id = posting.getDoc_id();
         }
         int size = iteratorList.size();
 
-        while (true){
+        while (true) {
             double score = 0;
 
             HashMap<String, Posting> current_postings = new HashMap<>();
@@ -166,12 +164,12 @@ public class QueryProcess {
             }
 
             //this current_doc_id is present in every posting, so it is possible to compute the score
-            if (needToScore == size + 1){
-                for(Map.Entry<String, Posting> entry : current_postings.entrySet()) {
+            if (needToScore == size + 1) {
+                for (Map.Entry<String, Posting> entry : current_postings.entrySet()) {
                     int doc_freq = Objects.requireNonNull((TermStats) lexicon.get(entry.getKey())).getDoc_frequency();
                     //score += tfIdfScore(entry.getValue().getTerm_frequency(), doc_freq);
-                    int doc_len=Objects.requireNonNull((DocumentIndexStats)document_index.get(entry.getKey())).getDoc_len();
-                    score += BM25Score(entry.getValue().getTerm_frequency(), doc_freq,doc_len);
+                    int doc_len = Objects.requireNonNull((DocumentIndexStats) document_index.get(entry.getKey())).getDoc_len();
+                    score += BM25Score(entry.getValue().getTerm_frequency(), doc_freq, doc_len);
                 }
                 R.add(new Results(current_doc_id, score));
             }
@@ -200,7 +198,7 @@ public class QueryProcess {
         while (entry.getValue().hasNext()) {
             Posting p = entry.getValue().next();
             if (p.getDoc_id() >= doc_id) {
-                if(p.getDoc_id() >= max)
+                if (p.getDoc_id() >= max)
                     max = p.getDoc_id();
                 //System.out.println("Skippo a questa: " + p.getDoc_id());
                 current_postings.put(entry.getKey(), p);

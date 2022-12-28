@@ -1,11 +1,11 @@
 package it.unipi.builddatastructures;
 
-import it.unipi.bean.Posting;
 import it.unipi.bean.InvertedList;
+import it.unipi.bean.Posting;
 import it.unipi.bean.TermStats;
 import it.unipi.utils.Compression;
 import it.unipi.utils.FileChannelInvIndex;
-import it.unipi.utils.InvertedListComparator;
+import it.unipi.utils.Comparator.InvertedListComparator;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
@@ -17,8 +17,10 @@ public class MergeBlocks {
 
     private static final String mode = "APPEND";
     public static DB db_lexicon;
+
     private MergeBlocks() {
     }
+
     public static void mergeBlocks(int blockNumber) throws IOException {
 
         System.out.println("----------------------START MERGE PHASE----------------------");

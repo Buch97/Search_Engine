@@ -1,39 +1,65 @@
 package it.unipi.utils;
 
-//• Collection statistics:
-//  • Stored in a separate file, containing total number of documents, total number of terms, total number of postings, etc…
-
-//non è obbligatoria però ce nelle sue slide e non ci vuole nulla a farla
-
 import it.unipi.bean.DocumentIndexStats;
 import org.mapdb.DB;
 import org.mapdb.HTreeMap;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.Map;
 
 public class CollectionStatistics {
-    public static int num_docs;
-    public static double avg_doclen;
+    public static int num_docs = 0;
+    public static double avg_doc_len = 0;
 
-    public static void computeAvgDocLen(DB db_document_index){
+    public CollectionStatistics() {
+    }
+
+    public static void computeAvgDocLen(DB db_document_index) throws IOException {
         HTreeMap<Integer, DocumentIndexStats> document_index_map = (HTreeMap<Integer, DocumentIndexStats>) db_document_index
                 .hashMap("document_index")
                 .createOrOpen();
-        long sum=0;
+        long sum = 0;
 
-        for (Map.Entry<Integer, DocumentIndexStats> entry : document_index_map.entrySet()){
-            sum+=entry.getValue().getDoc_len();
+        for (Map.Entry<Integer, DocumentIndexStats> entry : document_index_map.entrySet()) {
+            sum += entry.getValue().getDoc_len();
         }
-        CollectionStatistics.avg_doclen=sum/num_docs;
+        avg_doc_len = sum / num_docs;
+
+        if (num_docs != 0 && avg_doc_len != 0)
+            writeOnFile();
     }
 
     public static void computeNumDocs() throws IOException {
         int rows = 0;
         BufferedReader collection = new BufferedReader(new FileReader("./src/main/resources/collections/collection.tsv"));
         while (collection.readLine() != null) rows++;
-        CollectionStatistics.num_docs = rows;
+        num_docs = rows;
+
+        if (num_docs != 0 && avg_doc_len != 0)
+            writeOnFile();
+    }
+
+    private static void writeOnFile() throws IOException {
+        File file = new File("src/main/resources/Stats/stats.txt");
+        BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(file));
+
+        try {
+            bufferedWriter.append(String.valueOf(avg_doc_len)).append(" ");
+            bufferedWriter.append(String.valueOf(num_docs));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        bufferedWriter.close();
+    }
+
+    public static void setParameters() {
+        File file = new File("src/main/resources/Stats/stats.txt");
+        try (BufferedReader bufferedReader = new BufferedReader(new FileReader(file))) {
+            String line = bufferedReader.readLine();
+            avg_doc_len = Double.parseDouble(line.split(" ")[0]);
+            num_docs = Integer.parseInt(line.split(" ")[1]);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

@@ -1,8 +1,5 @@
 package it.unipi.utils;
 
-import jdk.internal.ref.Cleaner;
-import sun.nio.ch.DirectBuffer;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -52,7 +49,6 @@ public class FileChannelInvIndex {
             fileChannel_doc_id = FileChannel.open(doc_id_path, StandardOpenOption.READ);
             fileChannel_term_freq = FileChannel.open(term_freq_path, StandardOpenOption.READ);
         }
-
     }
 
     public static void closeFileChannels() throws IOException {
@@ -61,12 +57,10 @@ public class FileChannelInvIndex {
     }
 
     public static void unmapBuffer() {
-        Cleaner cleanerTerm = ((DirectBuffer) MappedTermFreqBuffer).cleaner();
-        Cleaner cleanerDoc = ((DirectBuffer) MappedDocIdBuffer).cleaner();
-        if (cleanerTerm != null) cleanerTerm.clean();
-        if (cleanerDoc != null) cleanerDoc.clean();
+        MappedDocIdBuffer = null;
+        MappedTermFreqBuffer = null;
+        System.gc();
     }
-
 
     public static void readMappedFile(byte[] doc_id_buffer, byte[] term_freq_buffer, long offset_doc_id_start, long offset_term_freq_start) throws IOException {
         FileChannelInvIndex.MappedTermFreqBuffer.get((int) offset_term_freq_start, term_freq_buffer);
