@@ -1,4 +1,4 @@
-package it.unipi.utils;
+package it.unipi.utils.serializers;
 
 import it.unipi.bean.DocumentIndexStats;
 import it.unipi.bean.TermStats;

@@ -1,4 +1,4 @@
-package it.unipi.utils;
+package it.unipi.utils.serializers;
 
 import it.unipi.bean.TermStats;
 import org.mapdb.DataInput2;

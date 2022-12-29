@@ -4,10 +4,10 @@ import it.unipi.bean.InvertedList;
 import it.unipi.bean.Posting;
 import it.unipi.bean.TermStats;
 import it.unipi.utils.Compression;
-import it.unipi.utils.CustomSerializerTermStats;
+import it.unipi.utils.serializers.CustomSerializerTermStats;
 
 import it.unipi.utils.FileChannelInvIndex;
-import it.unipi.utils.Comparator.InvertedListComparator;
+import it.unipi.utils.comparator.InvertedListComparator;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;

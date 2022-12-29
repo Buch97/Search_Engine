@@ -17,7 +17,7 @@ import static it.unipi.querymanager.QueryProcess.submitQuery;
 public class Main {
     private static final String doc_id_path = "src/main/resources/output/inverted_index_doc_id_bin.dat";
     private static final String term_freq_path = "src/main/resources/output/inverted_index_term_frequency_bin.dat";
-    private static final String stats = "src/main/resources/Stats/stats.txt";
+    private static final String stats = "src/main/resources/stats/stats.txt";
     public static int k = 20;
     public static DB db_document_index;
     private static final String mode = "READ";
@@ -41,7 +41,7 @@ public class Main {
         if (!(new File(doc_id_path).exists()) || !(new File(term_freq_path).exists()))
             IndexConstruction.buildDataStructures();
 
-        db_lexicon = DBMaker.fileDB("./src/main/resources/output/lexicon.db")
+        db_lexicon = DBMaker.fileDB("./src/main/resources/output/lexicon_disk_based.db")
                 .fileMmapEnable()
                 .fileMmapPreclearDisable()
                 .closeOnJvmShutdown()
@@ -54,7 +54,7 @@ public class Main {
                 .readOnly()
                 .make();
 
-        if (new File(stats).exists()){
+        if (!new File(stats).exists()){
             CollectionStatistics.computeNumDocs();
             CollectionStatistics.computeAvgDocLen(db_document_index);
         }

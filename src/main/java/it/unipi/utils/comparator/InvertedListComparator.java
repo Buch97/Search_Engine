@@ -1,4 +1,4 @@
-package it.unipi.utils.Comparator;
+package it.unipi.utils.comparator;
 
 import it.unipi.bean.InvertedList;
 

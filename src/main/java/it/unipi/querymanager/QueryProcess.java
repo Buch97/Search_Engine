@@ -2,7 +2,9 @@ package it.unipi.querymanager;
 
 
 import it.unipi.bean.*;
-import it.unipi.utils.Comparator.ResultsComparator;
+import it.unipi.utils.comparator.ResultsComparator;
+import it.unipi.utils.serializers.CustomSerializerDocumentIndexStats;
+import it.unipi.utils.serializers.CustomSerializerTermStats;
 import it.unipi.utils.textProcessing.Tokenizer;
 import it.unipi.utils.*;
 import org.mapdb.DB;
