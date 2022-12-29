@@ -1,8 +1,10 @@
 package it.unipi.utils;
 
 import it.unipi.bean.DocumentIndexStats;
+import it.unipi.utils.serializers.CustomSerializerDocumentIndexStats;
 import org.mapdb.DB;
 import org.mapdb.HTreeMap;
+import org.mapdb.Serializer;
 
 import java.io.*;
 import java.util.Map;
@@ -17,6 +19,8 @@ public class CollectionStatistics {
     public static void computeAvgDocLen(DB db_document_index) throws IOException {
         HTreeMap<Integer, DocumentIndexStats> document_index_map = (HTreeMap<Integer, DocumentIndexStats>) db_document_index
                 .hashMap("document_index")
+                .keySerializer(Serializer.INTEGER)
+                .valueSerializer(new CustomSerializerDocumentIndexStats())
                 .createOrOpen();
         long sum = 0;
 

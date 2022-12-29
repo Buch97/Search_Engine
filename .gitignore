@@ -11,3 +11,5 @@
 /src/main/resources/complete/inverted_index_doc_id_bin.dat
 /src/main/resources/complete/inverted_index_term_frequency_bin.dat
 /src/main/resources/complete/lexicon_disk_based.db
+/src/main/resources/Stats/stats.txt
+/src/main/resources/Stats/stats.txt

@@ -27,6 +27,6 @@ public class CustomSerializerTermStats extends GroupSerializerObjectArray<TermSt
         long doc_id_end = dataInput2.readLong();
         long term_freq_end = dataInput2.readLong();
 
-        return new TermStats(doc_freq, coll_freq, doc_id_start, doc_id_end, term_freq_start, term_freq_end);
+        return new TermStats(doc_freq, coll_freq, doc_id_start, term_freq_start, doc_id_end, term_freq_end);
     }
 }

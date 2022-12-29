@@ -85,30 +85,52 @@ public class QueryProcess {
             iteratorList.put(invertedList.getTerm(), invertedList.getPostingArrayList().listIterator());
         }
 
+        final ExecutorService executor = Executors.newFixedThreadPool(L.size());
+
         while (current_doc_id != CollectionStatistics.num_docs) {
             double score = 0;
+            final List<Future<?>> futures = new ArrayList<>();
 
             for (InvertedList invertedList : L) {
-                if (iteratorList.get(invertedList.getTerm()).hasNext()) {
-
-                    Posting posting = iteratorList.get(invertedList.getTerm()).next();
-                    int doc_id = posting.getDoc_id();
-                    int term_freq = posting.getTerm_frequency();
-
-                    if (current_doc_id == doc_id) {
-                        int doc_freq = Objects.requireNonNull((TermStats) lexicon.get(invertedList.getTerm())).getDoc_frequency();
-                        //score += tfIdfScore(term_freq, doc_freq);
-                        int doc_len = Objects.requireNonNull((DocumentIndexStats) document_index.get(doc_id)).getDoc_len();
-                        score += BM25Score(term_freq, doc_freq, doc_len);
-                        invertedList.setPos(invertedList.getPos() + 1);
-                    } else {
-                        iteratorList.get(invertedList.getTerm()).previous();
-                    }
-                }
+                int finalCurrent_doc_id = current_doc_id;
+                Future<?> future = executor.submit(() ->
+                        getScore(lexicon, document_index, finalCurrent_doc_id, iteratorList, invertedList));
+                futures.add(future);
             }
+            try {
+                for (Future<?> future : futures) {
+                    if (future.get() != null)
+                        score += (double) future.get();
+                }
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+            }
+
             R.add(new Results(current_doc_id, score));
             current_doc_id = min_doc_id(L);
         }
+    }
+
+    private static double getScore(HTreeMap<?, ?> lexicon, HTreeMap<?, ?> document_index, int current_doc_id, HashMap<String, ListIterator<Posting>> iteratorList, InvertedList invertedList) {
+
+        double score = 0;
+        if (iteratorList.get(invertedList.getTerm()).hasNext()) {
+
+            Posting posting = iteratorList.get(invertedList.getTerm()).next();
+            int doc_id = posting.getDoc_id();
+            int term_freq = posting.getTerm_frequency();
+
+            if (current_doc_id == doc_id) {
+                int doc_freq = Objects.requireNonNull((TermStats) lexicon.get(invertedList.getTerm())).getDoc_frequency();
+                //score += tfIdfScore(term_freq, doc_freq);
+                int doc_len = Objects.requireNonNull((DocumentIndexStats) document_index.get(doc_id)).getDoc_len();
+                score = BM25Score(term_freq, doc_freq, doc_len);
+                invertedList.setPos(invertedList.getPos() + 1);
+            } else {
+                iteratorList.get(invertedList.getTerm()).previous();
+            }
+        }
+        return score;
     }
 
     private static void daatScoringConjunctive(ArrayList<InvertedList> L, HTreeMap<?, ?> lexicon, HTreeMap<?, ?> document_index, PriorityQueue<Results> R) {
