@@ -29,22 +29,26 @@ public class QueryProcess {
         Tokenizer tokenizer = new Tokenizer(query);
         Map<String, Integer> query_term_frequency = tokenizer.tokenize();
 
+        if (query_term_frequency.isEmpty()){
+            System.out.println("Not valid input.");
+            return;
+        }
         if (query_term_frequency.size() == 1) {
             startTime = System.nanoTime();
             daat(query_term_frequency, k, db_lexicon, db_document_index, 0);
         } else {
             int mode;
-            System.out.println("Select which method to use to parse the query: Disjunctive(0) Conjunctive(1)");
+            System.out.println("Select which method to use to parse the query: Disjunctive(0) Conjunctive(1).");
             String type = reader.readLine();
             try {
                 if ((Integer.parseInt(type) != 0) && (Integer.parseInt(type) != 1)) {
-                    System.out.println("Not valid input, mode is set to default (0)");
+                    System.out.println("Not valid input, mode is set to default (0).");
                     mode = 0;
                 } else
                     mode = Integer.parseInt(type);
                 System.out.println("Your request: " + query + "\n");
             } catch (NumberFormatException e) {
-                System.out.println("Not valid input, mode is set to default (0)");
+                System.out.println("Not valid input, mode is set to default (0).");
                 mode = 0;
             }
             startTime = System.nanoTime();

@@ -35,7 +35,7 @@ public class CollectionStatistics {
 
     public static void computeNumDocs() throws IOException {
         int rows = 0;
-        BufferedReader collection = new BufferedReader(new FileReader("./src/main/resources/collections/collection.tsv"));
+        BufferedReader collection = new BufferedReader(new FileReader("./src/main/resources/collections/small_collection.tsv"));
         while (collection.readLine() != null) rows++;
         num_docs = rows;
 
