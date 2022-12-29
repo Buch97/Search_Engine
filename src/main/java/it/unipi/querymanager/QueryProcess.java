@@ -7,6 +7,7 @@ import it.unipi.utils.textProcessing.Tokenizer;
 import it.unipi.utils.*;
 import org.mapdb.DB;
 import org.mapdb.HTreeMap;
+import org.mapdb.Serializer;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -53,8 +54,14 @@ public class QueryProcess {
         Comparator<Results> comparator = new ResultsComparator();
         PriorityQueue<Results> R = new PriorityQueue<>(k, comparator);
 
-        HTreeMap<?, ?> lexicon = db_lexicon.hashMap("lexicon").open();
-        HTreeMap<?, ?> document_index = db_document_index.hashMap("document_index").open();
+        HTreeMap<?, ?> lexicon = db_lexicon.hashMap("lexicon")
+                .keySerializer(Serializer.STRING)
+                .valueSerializer(new CustomSerializerTermStats())
+                .open();
+        HTreeMap<?, ?> document_index = db_document_index.hashMap("document_index")
+                .keySerializer(Serializer.INTEGER)
+                .valueSerializer(new CustomSerializerDocumentIndexStats())
+                .open();
 
         ArrayList<InvertedList> L = getL(query_term_frequency, lexicon);
         if (L.isEmpty()) return;
