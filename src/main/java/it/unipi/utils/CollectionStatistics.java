@@ -27,7 +27,7 @@ public class CollectionStatistics {
         for (Map.Entry<Integer, DocumentIndexStats> entry : document_index_map.entrySet()) {
             sum += entry.getValue().getDoc_len();
         }
-        avg_doc_len = sum / num_docs;
+        avg_doc_len = (double) (sum / num_docs);
 
         if (num_docs != 0 && avg_doc_len != 0)
             writeOnFile();
@@ -35,7 +35,7 @@ public class CollectionStatistics {
 
     public static void computeNumDocs() throws IOException {
         int rows = 0;
-        BufferedReader collection = new BufferedReader(new FileReader("./src/main/resources/collections/small_collection.tsv"));
+        BufferedReader collection = new BufferedReader(new FileReader("./src/main/resources/collections/collection.tsv"));
         while (collection.readLine() != null) rows++;
         num_docs = rows;
 
