@@ -93,7 +93,6 @@ public class IndexConstruction {
         HashMap<String, ArrayList<Posting>> dictionary = new HashMap<>();
         ArrayList<Posting> postings_list;
 
-        //while (Runtime.getRuntime().freeMemory() > 0) {
         for (Token token : IndexConstruction.tokenStream) {
             if (!dictionary.containsKey(token.getTerm()))
                 postings_list = addToDictionary(dictionary, token.getTerm());
@@ -107,26 +106,23 @@ public class IndexConstruction {
 
             postings_list.add(new Posting(token.getDoc_id(), token.getFrequency()));
         }
-        //}
 
-        //faccio il sort del vocabolario per facilitare la successiva fase di merging
         TreeMap<String, ArrayList<Posting>> sorted_dictionary = new TreeMap<>(dictionary);
 
         try {
-            //scrivo sul file
-            FileWriter myWriter = new FileWriter(output_file);
-            myWriter.write("TERM" + "\t" + "POSTING_LIST" + "\n");
+            BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(output_file));
+            bufferedWriter.write("TERM" + "\t" + "POSTING_LIST" + "\n");
 
             for (String term : sorted_dictionary.keySet()) {
-                myWriter.write(term + "\t");
+                bufferedWriter.write(term + "\t");
 
                 for (Posting p : sorted_dictionary.get(term))
-                    myWriter.write(p.getDoc_id() + ":" + p.getTerm_frequency() + " ");
+                    bufferedWriter.write(p.getDoc_id() + ":" + p.getTerm_frequency() + " ");
 
-                myWriter.write("\n");
+                bufferedWriter.write("\n");
             }
             System.out.println("WRITTEN BLOCK " + BLOCK_NUMBER);
-            myWriter.close();
+            bufferedWriter.close();
 
         } catch (IOException e) {
             System.out.println("An error occurred.");

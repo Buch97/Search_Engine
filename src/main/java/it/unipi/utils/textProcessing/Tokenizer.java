@@ -12,8 +12,6 @@ public class Tokenizer {
     private final String bodyText;
     public static int doc_len;
     final Map<String, Integer> token_list = new HashMap<>();
-    final String PATTERN_TOKEN = "\\$%{}[]()`<>='&:,;/.~ *\n|\"^_-+!?#\t@";
-
     BufferedReader bufferedReader = new BufferedReader(new FileReader("src/main/resources/stopwords/stopwords.txt"));
     final String[] STOPWORDS;
 
@@ -28,7 +26,7 @@ public class Tokenizer {
         String text = bodyText.toLowerCase();
 
         //Remove punctuation
-        text = text.replaceAll("\\p{Punct}", " ");
+        text = text.replaceAll("\\p{Punct}", "");
         //Remove non-ascii chars
         text = text.replaceAll("[^\\x00-\\x7F]", "");
         //Remove useless whitespaces (starting-ending and double+)

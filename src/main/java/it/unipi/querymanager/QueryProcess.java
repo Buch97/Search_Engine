@@ -53,12 +53,10 @@ public class QueryProcess {
         Comparator<Results> comparator = new ResultsComparator();
         PriorityQueue<Results> R = new PriorityQueue<>(k, comparator);
 
-        final ExecutorService executor = Executors.newFixedThreadPool(query_term_frequency.size());
-        final List<Future<?>> futures = new ArrayList<>();
         HTreeMap<?, ?> lexicon = db_lexicon.hashMap("lexicon").open();
         HTreeMap<?, ?> document_index = db_document_index.hashMap("document_index").open();
 
-        ArrayList<InvertedList> L = getL(query_term_frequency, executor, futures, lexicon);
+        ArrayList<InvertedList> L = getL(query_term_frequency, lexicon);
         if (L.isEmpty()) return;
 
         if (mode == 0)
@@ -168,7 +166,7 @@ public class QueryProcess {
                 for (Map.Entry<String, Posting> entry : current_postings.entrySet()) {
                     int doc_freq = Objects.requireNonNull((TermStats) lexicon.get(entry.getKey())).getDoc_frequency();
                     //score += tfIdfScore(entry.getValue().getTerm_frequency(), doc_freq);
-                    int doc_len = Objects.requireNonNull((DocumentIndexStats) document_index.get(entry.getKey())).getDoc_len();
+                    int doc_len = Objects.requireNonNull((DocumentIndexStats) document_index.get(current_doc_id)).getDoc_len();
                     score += BM25Score(entry.getValue().getTerm_frequency(), doc_freq, doc_len);
                 }
                 R.add(new Results(current_doc_id, score));
@@ -208,8 +206,12 @@ public class QueryProcess {
         return max;
     }
 
-    private static ArrayList<InvertedList> getL(Map<String, Integer> query_term_frequency, ExecutorService executor, List<Future<?>> futures, HTreeMap<?, ?> lexicon) {
+    private static ArrayList<InvertedList> getL(Map<String, Integer> query_term_frequency, HTreeMap<?, ?> lexicon) {
+
+        final ExecutorService executor = Executors.newFixedThreadPool(query_term_frequency.size());
+        final List<Future<?>> futures = new ArrayList<>();
         ArrayList<InvertedList> L = new ArrayList<>();
+
         for (String term : query_term_frequency.keySet()) {
             Future<?> future = executor.submit(() -> {
                 try {
