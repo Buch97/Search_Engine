@@ -41,7 +41,7 @@ public class Main {
         if (!(new File(doc_id_path).exists()) || !(new File(term_freq_path).exists()))
             IndexConstruction.buildDataStructures();
 
-        db_lexicon = DBMaker.fileDB("./src/main/resources/output/lexicon_disk_based.db")
+        db_lexicon = DBMaker.fileDB("./src/main/resources/output/lexicon.db")
                 .fileMmapEnable()
                 .fileMmapPreclearDisable()
                 .closeOnJvmShutdown()

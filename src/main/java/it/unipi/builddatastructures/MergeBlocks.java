@@ -46,7 +46,7 @@ public class MergeBlocks {
         int coll_frequency;
 
         // Disk based lexicon using the HTreeMap
-        db_lexicon = DBMaker.fileDB("./src/main/resources/output/lexicon_disk_based.db")
+        db_lexicon = DBMaker.fileDB("./src/main/resources/output/lexicon.db")
                 .closeOnJvmShutdown()
                 .checksumHeaderBypass()
                 .make();
