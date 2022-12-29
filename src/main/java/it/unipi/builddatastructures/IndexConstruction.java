@@ -3,24 +3,26 @@ package it.unipi.builddatastructures;
 import it.unipi.bean.DocumentIndexStats;
 import it.unipi.bean.Posting;
 import it.unipi.bean.Token;
+import it.unipi.utils.CustomSerializerDocumentIndexStats;
 import it.unipi.utils.textProcessing.Tokenizer;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
+import org.mapdb.Serializer;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class IndexConstruction {
-    public final static int SPIMI_TOKEN_STREAM_MAX_LIMIT = 3000000;
+    public final static int SPIMI_TOKEN_STREAM_MAX_LIMIT = 3000;
     public final static List<Token> tokenStream = new ArrayList<>();
     public static DB db_document_index;
     public static int BLOCK_NUMBER = 0;
 
     public static void buildDataStructures() {
         try {
-            File myObj = new File("./src/main/resources/collections/collection.tsv");
+            File myObj = new File("./src/main/resources/collections/small_collection.tsv");
             //BufferedWriter doc_index = new BufferedWriter(new FileWriter("./src/main/resources/output/doc_index.tsv"));
 
             Scanner myReader = new Scanner(myObj, StandardCharsets.UTF_8);
@@ -29,8 +31,10 @@ public class IndexConstruction {
                     .checksumHeaderBypass()
                     .make();
 
-            HTreeMap<Integer, DocumentIndexStats> document_index_map = (HTreeMap<Integer, DocumentIndexStats>) db_document_index
+            HTreeMap<Integer, DocumentIndexStats> document_index_map = db_document_index
                     .hashMap("document_index")
+                    .keySerializer(Serializer.INTEGER)
+                    .valueSerializer(new CustomSerializerDocumentIndexStats())
                     .createOrOpen();
 
             System.out.println("----------------------START GENERATING INVERTED INDEX BLOCKS----------------------");

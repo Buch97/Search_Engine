@@ -7,6 +7,7 @@ import it.unipi.utils.textProcessing.Tokenizer;
 import it.unipi.utils.*;
 import org.mapdb.DB;
 import org.mapdb.HTreeMap;
+import org.mapdb.Serializer;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -55,8 +56,14 @@ public class QueryProcess {
 
         final ExecutorService executor = Executors.newFixedThreadPool(query_term_frequency.size());
         final List<Future<?>> futures = new ArrayList<>();
-        HTreeMap<?, ?> lexicon = db_lexicon.hashMap("lexicon").open();
-        HTreeMap<?, ?> document_index = db_document_index.hashMap("document_index").open();
+        HTreeMap<?, ?> lexicon = db_lexicon.hashMap("lexicon")
+                .keySerializer(Serializer.STRING)
+                .valueSerializer(new CustomSerializerTermStats())
+                .open();
+        HTreeMap<?, ?> document_index = db_document_index.hashMap("document_index")
+                .keySerializer(Serializer.INTEGER)
+                .valueSerializer(new CustomSerializerDocumentIndexStats())
+                .open();
 
         ArrayList<InvertedList> L = getL(query_term_frequency, executor, futures, lexicon);
         if (L.isEmpty()) return;
@@ -168,7 +175,7 @@ public class QueryProcess {
                 for (Map.Entry<String, Posting> entry : current_postings.entrySet()) {
                     int doc_freq = Objects.requireNonNull((TermStats) lexicon.get(entry.getKey())).getDoc_frequency();
                     //score += tfIdfScore(entry.getValue().getTerm_frequency(), doc_freq);
-                    int doc_len = Objects.requireNonNull((DocumentIndexStats) document_index.get(entry.getKey())).getDoc_len();
+                    int doc_len = Objects.requireNonNull((DocumentIndexStats) document_index.get(current_doc_id)).getDoc_len();
                     score += BM25Score(entry.getValue().getTerm_frequency(), doc_freq, doc_len);
                 }
                 R.add(new Results(current_doc_id, score));

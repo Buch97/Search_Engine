@@ -4,11 +4,14 @@ import it.unipi.bean.InvertedList;
 import it.unipi.bean.Posting;
 import it.unipi.bean.TermStats;
 import it.unipi.utils.Compression;
+import it.unipi.utils.CustomSerializerTermStats;
+
 import it.unipi.utils.FileChannelInvIndex;
 import it.unipi.utils.Comparator.InvertedListComparator;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
+import org.mapdb.Serializer;
 
 import java.io.*;
 import java.util.*;
@@ -43,13 +46,15 @@ public class MergeBlocks {
         int coll_frequency;
 
         // Disk based lexicon using the HTreeMap
-        db_lexicon = DBMaker.fileDB("./src/main/resources/output/lexicon_disk_based.db")
+        db_lexicon = DBMaker.fileDB("./src/main/resources/output/lexicon.db")
                 .closeOnJvmShutdown()
                 .checksumHeaderBypass()
                 .make();
 
-        HTreeMap<String, TermStats> myMapLexicon = (HTreeMap<String, TermStats>) db_lexicon
+        HTreeMap<String, TermStats> myMapLexicon = db_lexicon
                 .hashMap("lexicon")
+                .keySerializer(Serializer.STRING)
+                .valueSerializer(new CustomSerializerTermStats())
                 .createOrOpen();
 
         // array of buffered reader to read each block at the same time
@@ -136,9 +141,11 @@ public class MergeBlocks {
         int doc_frequency;
         int coll_frequency;
 
-        db_lexicon = DBMaker.fileDB("./src/main/resources/output/lexicon_disk_based.db")
-                .closeOnJvmShutdown()
+        db_lexicon = DBMaker.fileDB("./src/main/resources/output/lexicon.db")
+                .fileMmapEnable()
                 .checksumHeaderBypass()
+                .fileMmapPreclearDisable()
+                .closeOnJvmShutdown()
                 .make();
 
         // Disk based lexicon using the HTreeMap
