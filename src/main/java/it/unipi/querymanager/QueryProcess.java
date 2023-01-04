@@ -86,15 +86,18 @@ public class QueryProcess {
         System.out.println("Scoring");
 
         HashMap<String, ListIterator<Posting>> iteratorList = new HashMap<>();
+        HashMap<String, Integer> doc_freqs = new HashMap<>();
+
         for (InvertedList invertedList : L) {
             iteratorList.put(invertedList.getTerm(), invertedList.getPostingArrayList().listIterator());
+            doc_freqs.put(invertedList.getTerm(), Objects.requireNonNull((TermStats) lexicon.get(invertedList.getTerm())).getDoc_frequency());
         }
 
         while (current_doc_id != CollectionStatistics.num_docs) {
 
             double score = 0;
             for (InvertedList invertedList : L) {
-                score += getScore(lexicon, document_index, current_doc_id, iteratorList, invertedList);
+                score += getScore(document_index, current_doc_id, iteratorList, doc_freqs, invertedList);
             }
 
             R.add(new Results(current_doc_id, score));
@@ -102,7 +105,7 @@ public class QueryProcess {
         }
     }
 
-    private static double getScore(HTreeMap<?, ?> lexicon, HTreeMap<?, ?> document_index, int current_doc_id, HashMap<String, ListIterator<Posting>> iteratorList, InvertedList invertedList) {
+    private static double getScore(HTreeMap<?, ?> document_index, int current_doc_id, HashMap<String, ListIterator<Posting>> iteratorList, HashMap<String, Integer> doc_freqs, InvertedList invertedList) {
 
         double score = 0;
         if (iteratorList.get(invertedList.getTerm()).hasNext()) {
@@ -112,10 +115,10 @@ public class QueryProcess {
             int term_freq = posting.getTerm_frequency();
 
             if (current_doc_id == doc_id) {
-                int doc_freq = Objects.requireNonNull((TermStats) lexicon.get(invertedList.getTerm())).getDoc_frequency();
-                //score += tfIdfScore(term_freq, doc_freq);
-                int doc_len = Objects.requireNonNull((DocumentIndexStats) document_index.get(doc_id)).getDoc_len();
-                score = BM25Score(term_freq, doc_freq, doc_len);
+                //int doc_freq = Objects.requireNonNull((TermStats) lexicon.get(invertedList.getTerm())).getDoc_frequency();
+                score = tfIdfScore(term_freq, doc_freqs.get(invertedList.getTerm()));
+                //int doc_len = Objects.requireNonNull((DocumentIndexStats) document_index.get(doc_id)).getDoc_len();
+                //score = BM25Score(term_freq, doc_freqs.get(invertedList.getTerm()), doc_len);
                 invertedList.setPos(invertedList.getPos() + 1);
             } else {
                 iteratorList.get(invertedList.getTerm()).previous();
