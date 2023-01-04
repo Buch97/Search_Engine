@@ -17,7 +17,7 @@ public class CollectionStatistics {
     }
 
     public static void computeAvgDocLen(DB db_document_index) throws IOException {
-        HTreeMap<Integer, DocumentIndexStats> document_index_map = (HTreeMap<Integer, DocumentIndexStats>) db_document_index
+        HTreeMap<Integer, DocumentIndexStats> document_index_map = db_document_index
                 .hashMap("document_index")
                 .keySerializer(Serializer.INTEGER)
                 .valueSerializer(new CustomSerializerDocumentIndexStats())

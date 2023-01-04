@@ -21,6 +21,7 @@ import java.util.concurrent.Future;
 
 import static it.unipi.Main.*;
 import static it.unipi.querymanager.Score.BM25Score;
+import static it.unipi.querymanager.Score.tfIdfScore;
 
 public class QueryProcess {
     private static long startTime;
@@ -89,25 +90,11 @@ public class QueryProcess {
             iteratorList.put(invertedList.getTerm(), invertedList.getPostingArrayList().listIterator());
         }
 
-        final ExecutorService executor = Executors.newFixedThreadPool(L.size());
-
         while (current_doc_id != CollectionStatistics.num_docs) {
-            double score = 0;
-            final List<Future<?>> futures = new ArrayList<>();
 
+            double score = 0;
             for (InvertedList invertedList : L) {
-                int finalCurrent_doc_id = current_doc_id;
-                Future<?> future = executor.submit(() ->
-                        getScore(lexicon, document_index, finalCurrent_doc_id, iteratorList, invertedList));
-                futures.add(future);
-            }
-            try {
-                for (Future<?> future : futures) {
-                    if (future.get() != null)
-                        score += (double) future.get();
-                }
-            } catch (InterruptedException | ExecutionException e) {
-                e.printStackTrace();
+                score += getScore(lexicon, document_index, current_doc_id, iteratorList, invertedList);
             }
 
             R.add(new Results(current_doc_id, score));
