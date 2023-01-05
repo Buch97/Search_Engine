@@ -1,6 +1,7 @@
 package it.unipi;
 
 import it.unipi.builddatastructures.IndexConstruction;
+import it.unipi.evaluation.Evaluator;
 import it.unipi.utils.CollectionStatistics;
 import it.unipi.utils.FileChannelInvIndex;
 import org.mapdb.DB;
@@ -79,6 +80,9 @@ public class Main {
             }
             else if (Objects.equals(query, "") || query.trim().length() == 0) {
                 System.out.println("The query is empty.");
+            }
+            else if(Objects.equals(query, "!evaluation")){
+                Evaluator.evaluateQueriesTest();
             }
             else submitQuery(reader, query);
         }

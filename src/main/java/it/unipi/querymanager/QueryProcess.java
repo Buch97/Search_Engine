@@ -57,7 +57,7 @@ public class QueryProcess {
         }
     }
 
-    private static void daat(Map<String, Integer> query_term_frequency, int k, DB db_lexicon, DB db_document_index, int mode) {
+    public static void daat(Map<String, Integer> query_term_frequency, int k, DB db_lexicon, DB db_document_index, int mode) {
         Comparator<Results> comparator = new ResultsComparator();
         PriorityQueue<Results> R = new PriorityQueue<>(k, comparator);
 
