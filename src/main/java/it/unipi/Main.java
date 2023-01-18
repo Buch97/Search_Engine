@@ -4,6 +4,7 @@ import it.unipi.builddatastructures.IndexConstruction;
 import it.unipi.evaluation.Evaluator;
 import it.unipi.utils.CollectionStatistics;
 import it.unipi.utils.FileChannelInvIndex;
+import it.unipi.utils.GuavaCache;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 
@@ -33,10 +34,10 @@ public class Main {
                 System.out.println("New directory '/output' created");
         }
 
-        theDir = new File("./src/main/resources/intermediate_postings");
+        theDir = new File("./src/main/resources/blocks");
         if (!theDir.exists()) {
             if (theDir.mkdirs())
-                System.out.println("New directory '/intermediate_postings' created");
+                System.out.println("New directory '/blocks' created");
         }
 
         if (!(new File(doc_id_path).exists()) || !(new File(term_freq_path).exists()))
@@ -65,6 +66,9 @@ public class Main {
 
         FileChannelInvIndex.openFileChannels(mode);
         FileChannelInvIndex.MapFileChannel();
+
+        // GuavaCache.preloadCache();
+        // System.out.println(GuavaCache.invertedListLoadingCache.asMap());
 
         for (;;) {
             System.out.println("Please, submit your query! Otherwise digit \"!exit\" to stop the execution.");

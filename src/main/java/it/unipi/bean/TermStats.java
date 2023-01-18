@@ -77,13 +77,15 @@ public class TermStats implements Serializable {
 
     @Override
     public String toString() {
-        return "Term_Stats{" +
+        return "TermStats{" +
                 "doc_frequency=" + doc_frequency +
                 ", coll_frequency=" + coll_frequency +
                 ", offset_doc_id_start=" + offset_doc_id_start +
                 ", offset_term_freq_start=" + offset_term_freq_start +
+                ", offset_doc_id_end=" + offset_doc_id_end +
+                ", offset_term_freq_end=" + offset_term_freq_end +
+                ", actual_offset=" + actual_offset +
                 '}';
     }
-
 }
 

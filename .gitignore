@@ -1,6 +1,6 @@
 # Project exclude paths
 /target/
-/src/main/resources/intermediate_postings/*
+/src/main/resources/blocks/*
 /src/main/resources/output/*
 /src/main/resources/collections/*
 /src/main/resources/collections/collection.tsv
@@ -12,8 +12,8 @@
 /src/main/resources/complete/inverted_index_term_frequency_bin.dat
 /src/main/resources/complete/lexicon_disk_based.db
 /src/main/resources/Stats/stats.txt
-/src/main/resources/Stats/stats.txt
 /src/main/resources/data structures complete/document_index.db
 /src/main/resources/data structures complete/inverted_index_doc_id_bin.dat
 /src/main/resources/data structures complete/inverted_index_term_frequency_bin.dat
 /src/main/resources/data structures complete/lexicon_disk_based.db
+/src/main/resources/queries/

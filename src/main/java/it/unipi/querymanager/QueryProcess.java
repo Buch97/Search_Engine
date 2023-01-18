@@ -2,11 +2,14 @@ package it.unipi.querymanager;
 
 
 import it.unipi.bean.*;
+import it.unipi.utils.CollectionStatistics;
+import it.unipi.utils.Compression;
+import it.unipi.utils.FileChannelInvIndex;
+import it.unipi.utils.GuavaCache;
 import it.unipi.utils.comparator.ResultsComparator;
 import it.unipi.utils.serializers.CustomSerializerDocumentIndexStats;
 import it.unipi.utils.serializers.CustomSerializerTermStats;
 import it.unipi.utils.textProcessing.Tokenizer;
-import it.unipi.utils.*;
 import org.mapdb.DB;
 import org.mapdb.HTreeMap;
 import org.mapdb.Serializer;
@@ -22,20 +25,21 @@ import java.util.concurrent.Future;
 import static it.unipi.Main.*;
 import static it.unipi.querymanager.Score.BM25Score;
 import static it.unipi.querymanager.Score.tfIdfScore;
+import static it.unipi.utils.GuavaCache.invertedListLoadingCache;
 
 public class QueryProcess {
-    private static long startTime;
+    //private static long startTime;
 
     public static void submitQuery(BufferedReader reader, String query) throws IOException {
         Tokenizer tokenizer = new Tokenizer(query);
         Map<String, Integer> query_term_frequency = tokenizer.tokenize();
 
-        if (query_term_frequency.isEmpty()){
+        if (query_term_frequency.isEmpty()) {
             System.out.println("Not valid input.");
             return;
         }
         if (query_term_frequency.size() == 1) {
-            startTime = System.nanoTime();
+            //startTime = System.nanoTime();
             daat(query_term_frequency, k, db_lexicon, db_document_index, 0);
         } else {
             int mode;
@@ -52,7 +56,7 @@ public class QueryProcess {
                 System.out.println("Not valid input, mode is set to default (0).");
                 mode = 0;
             }
-            startTime = System.nanoTime();
+            //startTime = System.nanoTime();
             daat(query_term_frequency, k, db_lexicon, db_document_index, mode);
         }
     }
@@ -78,7 +82,7 @@ public class QueryProcess {
         else daatScoringConjunctive(L, lexicon, document_index, R);
 
         printRankedResults(k, R);
-        System.out.println(GuavaCacheService.invertedListLoadingCache.stats());
+        System.out.println(invertedListLoadingCache.stats());
     }
 
     private static void daatScoringDisjunctive(ArrayList<InvertedList> L, HTreeMap<?, ?> lexicon, HTreeMap<?, ?> document_index, PriorityQueue<Results> R) {
@@ -239,11 +243,10 @@ public class QueryProcess {
 
         for (String term : query_term_frequency.keySet()) {
             Future<?> future = executor.submit(() -> {
-                try {
-                    return retrievePostingLists(term, lexicon);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+                List<Posting> posting_list = GuavaCache.getPostingList(term);
+                if (posting_list != null){
+                    return new InvertedList(term, posting_list, 0);
+                } else return null;
             });
             futures.add(future);
         }
@@ -262,9 +265,9 @@ public class QueryProcess {
         System.out.println("Results: ");
         try {
             for (int i = 0; i < k; i++) {
-                Results results = r.poll();
-                assert results != null;
-                System.out.println((i + 1) + ". " + "DOC ID: " + results.getDoc_id() + " SCORE: " + results.getScore());
+                Results result = r.poll();
+                assert result != null;
+                System.out.println((i + 1) + ". " + "DOC ID: " + result.getDoc_id() + " SCORE: " + result.getScore());
                 if (r.size() == 0)
                     break;
             }
@@ -272,41 +275,30 @@ public class QueryProcess {
             System.out.println("No results found for this query");
         }
 
-        long elapsedTime = System.nanoTime() - startTime;
-        System.out.println("Total elapsed time: " + elapsedTime / 1000000 + " ms");
+        //long elapsedTime = System.nanoTime() - startTime;
+        //System.out.println("Total elapsed time: " + elapsedTime / 1000000 + " ms");
     }
 
-    private static InvertedList retrievePostingLists(String term, HTreeMap<?, ?> lexicon) throws IOException {
+    public static InvertedList retrievePostingLists(String term, TermStats termStats) throws IOException {
         List<Posting> query_posting_list = new ArrayList<>();
-        try {
-            TermStats termStats = Objects.requireNonNull((TermStats) lexicon.get(term));
 
-            int size_doc_id_list = extractSize(termStats.getOffset_doc_id_start(), termStats.getOffset_doc_id_end());
-            int size_term_freq_list = extractSize(termStats.getOffset_term_freq_start(), termStats.getOffset_term_freq_end());
+        int size_doc_id_list = extractSize(termStats.getOffset_doc_id_start(), termStats.getOffset_doc_id_end());
+        int size_term_freq_list = extractSize(termStats.getOffset_term_freq_start(), termStats.getOffset_term_freq_end());
 
-            byte[] doc_id_buffer = new byte[size_doc_id_list];
-            byte[] term_freq_buffer = new byte[size_term_freq_list];
+        byte[] doc_id_buffer = new byte[size_doc_id_list];
+        byte[] term_freq_buffer = new byte[size_term_freq_list];
 
-            FileChannelInvIndex.readMappedFile(doc_id_buffer, term_freq_buffer, termStats.getOffset_doc_id_start(), termStats.getOffset_term_freq_start());
-            Compression compression = new Compression();
+        FileChannelInvIndex.readMappedFile(doc_id_buffer, term_freq_buffer, termStats.getOffset_doc_id_start(), termStats.getOffset_term_freq_start());
+        Compression compression = new Compression();
+        System.out.println("Decompressing " + term);
 
-            List<Posting> posting_list = GuavaCacheService.invertedListLoadingCache.getIfPresent(term);
-            if (posting_list != null) {
-                return new InvertedList(term, posting_list, 0);
-            }
-
-            for (int i = 0; i < termStats.getDoc_frequency(); i++) {
-                int term_freq = compression.decodingUnaryList(BitSet.valueOf(term_freq_buffer));
-                int doc_id = compression.decodingVariableByte(doc_id_buffer);
-                query_posting_list.add(new Posting(doc_id, term_freq));
-            }
-            System.out.println("Decompressed " + term);
-            GuavaCacheService.invertedListLoadingCache.put(term, query_posting_list);
-            return new InvertedList(term, query_posting_list, 0);
-        } catch (NullPointerException e) {
-            System.out.println("Term " + term + " not in collection");
-            return null;
+        for (int i = 0; i < termStats.getDoc_frequency(); i++) {
+            int term_freq = compression.decodingUnaryList(BitSet.valueOf(term_freq_buffer));
+            int doc_id = compression.decodingVariableByte(doc_id_buffer);
+            query_posting_list.add(new Posting(doc_id, term_freq));
         }
+
+        return new InvertedList(term, query_posting_list, 0);
     }
 
     private static int min_doc_id(ArrayList<InvertedList> L) {
