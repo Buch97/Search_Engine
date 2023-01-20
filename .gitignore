@@ -1,19 +1,22 @@
 # Project exclude paths
 /target/
-/src/main/resources/blocks/*
-/src/main/resources/output/*
-/src/main/resources/collections/*
-/src/main/resources/collections/collection.tsv
-/src/main/resources/complete_collection_index/
-/src/main/resources/datastructure/
-/src/main/resources/complete/document_index.db
-/src/main/resources/complete/inv_index.tsv
-/src/main/resources/complete/inverted_index_doc_id_bin.dat
-/src/main/resources/complete/inverted_index_term_frequency_bin.dat
-/src/main/resources/complete/lexicon_disk_based.db
-/src/main/resources/Stats/stats.txt
-/src/main/resources/data structures complete/document_index.db
-/src/main/resources/data structures complete/inverted_index_doc_id_bin.dat
-/src/main/resources/data structures complete/inverted_index_term_frequency_bin.dat
-/src/main/resources/data structures complete/lexicon_disk_based.db
-/src/main/resources/queries/
+/BuildStructures/src/main/resources/blocks/*
+/resources/output/*
+/resources/collections/*
+/resources/collections/collection.tsv
+/resources/complete_collection_index/
+/resources/datastructure/
+/resources/complete/document_index.db
+/resources/complete/inv_index.tsv
+/resources/complete/inverted_index_doc_id_bin.dat
+/resources/complete/inverted_index_term_frequency_bin.dat
+/resources/complete/lexicon_disk_based.db
+/resources/Stats/stats.txt
+/resources/data structures complete/document_index.db
+/resources/data structures complete/inverted_index_doc_id_bin.dat
+/resources/data structures complete/inverted_index_term_frequency_bin.dat
+/resources/data structures complete/lexicon_disk_based.db
+/PerformanceTest/src/main/resources/queries/
+/BuildStructures/src/main/resources/
+/PerformanceTest/src/main/resources/
+/resources/
