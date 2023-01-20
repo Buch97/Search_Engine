@@ -18,11 +18,18 @@ public class BuildStructuresMain {
                 System.out.println("New directory 'resources/output' created");
         }
 
+        theDir = new File("resources/stats");
+        if (!theDir.exists()) {
+            if (theDir.mkdirs())
+                System.out.println("New directory 'resources/stats' created");
+        }
+
         theDir = new File("BuildStructures/src/main/resources/blocks");
         if (!theDir.exists()) {
             if (theDir.mkdirs())
                 System.out.println("New directory '/blocks' created");
         }
+
         buildDataStructures();
 
         System.out.println("Data structures build successfully.");
