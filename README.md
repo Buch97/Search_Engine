@@ -30,16 +30,16 @@ This module waits a query from line command. When an user submits a query, it is
 ### Build structures
 This module can be compiled using the following optional flags:
 
-- *-noss* : if specified, it disables stopwards removal and stemming for tokens preprocessing.
-- *-debug* : if specified, it runs code on debug mode (it indexes a sample collection with only 1000 documents).
+- ***-noss*** : if specified, it disables stopwards removal and stemming for tokens preprocessing.
+- ***-debug*** : if specified, it runs code on debug mode (it indexes a sample collection with only 1000 documents).
 
 If no flags are specified, this module will work with normal preprocessing procedure (stopwards and stemming enabled) and it builds the final structures starting from the whole collection (8.8M documents).
 
 ### Query processing
 The Query processing module can be compiled using the following optional flags:
 
-- *-d* or *-c*: it sets disjunctive or conjunctive mode
-- *-tfidf* or *-bm25*: it sets TFIDF or BM25 as scoring function
-- *-10* or *-20*: it sets k paramter (how many results we want to see in the rank)
+- ***-d*** or ***-c***: it sets disjunctive or conjunctive mode
+- ***-tfidf*** or ***-bm25***: it sets TFIDF or BM25 as scoring function
+- ***-10*** or ***-20***: it sets k paramter (how many results we want to see in the rank)
 
 If no flags are specified, this module will work with disjunctive mode, TfIdf scoring function and it will show k=20 results.
