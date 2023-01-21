@@ -1,18 +1,17 @@
-# SearchEngine - Multimedia Information Retrieval project
+# SearchEngine - Multimedia Information Retrieval project @octocat 💻
 
-In this project we wrote a program that creates an inverted index structure
-from a set of text documents and a program that processes queries over such
-inverted index.
+In this project we wrote a program that creates an inverted index structure from a set of text documents and a program that processes queries over such inverted index.
 
-Search Engine based on an inverted index developed by Stefano Bianchettin, Filippo Puccini and Matteo Mugnai for Multimedia Information Retrieval course at University of Pisa during academic year 2022/2023. The documentation can be found [here](/Documentation/documentation.pdf)
+Search Engine based on an inverted index developed by *Stefano Bianchettin*, *Filippo Puccini* and *Matteo Mugnai* for *Multimedia Information Retrieval* course at University of Pisa during academic year 2022/2023. The documentation can be found [here](/Documentation/documentation.pdf). 
 
 ## Project structure
-The project is composed by these main modules:
+The whole project has been developed in Java.
+It is composed by these main modules:
 
-- Build structures
-- Common
-- Performance tests
-- Query processing
+- **Build structures**
+- **Common**
+- **Performance tests**
+- **Query processing**
 
 ### Build structures
 This module performs the construction of a document index, an inverted index and a lexicon using the Spimi algorithm and a customized merge sort to combine together different partial blocks. At the end it saves all data structures on disk in a binary format. Only the inverted index is stored using compression strategies.
@@ -29,19 +28,18 @@ This module waits a query from line command. When an user submits a query, it is
 
 ## How to compile the modules
 ### Build structures
-python3 
 This module can be compiled using the following optional flags:
 
--noss : if specified, it disables stopwards removal and stemming for tokens preprocessing.
--debug : if specified, it runs code on debug mode (it indexes a sample collection with only 1000 documents).
+-*noss* : if specified, it disables stopwards removal and stemming for tokens preprocessing.
+-*debug* : if specified, it runs code on debug mode (it indexes a sample collection with only 1000 documents).
 
 If no flags are specified, this module will work with normal preprocessing procedure (stopwards and stemming enabled) and it builds the final structures starting from the whole collection (8.8M documents).
 
 ### Query processing
 The Query processing module can be compiled using the following optional flags:
 
--d or -c: it sets disjunctive or conjunctive mode
--tfidf or -bm25: it sets TFIDF or BM25 as scoring function
--10 or -20: it sets k paramter (how many results we want to see in the rank)
+-*d* or -*c*: it sets disjunctive or conjunctive mode
+-*tfidf* or -*bm25*: it sets TFIDF or BM25 as scoring function
+-*10* or -*20*: it sets k paramter (how many results we want to see in the rank)
 
 If no flags are specified, this module will work with disjunctive mode, TfIdf scoring function and it will show k=20 results.
