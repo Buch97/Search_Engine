@@ -9,10 +9,10 @@ Search Engine based on an inverted index developed by Stefano Bianchettin, Filip
 ## Project structure
 The project is composed by these main modules:
 
--Build structures
--Common
--Performance tests
--Query processing
+- Build structures
+- Common
+- Performance tests
+- Query processing
 
 ### Build structures
 This module performs the construction of a document index, an inverted index and a lexicon using the Spimi algorithm and a customized merge sort to combine together different partial blocks. At the end it saves all data structures on disk in a binary format. Only the inverted index is stored using compression strategies.
