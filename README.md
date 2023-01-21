@@ -2,7 +2,7 @@
 
 In this project we wrote a program that creates an inverted index structure from a set of text documents and a program that processes queries over such inverted index.
 
-Search Engine based on an inverted index developed by *Stefano Bianchettin*, *Filippo Puccini* and *Matteo Mugnai* for *Multimedia Information Retrieval* course at University of Pisa during academic year 2022/2023. The documentation can be found [here](/Documentation/documentation.pdf). 
+Search Engine based on an inverted index developed by @mattemugno*Stefano Bianchettin*, *Filippo Puccini* and *Matteo Mugnai* for *Multimedia Information Retrieval* course at University of Pisa during academic year 2022/2023. The documentation can be found [here](/Documentation/documentation.pdf). 
 
 ## Project structure
 The whole project has been developed in Java.
