@@ -89,14 +89,14 @@ public class GuavaCache {
         return result;
     }
 
-    public void startCache(DB db_lexicon) {
+    /*public void startCache(DB db_lexicon) {
         if (lexicon == null) {
             lexicon = db_lexicon.hashMap("lexicon")
                     .keySerializer(Serializer.STRING)
                     .valueSerializer(new CustomSerializerTermStats())
                     .open();
         }
-    }
+    }*/
 
     public CacheStats getStats() {
         return invertedListLoadingCache.stats();

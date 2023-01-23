@@ -1,6 +1,8 @@
 package it.unipi.dii.aide.mircv.querymanager;
 
-import it.unipi.dii.aide.mircv.common.bean.*;
+import it.unipi.dii.aide.mircv.common.bean.InvertedList;
+import it.unipi.dii.aide.mircv.common.bean.Posting;
+import it.unipi.dii.aide.mircv.common.bean.Results;
 import it.unipi.dii.aide.mircv.common.cache.GuavaCache;
 import it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory;
 import it.unipi.dii.aide.mircv.common.textProcessing.Tokenizer;
@@ -22,7 +24,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import static it.unipi.dii.aide.mircv.common.cache.GuavaCache.invertedListLoadingCache;
 import static it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory.documentIndexMemory;
 import static it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory.lexiconMemory;
 
@@ -31,10 +32,9 @@ public class QueryProcess {
     private static final String doc_id_path = "resources/output/inverted_index_doc_id_bin.dat";
     private static final String term_freq_path = "resources/output/inverted_index_term_frequency_bin.dat";
     private static final String stats = "resources/stats/stats.txt";
-    private static FileChannel document_index;
-    private static  FileChannel lexicon;
-
     private static final String mode = "READ";
+    private static FileChannel document_index;
+    private static FileChannel lexicon;
     //private static long startTime;
 
     public static void submitQuery(String query) throws IOException {
@@ -46,35 +46,14 @@ public class QueryProcess {
             System.out.println("Not valid input.");
             return;
         }
-        if (query_term_frequency.size() == 1) {
-            //startTime = System.nanoTime();
-            daat(query_term_frequency, 0);
-        }
-        if (Objects.equals(processingMode, "test")){
-            daat(query_term_frequency, 0);
-        } else {
-            int mode;
-            System.out.println("Select which method to use to parse the query: Disjunctive(0) Conjunctive(1).");
-            BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(System.in));
-            String type = reader.readLine();
-            try {
-                if ((Integer.parseInt(type) != 0) && (Integer.parseInt(type) != 1)) {
-                    System.out.println("Not valid input, mode is set to default (0).");
-                    mode = 0;
-                } else
-                    mode = Integer.parseInt(type);
-                System.out.println("Your request: " + query + "\n");
-            } catch (NumberFormatException e) {
-                System.out.println("Not valid input, mode is set to default (0).");
-                mode = 0;
-            }
-            //startTime = System.nanoTime();
-            daat(query_term_frequency, mode);
-        }
+
+        String mode = Flags.getQueryMode();
+        System.out.println("Your request: " + query + "\n");
+        //startTime = System.nanoTime();
+        daat(query_term_frequency, mode);
     }
 
-    public static void daat(Map<String, Integer> query_term_frequency, int mode) {
+    public static void daat(Map<String, Integer> query_term_frequency, String mode) {
         Comparator<Results> comparator = new ResultsComparator();
         int k = Flags.getK();
         PriorityQueue<Results> R = new PriorityQueue<>(k, comparator);
@@ -127,11 +106,10 @@ public class QueryProcess {
             int term_freq = posting.getTerm_frequency();
 
             if (current_doc_id == doc_id) {
-                if(Objects.equals(Flags.getScoringFunction(), "bm25")){
+                if (Objects.equals(Flags.getScoringFunction(), "bm25")) {
                     int doc_len = documentIndexMemory.get(doc_id);
                     score = Score.BM25Score(term_freq, doc_freqs.get(invertedList.getTerm()), doc_len);
-                }
-                else
+                } else
                     score = Score.tfIdfScore(term_freq, doc_freqs.get(invertedList.getTerm()));
 
                 invertedList.setPos(invertedList.getPos() + 1);
@@ -313,18 +291,18 @@ public class QueryProcess {
 
     public static void startQueryProcessor() throws IOException {
 
-        if(!new File(doc_id_path).exists() || !new File(term_freq_path).exists() || !new File(stats).exists()){
+        if (!new File(doc_id_path).exists() || !new File(term_freq_path).exists() || !new File(stats).exists()) {
             System.out.println("Cannot find data structures.");
             System.out.println("Please make sure that structures are present");
             System.exit(0);
         }
 
-        document_index =(FileChannel) Files.newByteChannel(Paths.get("resources/output/document_index"),
+        document_index = (FileChannel) Files.newByteChannel(Paths.get("resources/output/document_index"),
                 StandardOpenOption.WRITE,
                 StandardOpenOption.READ,
                 StandardOpenOption.CREATE);
 
-        lexicon =(FileChannel) Files.newByteChannel(Paths.get("resources/output/lexicon"),
+        lexicon = (FileChannel) Files.newByteChannel(Paths.get("resources/output/lexicon"),
                 StandardOpenOption.WRITE,
                 StandardOpenOption.READ,
                 StandardOpenOption.CREATE);

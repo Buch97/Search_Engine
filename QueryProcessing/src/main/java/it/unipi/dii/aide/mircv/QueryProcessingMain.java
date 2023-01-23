@@ -11,16 +11,16 @@ import java.util.Objects;
 
 public class QueryProcessingMain {
 
-    public static void main( String[] args ) throws IOException {
+    public static void main(String[] args) throws IOException {
 
-        if(args.length > 0){
-            if(args[0].equals("-c"))
+        if (args.length > 0) {
+            if (args[0].equals("-c"))
                 Flags.setQueryMode("c");
-            if(args.length > 1) {
+            if (args.length > 1) {
                 if (args[1].equals("-bm25"))
                     Flags.setScoringFunction("bm25");
             }
-            if(args.length > 2) {
+            if (args.length > 2) {
                 if (args[2].equals("-10"))
                     Flags.setK(10);
             }
@@ -31,23 +31,20 @@ public class QueryProcessingMain {
 
         QueryProcess.startQueryProcessor();
 
-        for (;;) {
+        for (; ; ) {
             System.out.println("Please, submit your query! Otherwise digit \"!exit\" to stop the execution or \"!mode\" to change query type.");
             BufferedReader reader = new BufferedReader(
                     new InputStreamReader(System.in));
             String query = reader.readLine();
             if (Objects.equals(query, "!exit")) {
                 QueryProcess.closeQueryProcessor();
-            }
-            else if (Objects.equals(query, "!mode")){
+            } else if (Objects.equals(query, "!mode")) {
                 System.out.println("Digit \"0\" for disjunctive mode or \"1\" for conjunctive mode.");
-                if(Integer.parseInt(reader.readLine()) == 1)
+                if (Integer.parseInt(reader.readLine()) == 1)
                     Flags.setQueryMode("c");
-            }
-            else if (Objects.equals(query, "") || query.trim().length() == 0) {
+            } else if (Objects.equals(query, "") || query.trim().length() == 0) {
                 System.out.println("The query is empty.");
-            }
-            else
+            } else
                 QueryProcess.submitQuery(query);
         }
     }
