@@ -35,6 +35,11 @@ This module can be compiled using the following optional flags:
 
 If no flags are specified, this module will work with normal preprocessing procedure (stopwards and stemming enabled) and it builds the final structures starting from the whole collection (8.8M documents).
 
+### PerformanceTest
+This module can be executed by setting an optional flag:
+- ***-d*** or ***-c***: it sets disjunctive or conjunctive mode
+If no flags are specified, this module will work with disjunctive mode
+
 ### Query processing
 The Query processing module can be compiled using the following optional flags:
 
