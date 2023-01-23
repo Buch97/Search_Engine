@@ -17,7 +17,6 @@ public class Evaluator {
     private static final String queriesPathEval = "PerformanceTest/src/main/resources/queries/queries.eval.tsv";
     private static final String queriesPathTrain = "PerformanceTest/src/main/resources/queries/queries.train.tsv";
 
-
     public static void evaluateQueriesTest() throws IOException {
         Scanner myReader = new Scanner(new File(queriesPathTrain), StandardCharsets.UTF_8);
         BufferedWriter bw = new BufferedWriter(new FileWriter("PerformanceTest/src/main/resources/results/testResult.txt"));

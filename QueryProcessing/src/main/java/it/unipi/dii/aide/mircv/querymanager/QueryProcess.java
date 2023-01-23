@@ -14,18 +14,13 @@ import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
 import org.mapdb.Serializer;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-
-import static it.unipi.dii.aide.mircv.common.cache.GuavaCache.invertedListLoadingCache;
-import static it.unipi.dii.aide.mircv.common.cache.GuavaCache.startCache;
 
 public class QueryProcess {
 
@@ -35,14 +30,12 @@ public class QueryProcess {
     private static final String mode = "READ";
     public static DB db_lexicon;
     public static DB db_document_index;
-    //private static long startTime;
-
 
     public static void startQueryProcessor() throws IOException {
 
         if(!new File(doc_id_path).exists() || !new File(term_freq_path).exists() || !new File(stats).exists()){
             System.out.println("Cannot find data structures.");
-            System.out.println("Please make sure that structures are present");
+            System.out.println("Please make sure that structures are present.");
             System.exit(0);
         }
 
@@ -65,7 +58,8 @@ public class QueryProcess {
         FileChannelInvIndex.openFileChannels(mode);
         FileChannelInvIndex.MapFileChannel();
 
-        startCache(db_lexicon);
+        GuavaCache guavaCache = GuavaCache.getInstance();
+        guavaCache.startCache(db_lexicon);
     }
 
     public static void submitQuery(String query) throws IOException {
@@ -106,7 +100,8 @@ public class QueryProcess {
             daatScoringConjunctive(L, lexicon, document_index, R);
 
         printRankedResults(k, R);
-        System.out.println(invertedListLoadingCache.stats());
+        GuavaCache guavaCache = GuavaCache.getInstance();
+        System.out.println(guavaCache.getStats());
     }
 
     private static void daatScoringDisjunctive(ArrayList<InvertedList> L, HTreeMap<?, ?> lexicon, HTreeMap<?, ?> document_index, PriorityQueue<Results> R) {
@@ -270,7 +265,8 @@ public class QueryProcess {
 
         for (String term : query_term_frequency.keySet()) {
             Future<?> future = executor.submit(() -> {
-                List<Posting> posting_list = GuavaCache.getPostingList(term);
+                GuavaCache guavaCache = GuavaCache.getInstance();
+                List<Posting> posting_list = guavaCache.getOrLoadPostingList(term);
                 if (posting_list != null) {
                     return new InvertedList(term, posting_list, 0);
                 } else return null;
