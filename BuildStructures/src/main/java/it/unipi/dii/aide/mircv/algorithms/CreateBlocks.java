@@ -5,7 +5,6 @@ import it.unipi.dii.aide.mircv.common.bean.Posting;
 import it.unipi.dii.aide.mircv.common.bean.Token;
 import it.unipi.dii.aide.mircv.common.utils.CollectionStatistics;
 import it.unipi.dii.aide.mircv.common.utils.Flags;
-import it.unipi.dii.aide.mircv.common.utils.serializers.CustomSerializerDocumentIndexStats;
 import it.unipi.dii.aide.mircv.common.textProcessing.Tokenizer;
 
 import java.io.*;

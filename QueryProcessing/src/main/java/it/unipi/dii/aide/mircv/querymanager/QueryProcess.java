@@ -48,10 +48,10 @@ public class QueryProcess {
         }
         if (query_term_frequency.size() == 1) {
             //startTime = System.nanoTime();
-            daat(query_term_frequency, k, 0);
+            daat(query_term_frequency, 0);
         }
         if (Objects.equals(processingMode, "test")){
-            daat(query_term_frequency, k, 0);
+            daat(query_term_frequency, 0);
         } else {
             int mode;
             System.out.println("Select which method to use to parse the query: Disjunctive(0) Conjunctive(1).");
@@ -70,11 +70,11 @@ public class QueryProcess {
                 mode = 0;
             }
             //startTime = System.nanoTime();
-            daat(query_term_frequency, k, mode);
+            daat(query_term_frequency, mode);
         }
     }
 
-    public static void daat(Map<String, Integer> query_term_frequency, int k, int mode) {
+    public static void daat(Map<String, Integer> query_term_frequency, int mode) {
         Comparator<Results> comparator = new ResultsComparator();
         int k = Flags.getK();
         PriorityQueue<Results> R = new PriorityQueue<>(k, comparator);
@@ -84,9 +84,9 @@ public class QueryProcess {
         if (L.isEmpty()) return;
 
         if (Objects.equals(mode, "d"))
-            daatScoringDisjunctive(L, lexicon, document_index, R);
+            daatScoringDisjunctive(L, R);
         else if (Objects.equals(mode, "c"))
-            daatScoringConjunctive(L, lexicon, document_index, R);
+            daatScoringConjunctive(L, R);
 
         printRankedResults(k, R);
         GuavaCache guavaCache = GuavaCache.getInstance();
@@ -128,7 +128,7 @@ public class QueryProcess {
 
             if (current_doc_id == doc_id) {
                 if(Objects.equals(Flags.getScoringFunction(), "bm25")){
-                    int doc_len = Objects.requireNonNull((DocumentIndexStats) document_index.get(doc_id)).getDoc_len();
+                    int doc_len = documentIndexMemory.get(doc_id);
                     score = Score.BM25Score(term_freq, doc_freqs.get(invertedList.getTerm()), doc_len);
                 }
                 else
