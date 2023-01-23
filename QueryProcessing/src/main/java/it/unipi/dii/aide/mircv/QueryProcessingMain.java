@@ -1,33 +1,54 @@
 package it.unipi.dii.aide.mircv;
 
+import it.unipi.dii.aide.mircv.common.utils.Flags;
+import it.unipi.dii.aide.mircv.querymanager.QueryProcess;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Objects;
 
-import static it.unipi.dii.aide.mircv.querymanager.QueryProcess.*;
 
 public class QueryProcessingMain {
 
     public static void main( String[] args ) throws IOException {
 
+        if(args.length > 0){
+            if(args[0].equals("-c"))
+                Flags.setQueryMode("c");
+            if(args.length > 1) {
+                if (args[1].equals("-bm25"))
+                    Flags.setScoringFunction("bm25");
+            }
+            if(args.length > 2) {
+                if (args[2].equals("-10"))
+                    Flags.setK(10);
+            }
+        }
+
         // GuavaCache.preloadCache();
         // System.out.println(GuavaCache.invertedListLoadingCache.asMap());
 
-        startQueryProcessor();
+        QueryProcess.startQueryProcessor();
 
         for (;;) {
-            System.out.println("Please, submit your query! Otherwise digit \"!exit\" to stop the execution.");
+            System.out.println("Please, submit your query! Otherwise digit \"!exit\" to stop the execution or \"!mode\" to change query type.");
             BufferedReader reader = new BufferedReader(
                     new InputStreamReader(System.in));
             String query = reader.readLine();
             if (Objects.equals(query, "!exit")) {
-                closeQueryProcessor();
+                QueryProcess.closeQueryProcessor();
+            }
+            else if (Objects.equals(query, "!mode")){
+                System.out.println("Digit \"0\" for disjunctive mode or \"1\" for conjunctive mode.");
+                if(Integer.parseInt(reader.readLine()) == 1)
+                    Flags.setQueryMode("c");
             }
             else if (Objects.equals(query, "") || query.trim().length() == 0) {
                 System.out.println("The query is empty.");
             }
-            else submitQuery(query, null);
+            else
+                QueryProcess.submitQuery(query);
         }
     }
 }

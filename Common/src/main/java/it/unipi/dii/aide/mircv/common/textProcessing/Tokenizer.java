@@ -1,5 +1,7 @@
 package it.unipi.dii.aide.mircv.common.textProcessing;
 
+import it.unipi.dii.aide.mircv.common.utils.Flags;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -45,10 +47,15 @@ public class Tokenizer {
         doc_len = normalTokenizer.countTokens();
         while (normalTokenizer.hasMoreTokens()) {
             String word = normalTokenizer.nextToken().trim();
-            if (word.length() > 0 && !Arrays.asList(STOPWORDS).contains(word)) {
-                word = Stemmer.stemming(word);
-                token_list.merge(word, 1, Integer::sum);
+
+            if(Flags.isStopStem()) {
+                if (word.length() > 0 && !Arrays.asList(STOPWORDS).contains(word)) {
+                    word = Stemmer.stemming(word);
+                }
             }
+
+            token_list.merge(word, 1, Integer::sum);
+
         }
     }
 }

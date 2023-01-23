@@ -1,37 +1,32 @@
 package it.unipi.dii.aide.mircv;
 
-import java.io.File;
-import java.io.IOException;
+import it.unipi.dii.aide.mircv.algorithms.CreateBlocks;
+import it.unipi.dii.aide.mircv.common.utils.Flags;
+import it.unipi.dii.aide.mircv.common.utils.Utils;
 
-import static it.unipi.dii.aide.mircv.algorithms.Spimi.buildDataStructures;
+import java.io.File;
 
 public class BuildStructuresMain {
-    private static final String doc_id_path = "resources/output/inverted_index_doc_id_bin.dat";
-    private static final String term_freq_path = "resources/output/inverted_index_term_frequency_bin.dat";
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args){
 
-        File theDir = new File("resources/output");
-
-        if (!theDir.exists()) {
-            if (theDir.mkdirs())
-                System.out.println("New directory 'resources/output' created");
+        if(args.length > 0){
+            if(args[0].equals("-debug"))
+                Flags.setDebug(true);
+           if(args.length > 1) {
+               if (args[1].equals("-noss"))
+                   Flags.setStopStem(false);
+           }
         }
 
-        theDir = new File("resources/stats");
-        if (!theDir.exists()) {
-            if (theDir.mkdirs())
-                System.out.println("New directory 'resources/stats' created");
-        }
+        Utils.createDir(new File("resources/output"));
+        Utils.createDir(new File("resources/stats"));
+        Utils.createDir(new File("BuildStructures/src/main/resources/blocks"));
 
-        theDir = new File("BuildStructures/src/main/resources/blocks");
-        if (!theDir.exists()) {
-            if (theDir.mkdirs())
-                System.out.println("New directory '/blocks' created");
-        }
-
-        buildDataStructures();
+        CreateBlocks.buildDataStructures();
 
         System.out.println("Data structures build successfully.");
     }
+
+
 }

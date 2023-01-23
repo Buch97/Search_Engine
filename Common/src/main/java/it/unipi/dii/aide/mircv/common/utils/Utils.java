@@ -6,12 +6,21 @@ import it.unipi.dii.aide.mircv.common.bean.InvertedList;
 import it.unipi.dii.aide.mircv.common.bean.Posting;
 import it.unipi.dii.aide.mircv.common.bean.TermStats;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 
 public class Utils {
+
+    public static void createDir(File theDir) {
+        if (!theDir.exists()) {
+            if (theDir.mkdirs())
+                System.out.println("New directory 'resources/output' created");
+        }
+    }
+
     public static InvertedList retrievePostingLists(String term, TermStats termStats) throws IOException {
         List<Posting> query_posting_list = new ArrayList<>();
 

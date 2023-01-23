@@ -1,6 +1,7 @@
 package it.unipi.dii.aide.mircv.evaluation;
 
 import it.unipi.dii.aide.mircv.common.textProcessing.Tokenizer;
+import it.unipi.dii.aide.mircv.common.utils.Flags;
 import it.unipi.dii.aide.mircv.querymanager.QueryProcess;
 
 import java.io.BufferedWriter;
@@ -12,7 +13,6 @@ import java.util.Map;
 import java.util.Scanner;
 
 public class Evaluator {
-    private static final int mode = 0;  //0-Disjunctive
     private static final String queriesPathDev = "PerformanceTest/src/main/resources/queries/queries.dev.tsv";
     private static final String queriesPathEval = "PerformanceTest/src/main/resources/queries/queries.eval.tsv";
     private static final String queriesPathTrain = "PerformanceTest/src/main/resources/queries/queries.train.tsv";
@@ -20,7 +20,7 @@ public class Evaluator {
 
     public static void evaluateQueriesTest() throws IOException {
         Scanner myReader = new Scanner(new File(queriesPathTrain), StandardCharsets.UTF_8);
-        BufferedWriter bw = new BufferedWriter(new FileWriter("PerformanceTest/src/main/resources/results/testResult" + mode + ".txt"));
+        BufferedWriter bw = new BufferedWriter(new FileWriter("PerformanceTest/src/main/resources/results/testResult.txt"));
 
         int num_queries = 0;
         long sum_elapsedTime = 0;
@@ -35,7 +35,7 @@ public class Evaluator {
             String query = row[1];
 
             long startTime = System.nanoTime();
-            QueryProcess.submitQuery(query, "test");
+            QueryProcess.submitQuery(query);
 
             long elapsedTime = (System.nanoTime() - startTime) / 1000000;
             sum_elapsedTime += elapsedTime;
@@ -55,7 +55,7 @@ public class Evaluator {
             if (count == 1000) break;
         }
 
-        System.out.println("STATISTICS FOR QUERIES MODE " + mode + ":");
+        System.out.println("STATISTICS FOR QUERIES, IN " + Flags.getQueryMode() + " MODE :");
         System.out.println("Average time elapsed: " + sum_elapsedTime / num_queries + " ms");
         System.out.println("Query with min time elapsed: " + min_query + "- " + min_elaps + "ms");
         System.out.println("Query with max time elapsed: " + max_query + "- " + max_elaps + "ms");

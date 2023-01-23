@@ -4,6 +4,7 @@ import it.unipi.dii.aide.mircv.common.bean.DocumentIndexStats;
 import it.unipi.dii.aide.mircv.common.bean.Posting;
 import it.unipi.dii.aide.mircv.common.bean.Token;
 import it.unipi.dii.aide.mircv.common.utils.CollectionStatistics;
+import it.unipi.dii.aide.mircv.common.utils.Flags;
 import it.unipi.dii.aide.mircv.common.utils.serializers.CustomSerializerDocumentIndexStats;
 import it.unipi.dii.aide.mircv.common.textProcessing.Tokenizer;
 import org.mapdb.DB;
@@ -15,17 +16,27 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-public class Spimi {
-    public final static int SPIMI_TOKEN_STREAM_MAX_LIMIT = 3000000;
+public class CreateBlocks {
+    public static int SPIMI_TOKEN_STREAM_MAX_LIMIT;
     public final static List<Token> tokenStream = new ArrayList<>();
     public static DB db_document_index;
     public static int BLOCK_NUMBER = 0;
-    private static final String stats = "resources/stats/stats.txt";
 
 
     public static void buildDataStructures() {
         try {
-            File myObj = new File("resources/collections/collection.tsv");
+            File myObj;
+
+            if(Flags.isDebug()) {
+                myObj = new File("resources/collections/small_collection.tsv");
+                SPIMI_TOKEN_STREAM_MAX_LIMIT = 3000;
+                System.out.println("Running in debug mode");
+            }
+            else{
+                    myObj = new File("resources/collections/collection.tsv");
+                SPIMI_TOKEN_STREAM_MAX_LIMIT = 5000000;
+                    System.out.println("Running in execution mode");
+                }
             //BufferedWriter doc_index = new BufferedWriter(new FileWriter("./src/main/resources/output/doc_index.tsv"));
 
             Scanner myReader = new Scanner(myObj, StandardCharsets.UTF_8);
@@ -104,7 +115,7 @@ public class Spimi {
         HashMap<String, ArrayList<Posting>> dictionary = new HashMap<>();
         ArrayList<Posting> postings_list;
 
-        for (Token token : Spimi.tokenStream) {
+        for (Token token : CreateBlocks.tokenStream) {
             if (!dictionary.containsKey(token.getTerm()))
                 postings_list = addToDictionary(dictionary, token.getTerm());
             else
