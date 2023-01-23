@@ -5,10 +5,10 @@ import it.unipi.dii.aide.mircv.common.cache.GuavaCache;
 import it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory;
 import it.unipi.dii.aide.mircv.common.textProcessing.Tokenizer;
 import it.unipi.dii.aide.mircv.common.utils.CollectionStatistics;
+import it.unipi.dii.aide.mircv.common.utils.Flags;
 import it.unipi.dii.aide.mircv.common.utils.comparator.ResultsComparator;
 import it.unipi.dii.aide.mircv.common.utils.filechannel.FileChannelInvIndex;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -28,7 +28,6 @@ import static it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory.
 
 public class QueryProcess {
 
-    public static int k = 20;
     private static final String doc_id_path = "resources/output/inverted_index_doc_id_bin.dat";
     private static final String term_freq_path = "resources/output/inverted_index_term_frequency_bin.dat";
     private static final String stats = "resources/stats/stats.txt";
@@ -38,7 +37,8 @@ public class QueryProcess {
     private static final String mode = "READ";
     //private static long startTime;
 
-    public static void submitQuery(String query, String processingMode) throws IOException {
+    public static void submitQuery(String query) throws IOException {
+
         Tokenizer tokenizer = new Tokenizer(query);
         Map<String, Integer> query_term_frequency = tokenizer.tokenize();
 
@@ -76,18 +76,21 @@ public class QueryProcess {
 
     public static void daat(Map<String, Integer> query_term_frequency, int k, int mode) {
         Comparator<Results> comparator = new ResultsComparator();
+        int k = Flags.getK();
         PriorityQueue<Results> R = new PriorityQueue<>(k, comparator);
 
 
         ArrayList<InvertedList> L = getL(query_term_frequency);
         if (L.isEmpty()) return;
 
-        if (mode == 0)
-            daatScoringDisjunctive(L, R);
-        else daatScoringConjunctive(L, R);
+        if (Objects.equals(mode, "d"))
+            daatScoringDisjunctive(L, lexicon, document_index, R);
+        else if (Objects.equals(mode, "c"))
+            daatScoringConjunctive(L, lexicon, document_index, R);
 
         printRankedResults(k, R);
-        System.out.println(invertedListLoadingCache.stats());
+        GuavaCache guavaCache = GuavaCache.getInstance();
+        System.out.println(guavaCache.getStats());
     }
 
     private static void daatScoringDisjunctive(ArrayList<InvertedList> L, PriorityQueue<Results> R) {
@@ -124,10 +127,13 @@ public class QueryProcess {
             int term_freq = posting.getTerm_frequency();
 
             if (current_doc_id == doc_id) {
-                //int doc_freq = Objects.requireNonNull((TermStats) lexicon.get(invertedList.getTerm())).getDoc_frequency();
-                score = Score.tfIdfScore(term_freq, doc_freqs.get(invertedList.getTerm()));
-                //int doc_len = Objects.requireNonNull((DocumentIndexStats) document_index.get(doc_id)).getDoc_len();
-                //score = BM25Score(term_freq, doc_freqs.get(invertedList.getTerm()), doc_len);
+                if(Objects.equals(Flags.getScoringFunction(), "bm25")){
+                    int doc_len = Objects.requireNonNull((DocumentIndexStats) document_index.get(doc_id)).getDoc_len();
+                    score = Score.BM25Score(term_freq, doc_freqs.get(invertedList.getTerm()), doc_len);
+                }
+                else
+                    score = Score.tfIdfScore(term_freq, doc_freqs.get(invertedList.getTerm()));
+
                 invertedList.setPos(invertedList.getPos() + 1);
             } else {
                 iteratorList.get(invertedList.getTerm()).previous();
@@ -249,7 +255,8 @@ public class QueryProcess {
 
         for (String term : query_term_frequency.keySet()) {
             Future<?> future = executor.submit(() -> {
-                List<Posting> posting_list = GuavaCache.getPostingList(term);
+                GuavaCache guavaCache = GuavaCache.getInstance();
+                List<Posting> posting_list = guavaCache.getOrLoadPostingList(term);
                 if (posting_list != null) {
                     return new InvertedList(term, posting_list, 0);
                 } else return null;
