@@ -61,7 +61,6 @@ public class TermStats{
         MappedByteBuffer bufferLexicon = channelLexicon.map(FileChannel.MapMode.READ_WRITE, positionLex, ENTRY_SIZE_LEXICON);
 
         CharBuffer charBuffer = CharBuffer.allocate(64);
-        System.out.println(term+" "+term.length());
 
         //populate char buffer char by char
         for (int i = 0; i < term.length(); i++)
@@ -70,7 +69,6 @@ public class TermStats{
         // Write the term into file
         bufferLexicon.put(StandardCharsets.UTF_8.encode(charBuffer));
 
-        System.out.println(doc_frequency);
         bufferLexicon.putInt(doc_frequency);
         bufferLexicon.putInt(coll_frequency);
 

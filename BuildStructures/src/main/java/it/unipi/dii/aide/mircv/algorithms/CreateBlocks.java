@@ -64,7 +64,7 @@ public class CreateBlocks {
                 parseDocumentBody(Integer.parseInt(doc_no), text);
 
                 // Add document to the document index
-                positionDocIndex=documentIndexAddition(doc_no, document_index,positionDocIndex);
+                positionDocIndex = documentIndexAddition(doc_no, document_index,positionDocIndex);
             }
 
             CollectionStatistics.computeAvgDocLen();
@@ -161,7 +161,7 @@ public class CreateBlocks {
         DocumentIndexStats documentIndexStats = new DocumentIndexStats(doc_no, doc_len);
         CollectionStatistics.setNum_docs();
         CollectionStatistics.setAvg_doc_len(doc_len);
-        return documentIndexStats.writeDocumentIndex(document_index,position);
+        return documentIndexStats.writeDocumentIndex(document_index, position);
     }
 
 }

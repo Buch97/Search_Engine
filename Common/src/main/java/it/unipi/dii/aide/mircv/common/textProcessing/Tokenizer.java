@@ -70,11 +70,12 @@ public class Tokenizer {
             if(Flags.isStopStem()) {
                 if (word.length() > 0 && !Arrays.asList(STOPWORDS).contains(word)) {
                     word = Stemmer.stemming(word);
+                    token_list.merge(word, 1, Integer::sum);
                 }
             }
-
-            token_list.merge(word, 1, Integer::sum);
-
+            else{
+                token_list.merge(word, 1, Integer::sum);
+            }
         }
     }
 }
