@@ -1,19 +1,23 @@
 package it.unipi.dii.aide.mircv.algorithms;
 
-import it.unipi.dii.aide.mircv.common.compressor.Compression;
-import it.unipi.dii.aide.mircv.common.utils.filechannel.FileChannelInvIndex;
 import it.unipi.dii.aide.mircv.common.bean.InvertedList;
 import it.unipi.dii.aide.mircv.common.bean.Posting;
 import it.unipi.dii.aide.mircv.common.bean.TermStats;
+import it.unipi.dii.aide.mircv.common.compressor.Compression;
 import it.unipi.dii.aide.mircv.common.utils.comparator.InvertedListComparator;
+import it.unipi.dii.aide.mircv.common.utils.filechannel.FileChannelInvIndex;
 
-
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.PriorityQueue;
 
 
 public class MergeBlocks {
@@ -46,7 +50,7 @@ public class MergeBlocks {
         int coll_frequency;
 
 
-        FileChannel lexicon =(FileChannel) Files.newByteChannel(Paths.get(LEXICON),
+        FileChannel lexicon = (FileChannel) Files.newByteChannel(Paths.get(LEXICON),
                 StandardOpenOption.WRITE,
                 StandardOpenOption.READ,
                 StandardOpenOption.CREATE);
@@ -62,7 +66,7 @@ public class MergeBlocks {
         // First lines of each block are inserted in a priority queue
         // Sorted with a custom comparator
         openBufferedReaders(priorityQueue, readerList);
-        long positionLex=0;
+        long positionLex = 0;
         // For loop is terminated when priority queue is empty
         while (priorityQueue.size() != 0) {
 
@@ -108,9 +112,9 @@ public class MergeBlocks {
             offset_term_freq_end += term_freq_compressed.length;
             // Build lexicon
 
-            TermStats termStats=new TermStats(currentTerm,doc_frequency, coll_frequency, offset_doc_id_start, offset_term_freq_start, offset_doc_id_end, offset_term_freq_end);
+            TermStats termStats = new TermStats(currentTerm, doc_frequency, coll_frequency, offset_doc_id_start, offset_term_freq_start, offset_doc_id_end, offset_term_freq_end);
             //entryLexicon.put(currentTerm,positionLex);
-            positionLex=termStats.writeTermStats(positionLex,lexicon);
+            positionLex = termStats.writeTermStats(positionLex, lexicon);
         }
 
         for (BufferedReader reader : readerList)

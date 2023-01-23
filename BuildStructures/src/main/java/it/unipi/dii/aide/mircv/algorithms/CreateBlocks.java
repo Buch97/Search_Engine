@@ -3,9 +3,9 @@ package it.unipi.dii.aide.mircv.algorithms;
 import it.unipi.dii.aide.mircv.common.bean.DocumentIndexStats;
 import it.unipi.dii.aide.mircv.common.bean.Posting;
 import it.unipi.dii.aide.mircv.common.bean.Token;
+import it.unipi.dii.aide.mircv.common.textProcessing.Tokenizer;
 import it.unipi.dii.aide.mircv.common.utils.CollectionStatistics;
 import it.unipi.dii.aide.mircv.common.utils.Flags;
-import it.unipi.dii.aide.mircv.common.textProcessing.Tokenizer;
 
 import java.io.*;
 import java.nio.channels.FileChannel;
@@ -16,9 +16,9 @@ import java.nio.file.StandardOpenOption;
 import java.util.*;
 
 public class CreateBlocks {
-    public static int SPIMI_TOKEN_STREAM_MAX_LIMIT;
     public final static List<Token> tokenStream = new ArrayList<>();
     private static final String DOCUMENT_INDEX = "resources/output/document_index";
+    public static int SPIMI_TOKEN_STREAM_MAX_LIMIT;
     public static int BLOCK_NUMBER = 0;
 
 
@@ -26,21 +26,19 @@ public class CreateBlocks {
         try {
             File myObj;
 
-            if(Flags.isDebug()) {
+            if (Flags.isDebug()) {
                 myObj = new File("resources/collections/small_collection.tsv");
                 SPIMI_TOKEN_STREAM_MAX_LIMIT = 3000;
                 System.out.println("Running in debug mode");
-            }
-            else{
-                    myObj = new File("resources/collections/collection.tsv");
+            } else {
+                myObj = new File("resources/collections/collection.tsv");
                 SPIMI_TOKEN_STREAM_MAX_LIMIT = 5000000;
-                    System.out.println("Running in execution mode");
-                }
-            //BufferedWriter doc_index = new BufferedWriter(new FileWriter("./src/main/resources/output/doc_index.tsv"));
+                System.out.println("Running in execution mode");
+            }
 
             Scanner myReader = new Scanner(myObj, StandardCharsets.UTF_8);
 
-            FileChannel document_index =(FileChannel) Files.newByteChannel(Paths.get(DOCUMENT_INDEX),
+            FileChannel document_index = (FileChannel) Files.newByteChannel(Paths.get(DOCUMENT_INDEX),
                     StandardOpenOption.WRITE,
                     StandardOpenOption.READ,
                     StandardOpenOption.CREATE);
@@ -48,7 +46,9 @@ public class CreateBlocks {
 
             System.out.println("----------------------START GENERATING INVERTED INDEX BLOCKS----------------------");
 
-            long positionDocIndex=0;
+            long positionDocIndex = 0;
+            Boolean lastLine = false;
+
             while (myReader.hasNextLine()) {
                 String data = myReader.nextLine();
 
@@ -60,11 +60,13 @@ public class CreateBlocks {
                 String doc_no = row[0];
                 String text = row[1];
 
-                // Parsing/tokenization of the document
-                parseDocumentBody(Integer.parseInt(doc_no), text);
+                if (!myReader.hasNextLine())
+                    lastLine = true;
+                    // Parsing/tokenization of the document
+                parseDocumentBody(Integer.parseInt(doc_no), text, lastLine);
 
                 // Add document to the document index
-                positionDocIndex = documentIndexAddition(doc_no, document_index,positionDocIndex);
+                positionDocIndex = documentIndexAddition(doc_no, document_index, positionDocIndex);
             }
 
             CollectionStatistics.computeAvgDocLen();
@@ -74,7 +76,6 @@ public class CreateBlocks {
 
             System.out.println("----------------------INVERTED INDEX BLOCKS READY----------------------");
             MergeBlocks.mergeBlocks(BLOCK_NUMBER);
-            //MergeBlocks.mergeBlocksText(BLOCK_NUMBER);
 
         } catch (FileNotFoundException e) {
             System.out.println("An error occurred.");
@@ -84,7 +85,7 @@ public class CreateBlocks {
         }
     }
 
-    public static void parseDocumentBody(int doc_id, String text) throws IOException {
+    public static void parseDocumentBody(int doc_id, String text, Boolean lastLine) throws IOException {
         Tokenizer tokenizer = new Tokenizer(text);
         Map<String, Integer> results = tokenizer.tokenize();
 
@@ -92,7 +93,7 @@ public class CreateBlocks {
             tokenStream.add(new Token(token, doc_id, results.get(token)));
 
         // Add token to tokenStream until we reach a size threshold
-        if (tokenStream.size() >= SPIMI_TOKEN_STREAM_MAX_LIMIT) {
+        if (tokenStream.size() >= SPIMI_TOKEN_STREAM_MAX_LIMIT || lastLine) {
             // Create the inverted index of the block
             invertedIndexSPIMI();
             // clear the stream of token
@@ -111,8 +112,9 @@ public class CreateBlocks {
         ArrayList<Posting> postings_list;
 
         for (Token token : CreateBlocks.tokenStream) {
-            if (!dictionary.containsKey(token.getTerm()))
+            if (!dictionary.containsKey(token.getTerm())){
                 postings_list = addToDictionary(dictionary, token.getTerm());
+            }
             else
                 postings_list = dictionary.get(token.getTerm());
 
@@ -155,7 +157,7 @@ public class CreateBlocks {
         return postings_list;
     }
 
-    private static long documentIndexAddition(String doc_no, FileChannel document_index,long position) throws IOException {
+    private static long documentIndexAddition(String doc_no, FileChannel document_index, long position) throws IOException {
         int doc_len = Tokenizer.doc_len;
         //int doc_id = Integer.parseInt(doc_no);
         DocumentIndexStats documentIndexStats = new DocumentIndexStats(doc_no, doc_len);

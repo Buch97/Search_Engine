@@ -11,23 +11,23 @@ public class CollectionStatistics {
     public CollectionStatistics() {
     }
 
-    public static void setNum_docs(){
+    public static void setNum_docs() {
         num_docs++;
     }
 
-    public static void setAvg_doc_len(int doc_len){
-        avg_doc_len+=doc_len;
+    public static void setAvg_doc_len(int doc_len) {
+        avg_doc_len += doc_len;
     }
 
-    public static void computeAvgDocLen(){
-        avg_doc_len/=num_docs;
+    public static void computeAvgDocLen() {
+        avg_doc_len /= num_docs;
         writeOnFile();
     }
 
 
     private static void writeOnFile() {
 
-        try(BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(stats))) {
+        try (BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(stats))) {
             bufferedWriter.append(String.valueOf(avg_doc_len)).append(" ");
             bufferedWriter.append(String.valueOf(num_docs));
         } catch (Exception e) {

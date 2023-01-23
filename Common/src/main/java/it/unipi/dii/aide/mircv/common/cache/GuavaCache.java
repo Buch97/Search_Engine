@@ -8,9 +8,7 @@ import it.unipi.dii.aide.mircv.common.bean.Posting;
 import it.unipi.dii.aide.mircv.common.bean.TermStats;
 import it.unipi.dii.aide.mircv.common.textProcessing.Tokenizer;
 import org.jetbrains.annotations.NotNull;
-import org.mapdb.DB;
 import org.mapdb.HTreeMap;
-import org.mapdb.Serializer;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -18,15 +16,14 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
-import static it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory.entryLexicon;
 import static it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory.lexiconMemory;
 import static it.unipi.dii.aide.mircv.common.utils.Utils.retrievePostingLists;
 
 public class GuavaCache {
+    private static GuavaCache instance = null;
+    private static final HTreeMap<?, ?> lexicon = null;
     TermStats termStats;
     LoadingCache<String, List<Posting>> invertedListLoadingCache;
-    private static GuavaCache instance = null;
-    private static HTreeMap<?, ?> lexicon = null;
 
     private GuavaCache() {
         this.invertedListLoadingCache = CacheBuilder.newBuilder()
@@ -68,12 +65,12 @@ public class GuavaCache {
     }
 
     public List<Posting> getOrLoadPostingList(String term) throws ExecutionException {
-        try {
-            termStats = lexiconMemory.get(term);
-            return invertedListLoadingCache.get(term);
-        } catch (NullPointerException e) {
-            System.out.println("Term not in collection");
+        termStats = lexiconMemory.get(term);
+        if (termStats == null) {
+            System.out.println(term + " not in collection");
             return null;
+        } else {
+            return invertedListLoadingCache.get(term);
         }
     }
 
@@ -100,10 +97,6 @@ public class GuavaCache {
 
     public CacheStats getStats() {
         return invertedListLoadingCache.stats();
-    }
-
-    public void setTermStats(TermStats termStats) {
-        this.termStats = termStats;
     }
 
 }

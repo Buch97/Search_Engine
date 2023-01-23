@@ -8,15 +8,15 @@ import java.io.File;
 
 public class BuildStructuresMain {
 
-    public static void main(String[] args){
+    public static void main(String[] args) {
 
-        if(args.length > 0){
-            if(args[0].equals("-debug"))
+        if (args.length > 0) {
+            if (args[0].equals("-debug"))
                 Flags.setDebug(true);
-           if(args.length > 1) {
-               if (args[1].equals("-noss"))
-                   Flags.setStopStem(false);
-           }
+            if (args.length > 1) {
+                if (args[1].equals("-noss"))
+                    Flags.setStopStem(false);
+            }
         }
 
         Utils.createDir(new File("resources/output"));
