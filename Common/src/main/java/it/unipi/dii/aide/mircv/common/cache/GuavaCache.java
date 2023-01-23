@@ -6,7 +6,6 @@ import com.google.common.cache.LoadingCache;
 import it.unipi.dii.aide.mircv.common.bean.Posting;
 import it.unipi.dii.aide.mircv.common.bean.TermStats;
 import it.unipi.dii.aide.mircv.common.textProcessing.Tokenizer;
-import it.unipi.dii.aide.mircv.common.utils.serializers.CustomSerializerTermStats;
 import org.jetbrains.annotations.NotNull;
 import org.mapdb.DB;
 import org.mapdb.HTreeMap;
@@ -18,12 +17,13 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
+import static it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory.entryLexicon;
+import static it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory.lexiconMemory;
 import static it.unipi.dii.aide.mircv.common.utils.Utils.retrievePostingLists;
 
 public class GuavaCache {
     private static final int maxSize = 0;
     private static final String queries_path = "src/main/resources/queries/queries.eval.tsv";
-    private static HTreeMap<?, ?> lexicon = null;
     private static TermStats termStats;
 
     public static LoadingCache<String, List<Posting>> invertedListLoadingCache = CacheBuilder.newBuilder()
@@ -53,7 +53,7 @@ public class GuavaCache {
 
     public static List<Posting> getPostingList(String term) throws ExecutionException {
         try {
-            termStats = Objects.requireNonNull((TermStats) lexicon.get(term));
+            termStats = lexiconMemory.get(term);
             return invertedListLoadingCache.get(term);
         } catch (NullPointerException e) {
             System.out.println("Term not in collection");
@@ -73,10 +73,4 @@ public class GuavaCache {
         return result;
     }
 
-    public static void startCache(DB db_lexicon) {
-        lexicon = db_lexicon.hashMap("lexicon")
-                .keySerializer(Serializer.STRING)
-                .valueSerializer(new CustomSerializerTermStats())
-                .open();
-    }
 }

@@ -1,7 +1,6 @@
 package it.unipi.dii.aide.mircv;
 
 import java.io.File;
-import java.io.IOException;
 
 import static it.unipi.dii.aide.mircv.algorithms.Spimi.buildDataStructures;
 
@@ -9,7 +8,7 @@ public class BuildStructuresMain {
     private static final String doc_id_path = "resources/output/inverted_index_doc_id_bin.dat";
     private static final String term_freq_path = "resources/output/inverted_index_term_frequency_bin.dat";
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
 
         File theDir = new File("resources/output");
 

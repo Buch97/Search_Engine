@@ -18,6 +18,7 @@ public class FileChannelInvIndex {
     public static MappedByteBuffer MappedDocIdBuffer;
     public static MappedByteBuffer MappedTermFreqBuffer;
 
+
     private FileChannelInvIndex() {
     }
 
@@ -66,6 +67,7 @@ public class FileChannelInvIndex {
         FileChannelInvIndex.MappedTermFreqBuffer.get((int) offset_term_freq_start, term_freq_buffer);
         FileChannelInvIndex.MappedDocIdBuffer.get((int) offset_doc_id_start, doc_id_buffer);
     }
+
 
     public static void read(ByteBuffer doc_id_buffer, ByteBuffer term_freq_buffer, long offset_doc_id_start, long offset_term_freq_start) throws IOException {
         FileChannelInvIndex.fileChannel_doc_id.read(doc_id_buffer, (int) offset_doc_id_start);

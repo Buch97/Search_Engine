@@ -25,15 +25,34 @@ public class Tokenizer {
 
         String text = bodyText.toLowerCase();
 
+        /*
         //Remove punctuation
         text = text.replaceAll("\\p{Punct}", "");
         //Remove non-ascii chars
         text = text.replaceAll("[^\\x00-\\x7F]", "");
         //Remove useless whitespaces (starting-ending and double+)
         text = text.trim().replaceAll(" +"," ");
-
+        */
         /*text = text.replaceAll("[\\\\$%{}\\[\\]()`<>='&°»§£€:,;/.~*|\"^_\\-+!?#\t@]","");
         text = text.replaceAll("[^a-zA-Z0-9]", " ");*/
+
+        //remove urls, if any
+        text = text.replaceAll("[(http(s)?):\\/\\/(www\\.)?a-zA-Z0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6}\\b([-a-zA-Z0-9@:%_\\+.~#?&//=]*)", "\s");
+
+        //remove html tags, if any
+        text = text.replaceAll("<[^>]+>", "\s");
+
+        //remove non-digit characters including punctuation
+        text = text.replaceAll("[^a-zA-Z ]", "\s");
+
+        //collapse 3+ repeating characters in just 2
+        text = text.replaceAll("(.)\\1{2,}","$1$1");
+
+        //Remove non-ascii chars
+        text = text.replaceAll("[^\\x00-\\x7F]", "");
+
+        //Remove useless whitespaces (starting-ending and double+)
+        text = text.trim().replaceAll(" +"," ");
 
         extractToken(text);
         return token_list;

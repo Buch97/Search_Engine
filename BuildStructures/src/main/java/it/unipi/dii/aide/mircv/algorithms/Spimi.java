@@ -4,43 +4,39 @@ import it.unipi.dii.aide.mircv.common.bean.DocumentIndexStats;
 import it.unipi.dii.aide.mircv.common.bean.Posting;
 import it.unipi.dii.aide.mircv.common.bean.Token;
 import it.unipi.dii.aide.mircv.common.utils.CollectionStatistics;
-import it.unipi.dii.aide.mircv.common.utils.serializers.CustomSerializerDocumentIndexStats;
 import it.unipi.dii.aide.mircv.common.textProcessing.Tokenizer;
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
-import org.mapdb.HTreeMap;
-import org.mapdb.Serializer;
 
 import java.io.*;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.*;
 
 public class Spimi {
-    public final static int SPIMI_TOKEN_STREAM_MAX_LIMIT = 3000000;
+    public final static int SPIMI_TOKEN_STREAM_MAX_LIMIT = 3000;
     public final static List<Token> tokenStream = new ArrayList<>();
-    public static DB db_document_index;
+    private static final String DOCUMENT_INDEX = "resources/output/document_index";
     public static int BLOCK_NUMBER = 0;
-    private static final String stats = "resources/stats/stats.txt";
 
 
     public static void buildDataStructures() {
         try {
-            File myObj = new File("resources/collections/collection.tsv");
+            File myObj = new File("resources/collections/small_collection.tsv");
             //BufferedWriter doc_index = new BufferedWriter(new FileWriter("./src/main/resources/output/doc_index.tsv"));
 
             Scanner myReader = new Scanner(myObj, StandardCharsets.UTF_8);
-            db_document_index = DBMaker.fileDB("resources/output/document_index.db")
-                    .closeOnJvmShutdown()
-                    .checksumHeaderBypass()
-                    .make();
 
-            HTreeMap<Integer, DocumentIndexStats> document_index_map = db_document_index
-                    .hashMap("document_index")
-                    .keySerializer(Serializer.INTEGER)
-                    .valueSerializer(new CustomSerializerDocumentIndexStats())
-                    .createOrOpen();
+            FileChannel document_index =(FileChannel) Files.newByteChannel(Paths.get(DOCUMENT_INDEX),
+                    StandardOpenOption.WRITE,
+                    StandardOpenOption.READ,
+                    StandardOpenOption.CREATE);
+
 
             System.out.println("----------------------START GENERATING INVERTED INDEX BLOCKS----------------------");
+
+            long positionDocIndex=0;
             while (myReader.hasNextLine()) {
                 String data = myReader.nextLine();
 
@@ -56,16 +52,14 @@ public class Spimi {
                 parseDocumentBody(Integer.parseInt(doc_no), text);
 
                 // Add document to the document index
-                documentIndexAddition(doc_no, document_index_map);
-                //documentIndexAdditionTextual(doc_no, doc_index);
+                positionDocIndex=documentIndexAddition(doc_no, document_index,positionDocIndex);
             }
 
-            CollectionStatistics.computeNumDocs();
-            CollectionStatistics.computeAvgDocLen(document_index_map);
+            CollectionStatistics.computeAvgDocLen();
 
-            db_document_index.close();
+            document_index.close();
             myReader.close();
-            //doc_index.close();
+
             System.out.println("----------------------INVERTED INDEX BLOCKS READY----------------------");
             MergeBlocks.mergeBlocks(BLOCK_NUMBER);
             //MergeBlocks.mergeBlocksText(BLOCK_NUMBER);
@@ -149,16 +143,13 @@ public class Spimi {
         return postings_list;
     }
 
-    private static void documentIndexAddition(String doc_no, HTreeMap<Integer, DocumentIndexStats> document_index_map) throws IOException {
+    private static long documentIndexAddition(String doc_no, FileChannel document_index,long position) throws IOException {
         int doc_len = Tokenizer.doc_len;
-        int doc_id = Integer.parseInt(doc_no);
+        //int doc_id = Integer.parseInt(doc_no);
         DocumentIndexStats documentIndexStats = new DocumentIndexStats(doc_no, doc_len);
-        document_index_map.put(doc_id, documentIndexStats);
+        CollectionStatistics.setNum_docs();
+        CollectionStatistics.setAvg_doc_len(doc_len);
+        return documentIndexStats.writeDocumentIndex(document_index,position);
     }
 
-    private static void documentIndexAdditionTextual(String doc_no, BufferedWriter doc_index) throws IOException {
-        int doc_len = Tokenizer.doc_len;
-        int doc_id = Integer.parseInt(doc_no);
-        doc_index.write("DOC_ID: " + doc_id + " DOC_NO: " + doc_no + " DOC_LEN: " + doc_len + "\n");
-    }
 }

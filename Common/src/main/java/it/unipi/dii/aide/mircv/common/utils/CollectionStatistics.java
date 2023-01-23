@@ -1,52 +1,43 @@
 package it.unipi.dii.aide.mircv.common.utils;
 
-import it.unipi.dii.aide.mircv.common.bean.DocumentIndexStats;
-import org.mapdb.HTreeMap;
 
 import java.io.*;
-import java.util.Map;
 
 public class CollectionStatistics {
+    private static final String stats = "resources/stats/stats.txt";
     public static int num_docs = 0;
     public static double avg_doc_len = 0;
 
     public CollectionStatistics() {
     }
 
-    public static void computeAvgDocLen(HTreeMap<Integer, DocumentIndexStats> documentIndexMap) throws IOException {
-        long sum = 0;
+    public static void setNum_docs(){
+        num_docs++;
+    }
 
-        for (Map.Entry<Integer, DocumentIndexStats> entry : documentIndexMap.entrySet()) {
-            sum += entry.getValue().getDoc_len();
-        }
+    public static void setAvg_doc_len(int doc_len){
+        avg_doc_len+=doc_len;
+    }
 
-        avg_doc_len = (double) (sum / num_docs);
+    public static void computeAvgDocLen(){
+        avg_doc_len/=num_docs;
         writeOnFile();
     }
 
-    public static void computeNumDocs() throws IOException {
-        int rows = 0;
-        BufferedReader collection = new BufferedReader(new FileReader("resources/collections/collection.tsv"));
-        while (collection.readLine() != null) rows++;
-        num_docs = rows;
-    }
 
-    private static void writeOnFile() throws IOException {
-        File file = new File("resources/stats/stats.txt");
-        BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(file));
+    private static void writeOnFile() {
 
-        try {
+        try(BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(stats))) {
             bufferedWriter.append(String.valueOf(avg_doc_len)).append(" ");
             bufferedWriter.append(String.valueOf(num_docs));
         } catch (Exception e) {
             e.printStackTrace();
         }
-        bufferedWriter.close();
+
     }
 
     public static void setParameters() {
-        File file = new File("resources/stats/stats.txt");
-        try (BufferedReader bufferedReader = new BufferedReader(new FileReader(file))) {
+        try (BufferedReader bufferedReader = new BufferedReader(new FileReader(stats))) {
             String line = bufferedReader.readLine();
             avg_doc_len = Double.parseDouble(line.split(" ")[0]);
             num_docs = Integer.parseInt(line.split(" ")[1]);

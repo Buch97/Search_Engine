@@ -6,19 +6,20 @@ import it.unipi.dii.aide.mircv.common.bean.InvertedList;
 import it.unipi.dii.aide.mircv.common.bean.Posting;
 import it.unipi.dii.aide.mircv.common.bean.TermStats;
 import it.unipi.dii.aide.mircv.common.utils.comparator.InvertedListComparator;
-import it.unipi.dii.aide.mircv.common.utils.serializers.CustomSerializerTermStats;
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
-import org.mapdb.HTreeMap;
-import org.mapdb.Serializer;
+
 
 import java.io.*;
+import java.nio.channels.FileChannel;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.*;
+
 
 public class MergeBlocks {
 
     private static final String mode = "APPEND";
-    public static DB db_lexicon;
+    private static final String LEXICON = "resources/output/lexicon";
 
     private MergeBlocks() {
     }
@@ -44,17 +45,12 @@ public class MergeBlocks {
         int doc_frequency;
         int coll_frequency;
 
-        // Disk based lexicon using the HTreeMap
-        db_lexicon = DBMaker.fileDB("resources/output/lexicon.db")
-                .closeOnJvmShutdown()
-                .checksumHeaderBypass()
-                .make();
 
-        HTreeMap<String, TermStats> myMapLexicon = db_lexicon
-                .hashMap("lexicon")
-                .keySerializer(Serializer.STRING)
-                .valueSerializer(new CustomSerializerTermStats())
-                .createOrOpen();
+        FileChannel lexicon =(FileChannel) Files.newByteChannel(Paths.get(LEXICON),
+                StandardOpenOption.WRITE,
+                StandardOpenOption.READ,
+                StandardOpenOption.CREATE);
+
 
         // array of buffered reader to read each block at the same time
         for (int i = 0; i < blockNumber; i++) {
@@ -66,7 +62,7 @@ public class MergeBlocks {
         // First lines of each block are inserted in a priority queue
         // Sorted with a custom comparator
         openBufferedReaders(priorityQueue, readerList);
-
+        long positionLex=0;
         // For loop is terminated when priority queue is empty
         while (priorityQueue.size() != 0) {
 
@@ -111,104 +107,21 @@ public class MergeBlocks {
             offset_doc_id_end += doc_id_compressed.length;
             offset_term_freq_end += term_freq_compressed.length;
             // Build lexicon
-            myMapLexicon.put(currentTerm, new TermStats(doc_frequency, coll_frequency, offset_doc_id_start, offset_term_freq_start, offset_doc_id_end, offset_term_freq_end));
+
+            TermStats termStats=new TermStats(currentTerm,doc_frequency, coll_frequency, offset_doc_id_start, offset_term_freq_start, offset_doc_id_end, offset_term_freq_end);
+            //entryLexicon.put(currentTerm,positionLex);
+            positionLex=termStats.writeTermStats(positionLex,lexicon);
         }
 
         for (BufferedReader reader : readerList)
             reader.close();
 
-        db_lexicon.close();
+        lexicon.close();
         FileChannelInvIndex.closeFileChannels();
 
         System.out.println("----------------------END MERGE PHASE----------------------");
     }
 
-    public static void mergeBlocksText(int blockNumber) throws IOException {
-
-        System.out.println("----------------------START MERGE PHASE----------------------");
-
-        // Definition of comparator, implemented in Class TermPositionBlock
-        Comparator<InvertedList> comparator = new InvertedListComparator();
-        // Priority queue with size equal to the number of blocks
-        PriorityQueue<InvertedList> priorityQueue = new PriorityQueue<>(blockNumber, comparator);
-        // List of terms added to the priority queue during the move forward phase
-        List<BufferedReader> readerList = new ArrayList<>();
-
-        // Definition of parameters that describe the term in the blocks
-        long actual_offset;
-        long offset = 0;
-        int doc_frequency;
-        int coll_frequency;
-
-        db_lexicon = DBMaker.fileDB("resources/output/lexicon.db")
-                .fileMmapEnable()
-                .checksumHeaderBypass()
-                .fileMmapPreclearDisable()
-                .closeOnJvmShutdown()
-                .make();
-
-        // Disk based lexicon using the HTreeMap
-        HTreeMap<String, TermStats> myMapLexiconText = (HTreeMap<String, TermStats>) db_lexicon.hashMap("lexiconText").createOrOpen();
-
-        BufferedWriter inv_index = new BufferedWriter(new FileWriter("./src/main/resources/output/inv_index.tsv"));
-
-        // array of buffered reader to read each block at the same time
-        for (int i = 0; i < blockNumber; i++) {
-            readerList.add(new BufferedReader(new FileReader("./src/main/resources/intermediate_postings/" +
-                    "inverted_index" + i + ".tsv")));
-        }
-
-        // Open buffered readers, one for each block
-        // First lines of each block are inserted in a priority queue
-        // Sorted with a custom comparator
-        openBufferedReaders(priorityQueue, readerList);
-        // For loop is terminated when priority queue is empty
-        while (priorityQueue.size() != 0) {
-
-            // Add to lexicon the current term
-            //lexicon.write(currentTerm + "\t");
-            doc_frequency = 0;
-            coll_frequency = 0;
-            actual_offset = offset;
-
-            String currentTerm = priorityQueue.peek().getTerm();
-
-            inv_index.write(currentTerm + "\t");
-            while (Objects.equals(currentTerm, Objects.requireNonNull(priorityQueue.peek()).getTerm())) {
-
-                int blockIndex = Objects.requireNonNull(priorityQueue.peek()).getPos();
-                List<Posting> postings = Objects.requireNonNull(priorityQueue.peek()).getPostingArrayList();
-
-                // If equals, then update parameters of the term
-                doc_frequency += postings.size();
-
-                for (Posting posting : postings) {
-                    coll_frequency += posting.getTerm_frequency();
-
-                    inv_index.write(posting.getDoc_id() + ":");
-                    offset += (posting.getDoc_id() + ":").length();
-
-                    inv_index.write(posting.getTerm_frequency() + " ");
-                    offset += (posting.getTerm_frequency() + " ").length();
-
-                    inv_index.flush();
-                }
-                updatePriorityQueue(priorityQueue, readerList.get(blockIndex), blockIndex);
-                if (priorityQueue.size() == 0) break;
-            }
-            inv_index.newLine();
-            inv_index.write("\n");
-
-            // Build lexicon
-            myMapLexiconText.put(currentTerm, new TermStats(doc_frequency, coll_frequency, actual_offset));
-        }
-
-        for (BufferedReader reader : readerList)
-            reader.close();
-
-        inv_index.close();
-        System.out.println("----------------------END MERGE PHASE----------------------");
-    }
 
     private static void updatePriorityQueue(PriorityQueue<InvertedList> priorityQueue, BufferedReader block, int index) throws IOException {
         priorityQueue.poll();
@@ -253,14 +166,5 @@ public class MergeBlocks {
         return new InvertedList(term, postingArrayList, index);
     }
 
-    public static void printBitSet(BitSet bi, int size) {
-
-        for (int i = 0; i < size; i++) {
-            if (bi.get(i))
-                System.out.print("1");
-            else System.out.print("0");
-        }
-        System.out.println("\n");
-    }
 }
 

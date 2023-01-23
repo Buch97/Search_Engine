@@ -12,6 +12,7 @@ import java.util.BitSet;
 import java.util.List;
 
 public class Utils {
+
     public static InvertedList retrievePostingLists(String term, TermStats termStats) throws IOException {
         List<Posting> query_posting_list = new ArrayList<>();
 
@@ -34,7 +35,19 @@ public class Utils {
         return new InvertedList(term, query_posting_list, 0);
     }
 
+
+
     private static int extractSize(long start, long end) {
         return (int) (end - start);
+    }
+
+    public static void printBitSet(BitSet bi, int size) {
+
+        for (int i = 0; i < size; i++) {
+            if (bi.get(i))
+                System.out.print("1");
+            else System.out.print("0");
+        }
+        System.out.println("\n");
     }
 }

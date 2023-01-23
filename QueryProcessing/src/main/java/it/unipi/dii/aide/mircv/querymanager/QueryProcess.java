@@ -2,21 +2,20 @@ package it.unipi.dii.aide.mircv.querymanager;
 
 import it.unipi.dii.aide.mircv.common.bean.*;
 import it.unipi.dii.aide.mircv.common.cache.GuavaCache;
+import it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory;
 import it.unipi.dii.aide.mircv.common.textProcessing.Tokenizer;
 import it.unipi.dii.aide.mircv.common.utils.CollectionStatistics;
 import it.unipi.dii.aide.mircv.common.utils.comparator.ResultsComparator;
 import it.unipi.dii.aide.mircv.common.utils.filechannel.FileChannelInvIndex;
-import it.unipi.dii.aide.mircv.common.utils.serializers.CustomSerializerDocumentIndexStats;
-import it.unipi.dii.aide.mircv.common.utils.serializers.CustomSerializerTermStats;
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
-import org.mapdb.HTreeMap;
-import org.mapdb.Serializer;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.channels.FileChannel;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -24,7 +23,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import static it.unipi.dii.aide.mircv.common.cache.GuavaCache.invertedListLoadingCache;
-import static it.unipi.dii.aide.mircv.common.cache.GuavaCache.startCache;
+import static it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory.documentIndexMemory;
+import static it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory.lexiconMemory;
 
 public class QueryProcess {
 
@@ -32,9 +32,10 @@ public class QueryProcess {
     private static final String doc_id_path = "resources/output/inverted_index_doc_id_bin.dat";
     private static final String term_freq_path = "resources/output/inverted_index_term_frequency_bin.dat";
     private static final String stats = "resources/stats/stats.txt";
+    private static FileChannel document_index;
+    private static  FileChannel lexicon;
+
     private static final String mode = "READ";
-    public static DB db_lexicon;
-    public static DB db_document_index;
     //private static long startTime;
 
     public static void submitQuery(String query, String processingMode) throws IOException {
@@ -47,10 +48,10 @@ public class QueryProcess {
         }
         if (query_term_frequency.size() == 1) {
             //startTime = System.nanoTime();
-            daat(query_term_frequency, k, db_lexicon, db_document_index, 0);
+            daat(query_term_frequency, k, 0);
         }
         if (Objects.equals(processingMode, "test")){
-            daat(query_term_frequency, k, db_lexicon, db_document_index, 0);
+            daat(query_term_frequency, k, 0);
         } else {
             int mode;
             System.out.println("Select which method to use to parse the query: Disjunctive(0) Conjunctive(1).");
@@ -69,35 +70,27 @@ public class QueryProcess {
                 mode = 0;
             }
             //startTime = System.nanoTime();
-            daat(query_term_frequency, k, db_lexicon, db_document_index, mode);
+            daat(query_term_frequency, k, mode);
         }
     }
 
-    public static void daat(Map<String, Integer> query_term_frequency, int k, DB db_lexicon, DB db_document_index, int mode) {
+    public static void daat(Map<String, Integer> query_term_frequency, int k, int mode) {
         Comparator<Results> comparator = new ResultsComparator();
         PriorityQueue<Results> R = new PriorityQueue<>(k, comparator);
 
-        HTreeMap<?, ?> lexicon = db_lexicon.hashMap("lexicon")
-                .keySerializer(Serializer.STRING)
-                .valueSerializer(new CustomSerializerTermStats())
-                .open();
-        HTreeMap<?, ?> document_index = db_document_index.hashMap("document_index")
-                .keySerializer(Serializer.INTEGER)
-                .valueSerializer(new CustomSerializerDocumentIndexStats())
-                .open();
 
         ArrayList<InvertedList> L = getL(query_term_frequency);
         if (L.isEmpty()) return;
 
         if (mode == 0)
-            daatScoringDisjunctive(L, lexicon, document_index, R);
-        else daatScoringConjunctive(L, lexicon, document_index, R);
+            daatScoringDisjunctive(L, R);
+        else daatScoringConjunctive(L, R);
 
         printRankedResults(k, R);
         System.out.println(invertedListLoadingCache.stats());
     }
 
-    private static void daatScoringDisjunctive(ArrayList<InvertedList> L, HTreeMap<?, ?> lexicon, HTreeMap<?, ?> document_index, PriorityQueue<Results> R) {
+    private static void daatScoringDisjunctive(ArrayList<InvertedList> L, PriorityQueue<Results> R) {
         int current_doc_id = min_doc_id(L);
         System.out.println("Scoring");
 
@@ -106,14 +99,14 @@ public class QueryProcess {
 
         for (InvertedList invertedList : L) {
             iteratorList.put(invertedList.getTerm(), invertedList.getPostingArrayList().listIterator());
-            doc_freqs.put(invertedList.getTerm(), Objects.requireNonNull((TermStats) lexicon.get(invertedList.getTerm())).getDoc_frequency());
+            doc_freqs.put(invertedList.getTerm(), lexiconMemory.get(invertedList.getTerm()).getDoc_frequency());
         }
 
         while (current_doc_id != CollectionStatistics.num_docs) {
 
             double score = 0;
             for (InvertedList invertedList : L) {
-                score += getScore(document_index, current_doc_id, iteratorList, doc_freqs, invertedList);
+                score += getScore(current_doc_id, iteratorList, doc_freqs, invertedList);
             }
 
             R.add(new Results(current_doc_id, score));
@@ -121,7 +114,7 @@ public class QueryProcess {
         }
     }
 
-    private static double getScore(HTreeMap<?, ?> document_index, int current_doc_id, HashMap<String, ListIterator<Posting>> iteratorList, HashMap<String, Integer> doc_freqs, InvertedList invertedList) {
+    private static double getScore(int current_doc_id, HashMap<String, ListIterator<Posting>> iteratorList, HashMap<String, Integer> doc_freqs, InvertedList invertedList) {
 
         double score = 0;
         if (iteratorList.get(invertedList.getTerm()).hasNext()) {
@@ -143,7 +136,7 @@ public class QueryProcess {
         return score;
     }
 
-    private static void daatScoringConjunctive(ArrayList<InvertedList> L, HTreeMap<?, ?> lexicon, HTreeMap<?, ?> document_index, PriorityQueue<Results> R) {
+    private static void daatScoringConjunctive(ArrayList<InvertedList> L, PriorityQueue<Results> R) {
 
         HashMap<String, ListIterator<Posting>> iteratorList = new HashMap<>();
 
@@ -205,9 +198,10 @@ public class QueryProcess {
             //this current_doc_id is present in every posting, so it is possible to compute the score
             if (needToScore == size + 1) {
                 for (Map.Entry<String, Posting> entry : current_postings.entrySet()) {
-                    int doc_freq = Objects.requireNonNull((TermStats) lexicon.get(entry.getKey())).getDoc_frequency();
+
+                    int doc_freq = lexiconMemory.get(entry.getKey()).getDoc_frequency();
                     //score += tfIdfScore(entry.getValue().getTerm_frequency(), doc_freq);
-                    int doc_len = Objects.requireNonNull((DocumentIndexStats) document_index.get(current_doc_id)).getDoc_len();
+                    int doc_len = documentIndexMemory.get(current_doc_id);
                     score += Score.BM25Score(entry.getValue().getTerm_frequency(), doc_freq, doc_len);
                 }
                 R.add(new Results(current_doc_id, score));
@@ -303,8 +297,8 @@ public class QueryProcess {
     }
 
     public static void closeQueryProcessor() throws IOException {
-        db_lexicon.close();
-        db_document_index.close();
+        lexicon.close();
+        document_index.close();
         FileChannelInvIndex.unmapBuffer();
         FileChannelInvIndex.closeFileChannels();
         System.exit(0);
@@ -318,25 +312,22 @@ public class QueryProcess {
             System.exit(0);
         }
 
-        db_document_index = DBMaker.fileDB("resources/output/document_index.db")
-                .fileMmapEnable()
-                .fileMmapPreclearDisable()
-                .closeOnJvmShutdown()
-                .readOnly()
-                .make();
+        document_index =(FileChannel) Files.newByteChannel(Paths.get("resources/output/document_index"),
+                StandardOpenOption.WRITE,
+                StandardOpenOption.READ,
+                StandardOpenOption.CREATE);
 
-        db_lexicon = DBMaker.fileDB("resources/output/lexicon.db")
-                .fileMmapEnable()
-                .fileMmapPreclearDisable()
-                .closeOnJvmShutdown()
-                .readOnly()
-                .make();
+        lexicon =(FileChannel) Files.newByteChannel(Paths.get("resources/output/lexicon"),
+                StandardOpenOption.WRITE,
+                StandardOpenOption.READ,
+                StandardOpenOption.CREATE);
+
+        AuxiliarStructureOnMemory.loadLexicon(lexicon);
+        AuxiliarStructureOnMemory.loadDocumentIndex(document_index);
 
         CollectionStatistics.setParameters();
 
         FileChannelInvIndex.openFileChannels(mode);
         FileChannelInvIndex.MapFileChannel();
-
-        startCache(db_lexicon);
     }
 }
