@@ -35,7 +35,7 @@ public class QueryProcess {
     private static final String mode = "READ";
     private static FileChannel document_index;
     private static FileChannel lexicon;
-    //private static long startTime;
+    private static long startTime;
 
     public static void submitQuery(String query) throws IOException {
 
@@ -49,7 +49,7 @@ public class QueryProcess {
 
         String mode = Flags.getQueryMode();
         System.out.println("Your request: " + query + "\n");
-        //startTime = System.nanoTime();
+        startTime = System.nanoTime();
         daat(query_term_frequency, mode);
     }
 
@@ -107,7 +107,7 @@ public class QueryProcess {
 
             if (current_doc_id == doc_id) {
                 if (Objects.equals(Flags.getScoringFunction(), "bm25")) {
-                    int doc_len = documentIndexMemory.get(doc_id);
+                    int doc_len = documentIndexMemory.get(doc_id).getDoc_len();
                     score = Score.BM25Score(term_freq, doc_freqs.get(invertedList.getTerm()), doc_len);
                 } else
                     score = Score.tfIdfScore(term_freq, doc_freqs.get(invertedList.getTerm()));
@@ -184,9 +184,11 @@ public class QueryProcess {
                 for (Map.Entry<String, Posting> entry : current_postings.entrySet()) {
 
                     int doc_freq = lexiconMemory.get(entry.getKey()).getDoc_frequency();
-                    //score += tfIdfScore(entry.getValue().getTerm_frequency(), doc_freq);
-                    int doc_len = documentIndexMemory.get(current_doc_id);
-                    score += Score.BM25Score(entry.getValue().getTerm_frequency(), doc_freq, doc_len);
+
+                    if (Objects.equals(Flags.getScoringFunction(), "bm25")){
+                        int doc_len = documentIndexMemory.get(current_doc_id).getDoc_len();
+                        score += Score.BM25Score(entry.getValue().getTerm_frequency(), doc_freq, doc_len);
+                    } else score += Score.tfIdfScore(entry.getValue().getTerm_frequency(), doc_freq);
                 }
                 R.add(new Results(current_doc_id, score));
             }
@@ -266,8 +268,8 @@ public class QueryProcess {
             System.out.println("No results found for this query");
         }
 
-        //long elapsedTime = System.nanoTime() - startTime;
-        //System.out.println("Total elapsed time: " + elapsedTime / 1000000 + " ms");
+        long elapsedTime = System.nanoTime() - startTime;
+        System.out.println("Total elapsed time: " + elapsedTime / 1000000 + " ms");
     }
 
     private static int min_doc_id(ArrayList<InvertedList> L) {
@@ -308,7 +310,8 @@ public class QueryProcess {
                 StandardOpenOption.CREATE);
 
         AuxiliarStructureOnMemory.loadLexicon(lexicon);
-        AuxiliarStructureOnMemory.loadDocumentIndex(document_index);
+        if (Objects.equals(Flags.getScoringFunction(), "bm25"))
+            AuxiliarStructureOnMemory.loadDocumentIndex(document_index);
 
         CollectionStatistics.setParameters();
 

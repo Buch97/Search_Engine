@@ -64,7 +64,7 @@ public class GuavaCache {
         }
     }
 
-    public List<Posting> getOrLoadPostingList(String term) throws ExecutionException {
+    public synchronized List<Posting> getOrLoadPostingList(String term) throws ExecutionException {
         termStats = lexiconMemory.get(term);
         if (termStats == null) {
             System.out.println(term + " not in collection");

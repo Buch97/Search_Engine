@@ -40,8 +40,14 @@ public class QueryProcessingMain {
                 QueryProcess.closeQueryProcessor();
             } else if (Objects.equals(query, "!mode")) {
                 System.out.println("Digit \"0\" for disjunctive mode or \"1\" for conjunctive mode.");
-                if (Integer.parseInt(reader.readLine()) == 1)
+                String input = reader.readLine();
+                if (Objects.equals(input, "1"))
                     Flags.setQueryMode("c");
+                else if (Objects.equals(input, "0")){
+                    Flags.setQueryMode("d");
+                } else {
+                    System.out.println("Not valid input. Query mode must be 0 or 1.");
+                }
             } else if (Objects.equals(query, "") || query.trim().length() == 0) {
                 System.out.println("The query is empty.");
             } else

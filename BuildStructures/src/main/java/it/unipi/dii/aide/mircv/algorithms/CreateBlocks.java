@@ -47,7 +47,7 @@ public class CreateBlocks {
             System.out.println("----------------------START GENERATING INVERTED INDEX BLOCKS----------------------");
 
             long positionDocIndex = 0;
-            Boolean lastLine = false;
+            boolean lastLine = false;
 
             while (myReader.hasNextLine()) {
                 String data = myReader.nextLine();
@@ -159,11 +159,13 @@ public class CreateBlocks {
 
     private static long documentIndexAddition(String doc_no, FileChannel document_index, long position) throws IOException {
         int doc_len = Tokenizer.doc_len;
-        //int doc_id = Integer.parseInt(doc_no);
+        int doc_id = Integer.parseInt(doc_no);
+
         DocumentIndexStats documentIndexStats = new DocumentIndexStats(doc_no, doc_len);
         CollectionStatistics.setNum_docs();
         CollectionStatistics.setAvg_doc_len(doc_len);
-        return documentIndexStats.writeDocumentIndex(document_index, position);
+
+        return documentIndexStats.writeDocumentIndex(document_index, position, doc_id);
     }
 
 }

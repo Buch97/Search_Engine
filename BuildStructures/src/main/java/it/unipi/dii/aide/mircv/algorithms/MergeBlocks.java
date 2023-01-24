@@ -113,7 +113,6 @@ public class MergeBlocks {
             // Build lexicon
 
             TermStats termStats = new TermStats(currentTerm, doc_frequency, coll_frequency, offset_doc_id_start, offset_term_freq_start, offset_doc_id_end, offset_term_freq_end);
-            //entryLexicon.put(currentTerm,positionLex);
             positionLex = termStats.writeTermStats(positionLex, lexicon);
         }
 

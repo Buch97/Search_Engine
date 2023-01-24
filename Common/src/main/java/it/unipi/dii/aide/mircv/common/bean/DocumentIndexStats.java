@@ -9,7 +9,7 @@ import java.nio.charset.StandardCharsets;
 
 import static it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory.ENTRY_SIZE_DOCINDEX;
 
-public class DocumentIndexStats{
+public class DocumentIndexStats {
     String doc_no;
     int doc_len;
 
@@ -18,24 +18,14 @@ public class DocumentIndexStats{
         this.doc_len = doc_len;
     }
 
-    public String getDoc_no() {
-        return doc_no;
-    }
-
-    public void setDoc_no(String doc_no) {
-        this.doc_no = doc_no;
-    }
-
     public int getDoc_len() {
         return doc_len;
     }
 
-    public void setDoc_len(int doc_len) {
-        this.doc_len = doc_len;
-    }
+    public long writeDocumentIndex(FileChannel channelDocIndex, long positionDocIndex, int doc_id) throws IOException {
+        MappedByteBuffer docIndexBuffer = channelDocIndex.map(FileChannel.MapMode.READ_WRITE, positionDocIndex, ENTRY_SIZE_DOCINDEX);
 
-    public long writeDocumentIndex(FileChannel channelDocIndex,long positionDocIndex) throws IOException {
-        MappedByteBuffer bufferLexicon = channelDocIndex.map(FileChannel.MapMode.READ_WRITE, positionDocIndex, ENTRY_SIZE_DOCINDEX);
+        docIndexBuffer.putInt(doc_id);
 
         CharBuffer charBuffer = CharBuffer.allocate(64);
 
@@ -44,11 +34,11 @@ public class DocumentIndexStats{
             charBuffer.put(i, doc_no.charAt(i));
 
         // Write the term into file
-        bufferLexicon.put(StandardCharsets.UTF_8.encode(charBuffer));
+        docIndexBuffer.put(StandardCharsets.UTF_8.encode(charBuffer));
 
-        bufferLexicon.putInt(doc_len);
+        docIndexBuffer.putInt(doc_len);
 
-        return positionDocIndex+ENTRY_SIZE_DOCINDEX;
+        return positionDocIndex + ENTRY_SIZE_DOCINDEX;
     }
 
     @Override

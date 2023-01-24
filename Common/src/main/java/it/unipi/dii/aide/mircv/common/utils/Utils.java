@@ -43,8 +43,6 @@ public class Utils {
         return new InvertedList(term, query_posting_list, 0);
     }
 
-
-
     private static int extractSize(long start, long end) {
         return (int) (end - start);
     }
