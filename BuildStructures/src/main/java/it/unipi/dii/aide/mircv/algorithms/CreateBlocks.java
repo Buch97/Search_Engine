@@ -21,18 +21,17 @@ public class CreateBlocks {
     public static int SPIMI_TOKEN_STREAM_MAX_LIMIT;
     public static int BLOCK_NUMBER = 0;
 
-
     public static void buildDataStructures() {
         try {
             File myObj;
 
             if (Flags.isDebug()) {
                 myObj = new File("resources/collections/small_collection.tsv");
-                SPIMI_TOKEN_STREAM_MAX_LIMIT = 3000;
+                //SPIMI_TOKEN_STREAM_MAX_LIMIT = 3000;
                 System.out.println("Running in debug mode");
             } else {
                 myObj = new File("resources/collections/collection.tsv");
-                SPIMI_TOKEN_STREAM_MAX_LIMIT = 5000000;
+                //SPIMI_TOKEN_STREAM_MAX_LIMIT = 5000000;
                 System.out.println("Running in execution mode");
             }
 
@@ -62,7 +61,8 @@ public class CreateBlocks {
 
                 if (!myReader.hasNextLine())
                     lastLine = true;
-                    // Parsing/tokenization of the document
+
+                // Parsing/tokenization of the document
                 parseDocumentBody(Integer.parseInt(doc_no), text, lastLine);
 
                 // Add document to the document index
@@ -92,38 +92,36 @@ public class CreateBlocks {
         for (String token : results.keySet())
             tokenStream.add(new Token(token, doc_id, results.get(token)));
 
+        // leave 20% of memory free
+        long MEMORY_THRESHOLD = Runtime.getRuntime().totalMemory() * 20 / 100;
         // Add token to tokenStream until we reach a size threshold
-        if (tokenStream.size() >= SPIMI_TOKEN_STREAM_MAX_LIMIT || lastLine) {
+        if (Runtime.getRuntime().freeMemory() < MEMORY_THRESHOLD || lastLine) {
             // Create the inverted index of the block
             invertedIndexSPIMI();
             // clear the stream of token
             tokenStream.clear();
             BLOCK_NUMBER++;
+            System.gc();
         }
     }
 
     private static void invertedIndexSPIMI() {
 
-        // Pseudocode at slide 59
         File output_file = new File("BuildStructures/src/main/resources/blocks/block" + BLOCK_NUMBER + ".tsv");
 
         // one dictionary for each block
         HashMap<String, ArrayList<Posting>> dictionary = new HashMap<>();
-        ArrayList<Posting> postings_list;
 
         for (Token token : CreateBlocks.tokenStream) {
-            if (!dictionary.containsKey(token.getTerm())){
-                postings_list = addToDictionary(dictionary, token.getTerm());
+            String term = token.getTerm();
+            if (!dictionary.containsKey(term)){
+                addToDictionary(dictionary, token.getTerm());
             }
-            else
-                postings_list = dictionary.get(token.getTerm());
-
-            if (!postings_list.contains(null)) {
-                int capacity = postings_list.size() * 2;
-                postings_list.ensureCapacity(capacity); //aumenta la length dell arraylist
+            if (!dictionary.get(token.getTerm()).contains(null)) {
+                int capacity = dictionary.get(token.getTerm()).size() * 2;
+                dictionary.get(token.getTerm()).ensureCapacity(capacity); //aumenta la length dell arraylist
             }
-
-            postings_list.add(new Posting(token.getDoc_id(), token.getFrequency()));
+            dictionary.get(token.getTerm()).add(new Posting(token.getDoc_id(), token.getFrequency()));
         }
 
         TreeMap<String, ArrayList<Posting>> sorted_dictionary = new TreeMap<>(dictionary);
@@ -147,14 +145,12 @@ public class CreateBlocks {
             System.out.println("An error occurred.");
             e.printStackTrace();
         }
-
     }
 
-    private static ArrayList<Posting> addToDictionary(Map<String, ArrayList<Posting>> vocabulary, String token) {
+    private static void addToDictionary(Map<String, ArrayList<Posting>> vocabulary, String token) {
         int capacity = 1;
         ArrayList<Posting> postings_list = new ArrayList<>(capacity);
         vocabulary.put(token, postings_list);
-        return postings_list;
     }
 
     private static long documentIndexAddition(String doc_no, FileChannel document_index, long position) throws IOException {
@@ -167,5 +163,4 @@ public class CreateBlocks {
 
         return documentIndexStats.writeDocumentIndex(document_index, position, doc_id);
     }
-
 }
