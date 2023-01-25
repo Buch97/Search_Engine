@@ -24,7 +24,6 @@ public class CollectionStatistics {
         writeOnFile();
     }
 
-
     private static void writeOnFile() {
 
         try (BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(stats))) {

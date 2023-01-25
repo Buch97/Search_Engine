@@ -8,12 +8,12 @@ import it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory;
 import it.unipi.dii.aide.mircv.common.textProcessing.Tokenizer;
 import it.unipi.dii.aide.mircv.common.utils.CollectionStatistics;
 import it.unipi.dii.aide.mircv.common.utils.Flags;
+import it.unipi.dii.aide.mircv.common.utils.boundedpq.BoundedPriorityQueue;
 import it.unipi.dii.aide.mircv.common.utils.comparator.ResultsComparator;
 import it.unipi.dii.aide.mircv.common.utils.filechannel.FileChannelInvIndex;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -56,23 +56,26 @@ public class QueryProcess {
     public static void daat(Map<String, Integer> query_term_frequency, String mode) {
         Comparator<Results> comparator = new ResultsComparator();
         int k = Flags.getK();
-        PriorityQueue<Results> R = new PriorityQueue<>(k, comparator);
 
+        BoundedPriorityQueue results = new BoundedPriorityQueue(comparator, k);
 
         ArrayList<InvertedList> L = getL(query_term_frequency);
         if (L.isEmpty()) return;
 
         if (Objects.equals(mode, "d"))
-            daatScoringDisjunctive(L, R);
+            daatScoringDisjunctive(L, results);
         else if (Objects.equals(mode, "c"))
-            daatScoringConjunctive(L, R);
+            daatScoringConjunctive(L, results);
 
-        printRankedResults(k, R);
+        results.printRankedResults();
+        long elapsedTime = System.nanoTime() - startTime;
+        System.out.println("Total elapsed time: " + elapsedTime / 1000000 + " ms");
+
         GuavaCache guavaCache = GuavaCache.getInstance();
         System.out.println(guavaCache.getStats());
     }
 
-    private static void daatScoringDisjunctive(ArrayList<InvertedList> L, PriorityQueue<Results> R) {
+    private static void daatScoringDisjunctive(ArrayList<InvertedList> L, BoundedPriorityQueue results) {
         int current_doc_id = min_doc_id(L);
         System.out.println("Scoring");
 
@@ -91,7 +94,7 @@ public class QueryProcess {
                 score += getScore(current_doc_id, iteratorList, doc_freqs, invertedList);
             }
 
-            R.add(new Results(current_doc_id, score));
+            results.add(current_doc_id, score);
             current_doc_id = min_doc_id(L);
         }
     }
@@ -120,7 +123,7 @@ public class QueryProcess {
         return score;
     }
 
-    private static void daatScoringConjunctive(ArrayList<InvertedList> L, PriorityQueue<Results> R) {
+    private static void daatScoringConjunctive(ArrayList<InvertedList> L, BoundedPriorityQueue results) {
 
         HashMap<String, ListIterator<Posting>> iteratorList = new HashMap<>();
 
@@ -190,7 +193,7 @@ public class QueryProcess {
                         score += Score.BM25Score(entry.getValue().getTerm_frequency(), doc_freq, doc_len);
                     } else score += Score.tfIdfScore(entry.getValue().getTerm_frequency(), doc_freq);
                 }
-                R.add(new Results(current_doc_id, score));
+                results.add(current_doc_id, score);
             }
 
             //go to next posting on reference list
@@ -254,23 +257,6 @@ public class QueryProcess {
         return L;
     }
 
-    private static void printRankedResults(int k, PriorityQueue<Results> r) {
-        System.out.println("Results: ");
-        try {
-            for (int i = 0; i < k; i++) {
-                Results result = r.poll();
-                assert result != null;
-                System.out.println((i + 1) + ". " + "DOC ID: " + result.getDoc_id() + " SCORE: " + result.getScore());
-                if (r.size() == 0)
-                    break;
-            }
-        } catch (NullPointerException e) {
-            System.out.println("No results found for this query");
-        }
-
-        long elapsedTime = System.nanoTime() - startTime;
-        System.out.println("Total elapsed time: " + elapsedTime / 1000000 + " ms");
-    }
 
     private static int min_doc_id(ArrayList<InvertedList> L) {
         int min_doc_id = CollectionStatistics.num_docs;
