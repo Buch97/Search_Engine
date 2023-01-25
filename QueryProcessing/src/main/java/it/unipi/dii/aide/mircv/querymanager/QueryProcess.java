@@ -48,7 +48,8 @@ public class QueryProcess {
         }
 
         String mode = Flags.getQueryMode();
-        System.out.println("Your request: " + query + "\n");
+        if(!Flags.isEvaluation())
+            System.out.println("Your request: " + query + "\n");
         startTime = System.nanoTime();
         daat(query_term_frequency, mode);
     }
@@ -77,7 +78,8 @@ public class QueryProcess {
 
     private static void daatScoringDisjunctive(ArrayList<InvertedList> L, BoundedPriorityQueue results) {
         int current_doc_id = min_doc_id(L);
-        System.out.println("Scoring");
+        if(!Flags.isEvaluation())
+            System.out.println("Scoring");
 
         HashMap<String, ListIterator<Posting>> iteratorList = new HashMap<>();
         HashMap<String, Integer> doc_freqs = new HashMap<>();

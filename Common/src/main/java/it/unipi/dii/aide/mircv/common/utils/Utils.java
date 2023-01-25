@@ -32,7 +32,8 @@ public class Utils {
 
         FileChannelInvIndex.readMappedFile(doc_id_buffer, term_freq_buffer, termStats.getOffset_doc_id_start(), termStats.getOffset_term_freq_start());
         Compression compression = new Compression();
-        System.out.println("Decompressing " + term);
+        if(!Flags.isEvaluation())
+            System.out.println("Decompressing " + term);
 
         for (int i = 0; i < termStats.getDoc_frequency(); i++) {
             int term_freq = compression.decodingUnaryList(BitSet.valueOf(term_freq_buffer));

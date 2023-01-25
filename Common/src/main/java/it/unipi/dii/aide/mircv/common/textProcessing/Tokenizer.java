@@ -64,6 +64,8 @@ public class Tokenizer {
         doc_len = normalTokenizer.countTokens();
         while (normalTokenizer.hasMoreTokens()) {
             String word = normalTokenizer.nextToken().trim();
+            if(word.length() > 64)
+                return;
 
             if(Flags.isStopStem()) {
                 if (word.length() > 0 && !Arrays.asList(STOPWORDS).contains(word)) {

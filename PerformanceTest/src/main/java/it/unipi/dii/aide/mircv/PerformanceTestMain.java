@@ -20,8 +20,10 @@ public class PerformanceTestMain
         Utils.createDir(new File("PerformanceTest/src/main/resources/queries"));
         Utils.createDir(new File("PerformanceTest/src/main/resources/results"));
 
+        Flags.setEvaluation(true);
         QueryProcess.startQueryProcessor();
         Evaluator.evaluateQueriesTest();
         QueryProcess.closeQueryProcessor();
+        Flags.setEvaluation(false);
     }
 }
