@@ -54,7 +54,6 @@ public class Tokenizer {
         text = text.trim().replaceAll(" +"," ");
 
         extractToken(text);
-
         return token_list;
     }
 
@@ -64,17 +63,29 @@ public class Tokenizer {
         doc_len = normalTokenizer.countTokens();
         while (normalTokenizer.hasMoreTokens()) {
             String word = normalTokenizer.nextToken().trim();
-            if(word.length() > 64)
-                return;
 
-            if(Flags.isStopStem()) {
-                if (word.length() > 0 && !Arrays.asList(STOPWORDS).contains(word)) {
-                    word = Stemmer.stemming(word);
-                    token_list.merge(word, 1, Integer::sum);
-                }
+            if (word.length() > 64){
+                System.out.println(word);
             }
-            else{
-                token_list.merge(word, 1, Integer::sum);
+
+            String[] words = word.split("(?<=[a-z])(?=[A-Z])");
+
+            if (words.length > 1){
+                System.out.println(Arrays.toString(words));
+            }
+
+            for (String term : words){
+                if (term.length() > 64)
+                    break;
+                if(Flags.isStopStem()) {
+                    if (term.length() > 0 && !Arrays.asList(STOPWORDS).contains(term)) {
+                        term = Stemmer.stemming(term);
+                        token_list.merge(term, 1, Integer::sum);
+                    }
+                }
+                else{
+                    token_list.merge(term, 1, Integer::sum);
+                }
             }
         }
     }

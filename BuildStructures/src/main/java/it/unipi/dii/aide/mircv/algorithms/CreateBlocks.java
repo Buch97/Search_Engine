@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class CreateBlocks {
     public final static List<Token> tokenStream = new ArrayList<>();
@@ -124,16 +125,17 @@ public class CreateBlocks {
             dictionary.get(token.getTerm()).add(new Posting(token.getDoc_id(), token.getFrequency()));
         }
 
-        TreeMap<String, ArrayList<Posting>> sorted_dictionary = new TreeMap<>(dictionary);
+        dictionary = dictionary.entrySet().stream().sorted(Map.Entry.comparingByKey())
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
 
         try {
             BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(output_file));
             bufferedWriter.write("TERM" + "\t" + "POSTING_LIST" + "\n");
 
-            for (String term : sorted_dictionary.keySet()) {
+            for (String term : dictionary.keySet()) {
                 bufferedWriter.write(term + "\t");
 
-                for (Posting p : sorted_dictionary.get(term))
+                for (Posting p : dictionary.get(term))
                     bufferedWriter.write(p.getDoc_id() + ":" + p.getTerm_frequency() + " ");
 
                 bufferedWriter.write("\n");
@@ -163,4 +165,5 @@ public class CreateBlocks {
 
         return documentIndexStats.writeDocumentIndex(document_index, position, doc_id);
     }
+
 }
