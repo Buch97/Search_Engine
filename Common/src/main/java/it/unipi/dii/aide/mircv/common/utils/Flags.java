@@ -12,6 +12,8 @@ public class Flags {
 
     private static int k = 20;
 
+    private static boolean evaluation = false;
+
     public Flags() {
     }
 
@@ -53,5 +55,13 @@ public class Flags {
 
     public static void setK(int k) {
         Flags.k = k;
+    }
+
+    public static boolean isEvaluation() {
+        return evaluation;
+    }
+
+    public static void setEvaluation(boolean evaluation) {
+        Flags.evaluation = evaluation;
     }
 }

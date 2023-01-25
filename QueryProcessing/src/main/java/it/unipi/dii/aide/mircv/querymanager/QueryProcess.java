@@ -48,7 +48,8 @@ public class QueryProcess {
         }
 
         String mode = Flags.getQueryMode();
-        System.out.println("Your request: " + query + "\n");
+        if(!Flags.isEvaluation())
+            System.out.println("Your request: " + query + "\n");
         startTime = System.nanoTime();
         daat(query_term_frequency, mode);
     }
@@ -67,14 +68,17 @@ public class QueryProcess {
         else if (Objects.equals(mode, "c"))
             daatScoringConjunctive(L, R);
 
-        printRankedResults(k, R);
-        GuavaCache guavaCache = GuavaCache.getInstance();
-        System.out.println(guavaCache.getStats());
+        if (!Flags.isEvaluation()) {
+            printRankedResults(k, R);
+            GuavaCache guavaCache = GuavaCache.getInstance();
+            System.out.println(guavaCache.getStats());
+        }
     }
 
     private static void daatScoringDisjunctive(ArrayList<InvertedList> L, PriorityQueue<Results> R) {
         int current_doc_id = min_doc_id(L);
-        System.out.println("Scoring");
+        if(!Flags.isEvaluation())
+            System.out.println("Scoring");
 
         HashMap<String, ListIterator<Posting>> iteratorList = new HashMap<>();
         HashMap<String, Integer> doc_freqs = new HashMap<>();

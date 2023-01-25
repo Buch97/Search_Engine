@@ -53,10 +53,6 @@ public class TermStats {
 
         CharBuffer charBuffer = CharBuffer.allocate(64);
 
-        if (term.length() > 64){
-            return positionLex;
-        }
-
         //populate char buffer char by char
         for (int i = 0; i < term.length(); i++)
             charBuffer.put(i, term.charAt(i));

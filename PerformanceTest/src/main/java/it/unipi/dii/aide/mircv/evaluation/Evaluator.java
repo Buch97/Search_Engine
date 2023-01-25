@@ -21,6 +21,7 @@ public class Evaluator {
         Scanner myReader = new Scanner(new File(queriesPathTrain), StandardCharsets.UTF_8);
         BufferedWriter bw = new BufferedWriter(new FileWriter("PerformanceTest/src/main/resources/results/testResult.txt"));
 
+        System.out.println("Starting query performances evaluation..." + "\n");
         int num_queries = 0;
         long sum_elapsedTime = 0;
         String min_query = "", max_query = "";
@@ -54,6 +55,7 @@ public class Evaluator {
             if (count == 1000) break;
         }
 
+        System.out.println("\n" + "Evaluation finished!" + "\n");
         System.out.println("STATISTICS FOR QUERIES, IN " + Flags.getQueryMode() + " MODE :");
         System.out.println("Average time elapsed: " + sum_elapsedTime / num_queries + " ms");
         System.out.println("Query with min time elapsed: " + min_query + "- " + min_elaps + "ms");
