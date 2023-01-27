@@ -48,13 +48,4 @@ public class Utils {
         return (int) (end - start);
     }
 
-    public static void printBitSet(BitSet bi, int size) {
-
-        for (int i = 0; i < size; i++) {
-            if (bi.get(i))
-                System.out.print("1");
-            else System.out.print("0");
-        }
-        System.out.println("\n");
-    }
 }

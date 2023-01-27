@@ -1,14 +1,10 @@
 package it.unipi.dii.aide.mircv.common.cache;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.CacheStats;
-import com.google.common.cache.LoadingCache;
+import com.google.common.cache.*;
 import it.unipi.dii.aide.mircv.common.bean.Posting;
 import it.unipi.dii.aide.mircv.common.bean.TermStats;
 import it.unipi.dii.aide.mircv.common.textProcessing.Tokenizer;
 import org.jetbrains.annotations.NotNull;
-import org.mapdb.HTreeMap;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -20,13 +16,16 @@ import static it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory.
 import static it.unipi.dii.aide.mircv.common.utils.Utils.retrievePostingLists;
 
 public class GuavaCache {
+    private static final long MEMORY_THRESHOLD = 100 * 1024 * 1024;
     private static GuavaCache instance = null;
-    private static final HTreeMap<?, ?> lexicon = null;
     TermStats termStats;
     LoadingCache<String, List<Posting>> invertedListLoadingCache;
 
     private GuavaCache() {
         this.invertedListLoadingCache = CacheBuilder.newBuilder()
+                .maximumWeight(MEMORY_THRESHOLD)
+                .weigher((Weigher<String, List<Posting>>) (term, postingList)
+                        -> (5 + 4 + 4) * postingList.size() + term.length())
                 .recordStats()
                 .build(
                         new CacheLoader<>() {
@@ -50,17 +49,31 @@ public class GuavaCache {
         return instance;
     }
 
-    private void preloadCache() throws IOException, ExecutionException {
+    public void preloadCache() throws IOException {
         Map<String, Integer> popularTerms;
+        System.out.println("Start preloading cache.");
 
-        String queries_path = "src/main/resources/queries/queries.eval.tsv";
+        String queries_path = "PerformanceTest/src/main/resources/queries/queries.train.tsv";
         String text = Files.readString(Paths.get(queries_path));
         Tokenizer tokenizer = new Tokenizer(text.replace("\n", " ").replaceAll("\\d", ""));
         popularTerms = sortByValue(tokenizer.tokenize());
 
+        HashMap<String, List<Posting>> termsToAdd = new HashMap<>();
+        long memoryUsed = 0;
+
         for (Map.Entry<String, Integer> item : popularTerms.entrySet()) {
             String term = item.getKey();
-            List<Posting> posting_list = instance.getOrLoadPostingList(term);
+            termStats = lexiconMemory.get(term);
+
+            if (termStats != null){
+                List<Posting> postingList = retrievePostingLists(term, termStats).getPostingArrayList();
+                memoryUsed += (long) (5 + 4 + 4) * postingList.size() + term.length();
+                if (memoryUsed > MEMORY_THRESHOLD * 0.9)
+                    break;
+                termsToAdd.put(term, postingList);
+            }
+            invertedListLoadingCache.putAll(termsToAdd);
+            System.out.println("End preloading cache.");
         }
     }
 
@@ -86,14 +99,6 @@ public class GuavaCache {
         return result;
     }
 
-    /*public void startCache(DB db_lexicon) {
-        if (lexicon == null) {
-            lexicon = db_lexicon.hashMap("lexicon")
-                    .keySerializer(Serializer.STRING)
-                    .valueSerializer(new CustomSerializerTermStats())
-                    .open();
-        }
-    }*/
 
     public CacheStats getStats() {
         return invertedListLoadingCache.stats();

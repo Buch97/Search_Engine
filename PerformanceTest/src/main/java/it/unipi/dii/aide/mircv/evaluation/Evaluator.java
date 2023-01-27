@@ -1,5 +1,6 @@
 package it.unipi.dii.aide.mircv.evaluation;
 
+import it.unipi.dii.aide.mircv.common.cache.GuavaCache;
 import it.unipi.dii.aide.mircv.common.textProcessing.Tokenizer;
 import it.unipi.dii.aide.mircv.common.utils.Flags;
 import it.unipi.dii.aide.mircv.querymanager.QueryProcess;
@@ -60,6 +61,7 @@ public class Evaluator {
         System.out.println("Average time elapsed: " + sum_elapsedTime / num_queries + " ms");
         System.out.println("Query with min time elapsed: " + min_query + "- " + min_elaps + "ms");
         System.out.println("Query with max time elapsed: " + max_query + "- " + max_elaps + "ms");
+        System.out.println("Cache hit rate: " + GuavaCache.getInstance().getStats().hitRate() + ".");
 
         bw.write("\nAverage time elapsed: " + sum_elapsedTime / num_queries + " ms");
 

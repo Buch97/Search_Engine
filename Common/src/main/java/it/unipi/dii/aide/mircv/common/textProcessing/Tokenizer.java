@@ -22,18 +22,7 @@ public class Tokenizer {
 
     public Map<String, Integer> tokenize() {
 
-        String text = bodyText.toLowerCase();
-
-        /*
-        //Remove punctuation
-        text = text.replaceAll("\\p{Punct}", "");
-        //Remove non-ascii chars
-        text = text.replaceAll("[^\\x00-\\x7F]", "");
-        //Remove useless whitespaces (starting-ending and double+)
-        text = text.trim().replaceAll(" +"," ");
-        */
-        /*text = text.replaceAll("[\\\\$%{}\\[\\]()`<>='&°»§£€:,;/.~*|\"^_\\-+!?#\t@]","");
-        text = text.replaceAll("[^a-zA-Z0-9]", " ");*/
+        String text = bodyText;
 
         //remove urls, if any
         text = text.replaceAll("[(http(s)?):\\/\\/(www\\.)?a-zA-Z0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6}\\b([-a-zA-Z0-9@:%_\\+.~#?&//=]*)", "\s");
@@ -63,18 +52,16 @@ public class Tokenizer {
         doc_len = normalTokenizer.countTokens();
         while (normalTokenizer.hasMoreTokens()) {
             String word = normalTokenizer.nextToken().trim();
+            String[] words;
 
-            if (word.length() > 64){
-                System.out.println(word);
-            }
-
-            String[] words = word.split("(?<=[a-z])(?=[A-Z])");
-
-            if (words.length > 1){
-                System.out.println(Arrays.toString(words));
+            if (word.length() > 32){
+                words = word.split("(?<=[a-z])(?=[A-Z])");
+            } else {
+                words = new String[]{word};
             }
 
             for (String term : words){
+                term = term.toLowerCase();
                 if (term.length() > 64)
                     break;
                 if(Flags.isStopStem()) {
