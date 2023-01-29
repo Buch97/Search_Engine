@@ -10,7 +10,7 @@ import java.io.IOException;
 
 public class PerformanceTestMain
 {
-    public static void main( String[] args ) throws IOException {
+    public static void main( String[] args ) throws IOException, InterruptedException {
 
         if(args.length > 0){
             if(args[0].equals("-c"))

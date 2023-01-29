@@ -11,13 +11,12 @@ public class Tokenizer {
     private final String bodyText;
     public static int doc_len;
     final Map<String, Integer> token_list = new HashMap<>();
-    BufferedReader bufferedReader = new BufferedReader(new FileReader("resources/stopwords/stopwords.txt"));
-    final String[] STOPWORDS;
+    private final BufferedReader bufferedReader = new BufferedReader(new FileReader("resources/stopwords/stopwords.txt"));
+    private final String[] STOPWORDS = bufferedReader.readLine().split(" ");
 
 
     public Tokenizer(String bodyText) throws IOException {
         this.bodyText = bodyText;
-        STOPWORDS = bufferedReader.readLine().split(" ");
     }
 
     public Map<String, Integer> tokenize() {

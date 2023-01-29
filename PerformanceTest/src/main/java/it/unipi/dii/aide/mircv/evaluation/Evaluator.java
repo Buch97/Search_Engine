@@ -1,16 +1,12 @@
 package it.unipi.dii.aide.mircv.evaluation;
 
 import it.unipi.dii.aide.mircv.common.cache.GuavaCache;
-import it.unipi.dii.aide.mircv.common.textProcessing.Tokenizer;
 import it.unipi.dii.aide.mircv.common.utils.Flags;
 import it.unipi.dii.aide.mircv.querymanager.QueryProcess;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 import java.util.Scanner;
 
 public class Evaluator {
@@ -20,14 +16,14 @@ public class Evaluator {
 
     public static void evaluateQueriesTest() throws IOException {
         Scanner myReader = new Scanner(new File(queriesPathTrain), StandardCharsets.UTF_8);
-        BufferedWriter bw = new BufferedWriter(new FileWriter("PerformanceTest/src/main/resources/results/testResult.txt"));
+        // BufferedWriter bw = new BufferedWriter(new FileWriter("PerformanceTest/src/main/resources/results/testResult.txt"));
 
         System.out.println("Starting query performances evaluation..." + "\n");
         int num_queries = 0;
         long sum_elapsedTime = 0;
         String min_query = "", max_query = "";
         long min_elaps = 0, max_elaps = 0;
-        int count = 0;
+
         while (myReader.hasNextLine()) {
             String data = myReader.nextLine();
 
@@ -38,6 +34,7 @@ public class Evaluator {
             long startTime = System.nanoTime();
             QueryProcess.submitQuery(query);
 
+            // System.out.println("Query processed: " + num_queries);
             long elapsedTime = (System.nanoTime() - startTime) / 1000000;
             sum_elapsedTime += elapsedTime;
             num_queries += 1;
@@ -50,10 +47,11 @@ public class Evaluator {
                 max_query = query;
             }
 
-            bw.write(doc_no + " " + elapsedTime);
-            bw.newLine();
-            count += 1;
-            if (count == 1000) break;
+            /*if (num_queries == 1000)
+                break;*/
+
+            //bw.write(doc_no + " " + elapsedTime);
+            //bw.newLine();
         }
 
         System.out.println("\n" + "Evaluation finished!" + "\n");
@@ -63,9 +61,9 @@ public class Evaluator {
         System.out.println("Query with max time elapsed: " + max_query + "- " + max_elaps + "ms");
         System.out.println("Cache hit rate: " + GuavaCache.getInstance().getStats().hitRate() + ".");
 
-        bw.write("\nAverage time elapsed: " + sum_elapsedTime / num_queries + " ms");
+        //bw.write("\nAverage time elapsed: " + sum_elapsedTime / num_queries + " ms");
 
         myReader.close();
-        bw.close();
+        //bw.close();
     }
 }

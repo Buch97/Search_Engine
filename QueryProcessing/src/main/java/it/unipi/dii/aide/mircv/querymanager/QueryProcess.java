@@ -3,11 +3,13 @@ package it.unipi.dii.aide.mircv.querymanager;
 import it.unipi.dii.aide.mircv.common.bean.InvertedList;
 import it.unipi.dii.aide.mircv.common.bean.Posting;
 import it.unipi.dii.aide.mircv.common.bean.Results;
+import it.unipi.dii.aide.mircv.common.bean.TermStats;
 import it.unipi.dii.aide.mircv.common.cache.GuavaCache;
 import it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory;
 import it.unipi.dii.aide.mircv.common.textProcessing.Tokenizer;
 import it.unipi.dii.aide.mircv.common.utils.CollectionStatistics;
 import it.unipi.dii.aide.mircv.common.utils.Flags;
+import it.unipi.dii.aide.mircv.common.utils.Utils;
 import it.unipi.dii.aide.mircv.common.utils.boundedpq.BoundedPriorityQueue;
 import it.unipi.dii.aide.mircv.common.utils.comparator.ResultsComparator;
 import it.unipi.dii.aide.mircv.common.utils.filechannel.FileChannelInvIndex;
@@ -36,6 +38,7 @@ public class QueryProcess {
     private static FileChannel document_index;
     private static FileChannel lexicon;
     private static long startTime;
+    private static final ExecutorService executor = Executors.newFixedThreadPool(10);
 
     public static void submitQuery(String query) throws IOException {
 
@@ -48,9 +51,11 @@ public class QueryProcess {
         }
 
         String mode = Flags.getQueryMode();
-        if(!Flags.isEvaluation())
+
+        if(!Flags.isEvaluation()){
             System.out.println("Your request: " + query + "\n");
-        startTime = System.nanoTime();
+            startTime = System.nanoTime();
+        }
         daat(query_term_frequency, mode);
     }
 
@@ -60,7 +65,7 @@ public class QueryProcess {
 
         BoundedPriorityQueue results = new BoundedPriorityQueue(comparator, k);
 
-        ArrayList<InvertedList> L = getL(query_term_frequency);
+        ArrayList<InvertedList> L = getLCache(query_term_frequency);
         if (L.isEmpty()) return;
 
         if (Objects.equals(mode, "d"))
@@ -68,12 +73,14 @@ public class QueryProcess {
         else if (Objects.equals(mode, "c"))
             daatScoringConjunctive(L, results);
 
-        results.printRankedResults();
-        long elapsedTime = System.nanoTime() - startTime;
-        System.out.println("Total elapsed time: " + elapsedTime / 1000000 + " ms");
+        if (!Flags.isEvaluation()){
+            results.printRankedResults();
+            long elapsedTime = System.nanoTime() - startTime;
+            System.out.println("Total elapsed time: " + elapsedTime / 1000000 + " ms");
 
-        GuavaCache guavaCache = GuavaCache.getInstance();
-        System.out.println(guavaCache.getStats());
+            GuavaCache guavaCache = GuavaCache.getInstance();
+            System.out.println(guavaCache.getStats());
+        }
     }
 
     private static void daatScoringDisjunctive(ArrayList<InvertedList> L, BoundedPriorityQueue results) {
@@ -232,9 +239,8 @@ public class QueryProcess {
         return max;
     }
 
-    private static ArrayList<InvertedList> getL(Map<String, Integer> query_term_frequency) {
+    private static ArrayList<InvertedList> getLCache(Map<String, Integer> query_term_frequency) {
 
-        final ExecutorService executor = Executors.newFixedThreadPool(query_term_frequency.size());
         final List<Future<?>> futures = new ArrayList<>();
         ArrayList<InvertedList> L = new ArrayList<>();
 
@@ -259,6 +265,34 @@ public class QueryProcess {
         return L;
     }
 
+    public static ArrayList<InvertedList> getL(Map<String, Integer> query_term_frequency){
+        final List<Future<?>> futures = new ArrayList<>();
+        ArrayList<InvertedList> L = new ArrayList<>();
+
+        for (String term : query_term_frequency.keySet()) {
+            Future<?> future = executor.submit(() -> {
+                TermStats termStats = lexiconMemory.get(term);
+                if (termStats != null) {
+                    return Utils.retrievePostingLists(term, termStats);
+                } else {
+                    if (!Flags.isEvaluation())
+                        System.out.println(term + " not in collection.");
+                    return null;
+                }
+            });
+            futures.add(future);
+        }
+
+        try {
+            for (Future<?> future : futures) {
+                if (future.get() != null)
+                    L.add((InvertedList) future.get());
+            }
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
+        return L;
+    }
 
     private static int min_doc_id(ArrayList<InvertedList> L) {
         int min_doc_id = CollectionStatistics.num_docs;
@@ -279,7 +313,7 @@ public class QueryProcess {
         System.exit(0);
     }
 
-    public static void startQueryProcessor() throws IOException {
+    public static void startQueryProcessor() throws IOException, InterruptedException {
 
         if (!new File(doc_id_path).exists() || !new File(term_freq_path).exists() || !new File(stats).exists()) {
             System.out.println("Cannot find data structures.");
@@ -306,7 +340,7 @@ public class QueryProcess {
         FileChannelInvIndex.openFileChannels(mode);
         FileChannelInvIndex.MapFileChannel();
 
-        GuavaCache guavaCache = GuavaCache.getInstance();
-        guavaCache.preloadCache();
+        //GuavaCache guavaCache = GuavaCache.getInstance();
+        //guavaCache.preloadCache();
     }
 }
