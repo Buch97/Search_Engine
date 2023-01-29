@@ -16,7 +16,7 @@ import static it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory.
 import static it.unipi.dii.aide.mircv.common.utils.Utils.retrievePostingLists;
 
 public class GuavaCache {
-    private static final long MEMORY_THRESHOLD = 100 * 1024 * 1024;
+    private static final long MEMORY_THRESHOLD = (long) (Runtime.getRuntime().freeMemory() * 0.3);
     private static GuavaCache instance = null;
     TermStats termStats;
     LoadingCache<String, List<Posting>> invertedListLoadingCache;
@@ -72,9 +72,9 @@ public class GuavaCache {
                     break;
                 termsToAdd.put(term, postingList);
             }
-            invertedListLoadingCache.putAll(termsToAdd);
-            System.out.println("End preloading cache.");
         }
+        invertedListLoadingCache.putAll(termsToAdd);
+        System.out.println("End preloading cache.");
     }
 
     public synchronized List<Posting> getOrLoadPostingList(String term) throws ExecutionException {
@@ -98,7 +98,6 @@ public class GuavaCache {
 
         return result;
     }
-
 
     public CacheStats getStats() {
         return invertedListLoadingCache.stats();

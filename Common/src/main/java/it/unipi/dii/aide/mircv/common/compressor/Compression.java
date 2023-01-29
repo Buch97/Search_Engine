@@ -1,28 +1,37 @@
 package it.unipi.dii.aide.mircv.common.compressor;
 
+import it.unipi.dii.aide.mircv.common.bean.Posting;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.BitSet;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static java.lang.Math.log;
 
 public class Compression {
 
-    private final BitSet bitUnary;
-    private final BitSet bitGamma;
-    private final ByteArrayOutputStream variableByteBuffer;
+    private BitSet bitUnary;
+    private ByteArrayOutputStream variableByteBuffer;
     private int posUnary;
     private int formerElem = 0;
-    private int posGamma;
-    private int posVarByte;
+    private Posting[] decodedPostingList;
+    private int doc_freq;
+    private static final ExecutorService executor = Executors.newFixedThreadPool(10);
 
-    public Compression() {
+
+    public Compression(int doc_frequency) {
+        posUnary = 0;
+        doc_freq = doc_frequency;
+        decodedPostingList = new Posting[doc_freq];
+    }
+
+    public Compression(){
         bitUnary = new BitSet();
-        bitGamma = new BitSet();
         variableByteBuffer = new ByteArrayOutputStream();
         posUnary = 0;
-        posGamma = 0;
-        posVarByte = 0;
     }
 
     public static int convert(BitSet bits) {
@@ -31,6 +40,88 @@ public class Compression {
             value += bits.get(i) ? (1 << i) : 0;
         }
         return value;
+    }
+
+    /*public void decodePostingList(int doc_freq, byte[] doc_id_buffer, byte[] term_freq_buffer) {
+        decodedPostingList = Arrays.asList(new Posting[doc_freq]);
+        for (int i = 0; i < doc_freq; i++) {
+            int term_freq = this.decodingUnaryList(BitSet.valueOf(term_freq_buffer));
+            int doc_id = this.decodingVariableByte(doc_id_buffer);
+            decodedPostingList.set(i, new Posting(doc_id, term_freq));
+        }
+    }
+
+    public int decodingVariableByte(byte[] byteStream) {
+        int n = 0;
+        int num = 0;
+        int byteStreamline = byteStream.length;
+
+        for (int i = posVarByte; i < byteStreamline; i++) {
+            int item = byteStream[i];
+            if (item == 0 && n == 0) {
+                posVarByte = ++i;
+                System.out.println(formerElem);
+                return formerElem;
+            } else if ((item & 0xff) < 128) {
+                n = 128 * n + item;
+            } else {
+                int gap = (128 * n + ((item - 128) & 0xff));
+                posVarByte = ++i;
+                num = gap + formerElem;
+                formerElem = gap + formerElem;
+                System.out.println(num);
+                return num;
+            }
+        }
+        return num;
+    }
+
+    public int decodingUnaryList(BitSet bitSet) {
+        int count = bitSet.nextClearBit(posUnary) + 1 - posUnary;
+        posUnary = posUnary + count;
+        return count;
+    }*/
+
+    public void decodePostingList(byte[] doc_id_buffer, byte[] term_freq_buffer) {
+        int size = decodedPostingList.length;
+        for (int i = 0; i < size; i++) {
+            decodedPostingList[i] = new Posting();
+        }
+        executor.submit(() ->{decodingUnaryList(BitSet.valueOf(term_freq_buffer));});
+        executor.submit(() ->{decodingVariableByte(doc_id_buffer);});
+
+        // new Thread(() -> decodingUnaryList(BitSet.valueOf(term_freq_buffer))).start();
+        // new Thread(() -> decodingVariableByte(doc_id_buffer)).start();
+    }
+
+    public void decodingVariableByte(byte[] byteStream) {
+        int n = 0;
+        int pos = 0;
+        for (int item : byteStream) {
+            if (item == 0 && n == 0) {
+                decodedPostingList[pos].setDoc_id(formerElem);
+                pos++;
+            } else if ((item & 0xff) < 128) {
+                n = 128 * n + item;
+            } else {
+                int gap = (128 * n + ((item - 128) & 0xff));
+                formerElem = gap + formerElem;
+                decodedPostingList[pos].setDoc_id(formerElem);
+                pos++;
+                n = 0;
+            }
+        }
+    }
+
+    public void decodingUnaryList(BitSet bitSet) {
+        int i = 0;
+        int pos = 0;
+        while (i < doc_freq) {
+            int count = bitSet.nextClearBit(pos) + 1 - pos;
+            pos = pos + count;
+            decodedPostingList[i].setTerm_frequency(count);
+            i++;
+        }
     }
 
     public void encodingVariableByte(int n) throws IOException {
@@ -51,24 +142,34 @@ public class Compression {
         }
     }
 
-    public int decodingVariableByte(byte[] byteStream) {
-        int n = 0;
-        int num = 0;
-        for (int i = posVarByte; i < byteStream.length; i++) {
-            if (byteStream[i] == 0 && n == 0) {
-                posVarByte = ++i;
-                return formerElem;
-            } else if ((byteStream[i] & 0xff) < 128) {
-                n = 128 * n + byteStream[i];
-            } else {
-                int gap = (128 * n + ((byteStream[i] - 128) & 0xff));
-                posVarByte = ++i;
-                num = gap + formerElem;
-                formerElem = num;
-                return num;
-            }
-        }
-        return num;
+    public List<Posting> getDecodedPostingList() {
+        return List.of(decodedPostingList);
+    }
+
+    public void unaryEncoding(int n) {
+        bitUnary.set(posUnary, posUnary + n - 1);
+        bitUnary.clear(posUnary + n - 1);
+        posUnary += n;
+    }
+
+    public BitSet getUnaryBitSet() {
+        return bitUnary;
+    }
+
+    public ByteArrayOutputStream getVariableByteBuffer() {
+        return variableByteBuffer;
+    }
+
+    public int getPosUnary() {
+        return posUnary;
+    }
+
+    /*public int getPosGamma() {
+        return posGamma;
+    }
+
+    public BitSet getGammaBitSet() {
+        return bitGamma;
     }
 
     public void gammaEncoding(int n) {
@@ -99,37 +200,6 @@ public class Compression {
         int n = gap + formerElem;
         formerElem = n;
         return n;
-    }
+    }*/
 
-    public void unaryEncoding(int n) {
-        bitUnary.set(posUnary, posUnary + n - 1);
-        bitUnary.clear(posUnary + n - 1);
-        posUnary += n;
-    }
-
-    public int decodingUnaryList(BitSet bitSet) {
-        int count = bitSet.nextClearBit(posUnary) + 1 - posUnary;
-        posUnary = posUnary + count;
-        return count;
-    }
-
-    public BitSet getUnaryBitSet() {
-        return bitUnary;
-    }
-
-    public BitSet getGammaBitSet() {
-        return bitGamma;
-    }
-
-    public ByteArrayOutputStream getVariableByteBuffer() {
-        return variableByteBuffer;
-    }
-
-    public int getPosUnary() {
-        return posUnary;
-    }
-
-    public int getPosGamma() {
-        return posGamma;
-    }
 }
