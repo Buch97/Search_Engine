@@ -31,7 +31,7 @@ public class GuavaCache {
                         new CacheLoader<>() {
                             @NotNull
                             @Override
-                            public List<Posting> load(@NotNull String term) throws IOException {
+                            public List<Posting> load(@NotNull String term) throws IOException, InterruptedException {
                                 return retrievePostingLists(term, termStats).getPostingArrayList();
                             }
                         }
@@ -49,7 +49,7 @@ public class GuavaCache {
         return instance;
     }
 
-    public void preloadCache() throws IOException {
+    public void preloadCache() throws IOException, InterruptedException {
         Map<String, Integer> popularTerms;
         System.out.println("Start preloading cache.");
 

@@ -6,6 +6,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.BitSet;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -82,16 +83,22 @@ public class Compression {
         return count;
     }*/
 
-    public void decodePostingList(byte[] doc_id_buffer, byte[] term_freq_buffer) {
+    public void decodePostingList(byte[] doc_id_buffer, byte[] term_freq_buffer) throws InterruptedException {
         int size = decodedPostingList.length;
         for (int i = 0; i < size; i++) {
             decodedPostingList[i] = new Posting();
         }
-        executor.submit(() ->{decodingUnaryList(BitSet.valueOf(term_freq_buffer));});
-        executor.submit(() ->{decodingVariableByte(doc_id_buffer);});
 
-        // new Thread(() -> decodingUnaryList(BitSet.valueOf(term_freq_buffer))).start();
-        // new Thread(() -> decodingVariableByte(doc_id_buffer)).start();
+        CountDownLatch countDownLatch = new CountDownLatch(2);
+        executor.submit(() ->{
+            decodingUnaryList(BitSet.valueOf(term_freq_buffer));
+            countDownLatch.countDown();
+        });
+        executor.submit(() ->{
+            decodingVariableByte(doc_id_buffer);
+            countDownLatch.countDown();
+        });
+        countDownLatch.await();
     }
 
     public void decodingVariableByte(byte[] byteStream) {

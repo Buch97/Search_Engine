@@ -17,7 +17,7 @@ public class Utils {
         }
     }
 
-    public static InvertedList retrievePostingLists(String term, TermStats termStats) throws IOException {
+    public static InvertedList retrievePostingLists(String term, TermStats termStats) throws IOException, InterruptedException {
 
         int size_doc_id_list = extractSize(termStats.getOffset_doc_id_start(), termStats.getOffset_doc_id_end());
         int size_term_freq_list = extractSize(termStats.getOffset_term_freq_start(), termStats.getOffset_term_freq_end());
