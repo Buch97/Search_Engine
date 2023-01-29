@@ -4,9 +4,11 @@ import com.google.common.cache.*;
 import it.unipi.dii.aide.mircv.common.bean.Posting;
 import it.unipi.dii.aide.mircv.common.bean.TermStats;
 import it.unipi.dii.aide.mircv.common.textProcessing.Tokenizer;
+import it.unipi.dii.aide.mircv.common.utils.Flags;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
@@ -25,7 +27,7 @@ public class GuavaCache {
         this.invertedListLoadingCache = CacheBuilder.newBuilder()
                 .maximumWeight(MEMORY_THRESHOLD)
                 .weigher((Weigher<String, List<Posting>>) (term, postingList)
-                        -> (5 + 4 + 4) * postingList.size() + term.length())
+                        -> ByteBuffer.allocate(postingList.size()).capacity() + term.length())
                 .recordStats()
                 .build(
                         new CacheLoader<>() {
@@ -80,7 +82,8 @@ public class GuavaCache {
     public synchronized List<Posting> getOrLoadPostingList(String term) throws ExecutionException {
         termStats = lexiconMemory.get(term);
         if (termStats == null) {
-            System.out.println(term + " not in collection");
+            if (!Flags.isEvaluation())
+                System.out.println(term + " not in collection.");
             return null;
         } else {
             return invertedListLoadingCache.get(term);

@@ -47,8 +47,8 @@ public class Evaluator {
                 max_query = query;
             }
 
-            if (num_queries == 1000)
-                break;
+            /*if (num_queries == 1000)
+                break;*/
 
             //bw.write(doc_no + " " + elapsedTime);
             //bw.newLine();

@@ -65,7 +65,7 @@ public class QueryProcess {
 
         BoundedPriorityQueue results = new BoundedPriorityQueue(comparator, k);
 
-        ArrayList<InvertedList> L = getL(query_term_frequency);
+        ArrayList<InvertedList> L = getLCache(query_term_frequency);
         if (L.isEmpty()) return;
 
         if (Objects.equals(mode, "d"))
@@ -276,7 +276,7 @@ public class QueryProcess {
                     return Utils.retrievePostingLists(term, termStats);
                 } else {
                     if (!Flags.isEvaluation())
-                        System.out.println("Term not in collection.");
+                        System.out.println(term + " not in collection.");
                     return null;
                 }
             });
@@ -313,7 +313,7 @@ public class QueryProcess {
         System.exit(0);
     }
 
-    public static void startQueryProcessor() throws IOException {
+    public static void startQueryProcessor() throws IOException, InterruptedException {
 
         if (!new File(doc_id_path).exists() || !new File(term_freq_path).exists() || !new File(stats).exists()) {
             System.out.println("Cannot find data structures.");
@@ -340,7 +340,7 @@ public class QueryProcess {
         FileChannelInvIndex.openFileChannels(mode);
         FileChannelInvIndex.MapFileChannel();
 
-        // GuavaCache guavaCache = GuavaCache.getInstance();
-        // guavaCache.preloadCache();
+        //GuavaCache guavaCache = GuavaCache.getInstance();
+        //guavaCache.preloadCache();
     }
 }
