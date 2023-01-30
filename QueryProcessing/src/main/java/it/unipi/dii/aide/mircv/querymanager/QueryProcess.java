@@ -331,9 +331,19 @@ public class QueryProcess {
                 StandardOpenOption.READ,
                 StandardOpenOption.CREATE);
 
+        System.out.println("Loading lexicon in memory...");
+        long start = System.currentTimeMillis();
         AuxiliarStructureOnMemory.loadLexicon(lexicon);
-        if (Objects.equals(Flags.getScoringFunction(), "bm25"))
+        long finish = System.currentTimeMillis();
+        System.out.println("Time for loading lexicon in memory: " + (finish - start)/1000 + " s");
+
+        if (Objects.equals(Flags.getScoringFunction(), "bm25")) {
+            System.out.println("Loading document index in memory...");
+            start = System.currentTimeMillis();
             AuxiliarStructureOnMemory.loadDocumentIndex(document_index);
+            finish = System.currentTimeMillis();
+            System.out.println("Time for loading document index in memory: " + (finish - start)/1000 + " s");
+        }
 
         CollectionStatistics.setParameters();
 

@@ -55,7 +55,7 @@ public class Evaluator {
         }
 
         System.out.println("\n" + "Evaluation finished!" + "\n");
-        System.out.println("STATISTICS FOR QUERIES, IN " + Flags.getQueryMode() + " MODE :");
+        System.out.println("STATISTICS FOR QUERIES, IN " + Flags.getQueryMode() + " MODE WITH " + Flags.getScoringFunction() + " AS SCORING FUNCTION: ");
         System.out.println("Average time elapsed: " + sum_elapsedTime / num_queries + " ms");
         System.out.println("Query with min time elapsed: " + min_query + "- " + min_elaps + "ms");
         System.out.println("Query with max time elapsed: " + max_query + "- " + max_elaps + "ms");
