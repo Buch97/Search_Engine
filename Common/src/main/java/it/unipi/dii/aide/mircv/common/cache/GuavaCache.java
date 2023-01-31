@@ -3,6 +3,7 @@ package it.unipi.dii.aide.mircv.common.cache;
 import com.google.common.cache.*;
 import it.unipi.dii.aide.mircv.common.bean.Posting;
 import it.unipi.dii.aide.mircv.common.bean.TermStats;
+import it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory;
 import it.unipi.dii.aide.mircv.common.textProcessing.Tokenizer;
 import it.unipi.dii.aide.mircv.common.utils.Flags;
 import org.jetbrains.annotations.NotNull;
@@ -53,7 +54,9 @@ public class GuavaCache {
 
     public void preloadCache() throws IOException, InterruptedException {
         Map<String, Integer> popularTerms;
-        System.out.println("Start preloading cache.");
+        System.out.println("Starting cache preloading...");
+
+        long start = System.currentTimeMillis();
 
         String queries_path = "PerformanceTest/src/main/resources/queries/queries.train.tsv";
         String text = Files.readString(Paths.get(queries_path));
@@ -76,7 +79,8 @@ public class GuavaCache {
             }
         }
         invertedListLoadingCache.putAll(termsToAdd);
-        System.out.println("End preloading cache.");
+        long finish = System.currentTimeMillis();
+        System.out.println("Time for cache preloading: " + (finish - start)/1000 + " s");
     }
 
     public synchronized List<Posting> getOrLoadPostingList(String term) throws ExecutionException {
