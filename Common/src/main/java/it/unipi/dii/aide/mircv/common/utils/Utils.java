@@ -1,12 +1,14 @@
 package it.unipi.dii.aide.mircv.common.utils;
 
 import it.unipi.dii.aide.mircv.common.bean.InvertedList;
+import it.unipi.dii.aide.mircv.common.bean.Posting;
 import it.unipi.dii.aide.mircv.common.bean.TermStats;
 import it.unipi.dii.aide.mircv.common.compressor.Compression;
 import it.unipi.dii.aide.mircv.common.utils.filechannel.FileChannelInvIndex;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 
 public class Utils {
 
@@ -27,11 +29,19 @@ public class Utils {
 
         FileChannelInvIndex.readMappedFile(doc_id_buffer, term_freq_buffer, termStats.getOffset_doc_id_start(), termStats.getOffset_term_freq_start());
         Compression compression = new Compression(termStats.getDoc_frequency());
-        /*if(!Flags.isEvaluation())
-            System.out.println("Decompressing " + term);*/
 
         compression.decodePostingList(doc_id_buffer, term_freq_buffer);
         return new InvertedList(term, compression.getDecodedPostingList(), 0);
+    }
+
+    public static int getIndexPostingbyId(ArrayList<Posting> postingsList, int doc_id, int index) {
+        int postingsListSize = postingsList.size();
+        for (int i = index; i < postingsListSize; i++) {
+            if (postingsList.get(i).getDoc_id() == doc_id) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private static int extractSize(long start, long end) {

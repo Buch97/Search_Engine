@@ -15,6 +15,10 @@ public class PerformanceTestMain
         if(args.length > 0){
             if(args[0].equals("-c"))
                 Flags.setQueryMode("c");
+            if (args.length > 1) {
+                if (args[1].equals("-bm25"))
+                    Flags.setScoringFunction("bm25");
+            }
         }
 
         Utils.createDir(new File("PerformanceTest/src/main/resources/queries"));
