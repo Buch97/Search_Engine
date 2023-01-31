@@ -6,7 +6,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.BitSet;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -21,7 +20,6 @@ public class Compression {
     private Posting[] decodedPostingList;
     private int doc_freq;
     private static final ExecutorService executor = Executors.newFixedThreadPool(10);
-
 
     public Compression(int doc_frequency) {
         posUnary = 0;
@@ -89,16 +87,8 @@ public class Compression {
             decodedPostingList[i] = new Posting();
         }
 
-        CountDownLatch countDownLatch = new CountDownLatch(2);
-        executor.submit(() ->{
-            decodingUnaryList(BitSet.valueOf(term_freq_buffer));
-            countDownLatch.countDown();
-        });
-        executor.submit(() ->{
-            decodingVariableByte(doc_id_buffer);
-            countDownLatch.countDown();
-        });
-        countDownLatch.await();
+        decodingUnaryList(BitSet.valueOf(term_freq_buffer));
+        decodingVariableByte(doc_id_buffer);
     }
 
     public void decodingVariableByte(byte[] byteStream) {

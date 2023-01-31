@@ -34,7 +34,7 @@ public class Evaluator {
             long startTime = System.nanoTime();
             QueryProcess.submitQuery(query);
 
-            // System.out.println("Query processed: " + num_queries);
+            //System.out.println("Query processed: " + num_queries);
             long elapsedTime = (System.nanoTime() - startTime) / 1000000;
             sum_elapsedTime += elapsedTime;
             num_queries += 1;

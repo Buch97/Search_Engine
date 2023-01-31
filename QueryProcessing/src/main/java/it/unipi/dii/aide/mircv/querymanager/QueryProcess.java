@@ -65,7 +65,7 @@ public class QueryProcess {
 
         BoundedPriorityQueue results = new BoundedPriorityQueue(comparator, k);
 
-        ArrayList<InvertedList> L = getLCache(query_term_frequency);
+        ArrayList<InvertedList> L = getL(query_term_frequency);
         if (L.isEmpty()) return;
 
         if (Objects.equals(mode, "d"))
