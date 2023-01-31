@@ -4,6 +4,8 @@ public class Flags {
 
     private static boolean stopStem = true;
 
+    private static boolean trecEval = false;
+
     private static boolean debug = false;
 
     private static String queryMode = "d";
@@ -15,6 +17,17 @@ public class Flags {
     private static boolean evaluation = false;
 
     public Flags() {
+    }
+
+    public static boolean isTrecEval(){
+        return trecEval;
+    }
+
+    public static void setTrecEval(boolean bool){
+        trecEval = bool;
+    }
+    public static boolean getTrecEval(){
+        return trecEval;
     }
 
     public static boolean isStopStem() {

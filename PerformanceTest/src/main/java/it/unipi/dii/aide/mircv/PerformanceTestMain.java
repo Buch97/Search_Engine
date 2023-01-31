@@ -15,11 +15,25 @@ public class PerformanceTestMain
         if(args.length > 0){
             if(args[0].equals("-c"))
                 Flags.setQueryMode("c");
+            else if(args[0].equals("-d"))
+                Flags.setQueryMode("d");
             if (args.length > 1) {
                 if (args[1].equals("-bm25"))
                     Flags.setScoringFunction("bm25");
+                else if (args[1].equals("-tdidf"))
+                    Flags.setScoringFunction("tfidf");
+            }
+            if (args.length > 2){
+                if (args[2].equals("-treceval")) {
+                    Flags.setTrecEval(true);
+                    Flags.setK(100);
+                }
             }
         }
+
+        System.out.println("Mode selected: " + Flags.getQueryMode());
+        System.out.println("Scoring function: " + Flags.getScoringFunction());
+        System.out.println("TREC EVAL: " + Flags.getTrecEval());
 
         Utils.createDir(new File("PerformanceTest/src/main/resources/queries"));
         Utils.createDir(new File("PerformanceTest/src/main/resources/results"));

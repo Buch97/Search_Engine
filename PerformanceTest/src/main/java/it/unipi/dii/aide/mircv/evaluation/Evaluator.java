@@ -1,38 +1,82 @@
 package it.unipi.dii.aide.mircv.evaluation;
 
+import it.unipi.dii.aide.mircv.common.bean.Results;
 import it.unipi.dii.aide.mircv.common.cache.GuavaCache;
+import it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory;
 import it.unipi.dii.aide.mircv.common.utils.Flags;
+import it.unipi.dii.aide.mircv.common.utils.boundedpq.BoundedPriorityQueue;
 import it.unipi.dii.aide.mircv.querymanager.QueryProcess;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.PriorityQueue;
 import java.util.Scanner;
 
+import static it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory.documentIndexMemory;
+
 public class Evaluator {
-    private static final String queriesPathDev = "PerformanceTest/src/main/resources/queries/queries.dev.tsv";
-    private static final String queriesPathEval = "PerformanceTest/src/main/resources/queries/queries.eval.tsv";
     private static final String queriesPathTrain = "PerformanceTest/src/main/resources/queries/queries.train.tsv";
+    private static final int k = 100;
+    private static final String trecEvalResultPath = "PerformanceTest/src/main/resources/results/testResult.txt";
+    private static final String fixed = "Q0";
+    private static final String runid = "RUN-01";
+
+    private static boolean saveResultsTrecEval(String topicId, BoundedPriorityQueue priorityQueue) {
+        PriorityQueue<Results> results_queue = priorityQueue.reverseOrder();
+        int i = results_queue.size();
+
+        try (BufferedWriter statisticsBuffer = new BufferedWriter(new FileWriter(trecEvalResultPath, true))) {
+            String resultsLine;
+
+            while (results_queue.peek() != null) {
+                Results results = results_queue.poll();
+                resultsLine = topicId + "\t" + fixed + "\t" + documentIndexMemory.get(results.getDoc_id()).getDoc_no()
+                        + "\t" + i + "\t" + results.getScore() + "\t" + runid + "\n";
+                statisticsBuffer.write(resultsLine);
+                i--;
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return true;
+    }
 
     public static void evaluateQueriesTest() throws IOException {
+
         Scanner myReader = new Scanner(new File(queriesPathTrain), StandardCharsets.UTF_8);
         // BufferedWriter bw = new BufferedWriter(new FileWriter("PerformanceTest/src/main/resources/results/testResult.txt"));
 
         System.out.println("Starting query performances evaluation..." + "\n");
+
+        Flags.setK(k);
+
         int num_queries = 0;
         long sum_elapsedTime = 0;
+
         String min_query = "", max_query = "";
         long min_elaps = 0, max_elaps = 0;
+        String line;
 
         while (myReader.hasNextLine()) {
-            String data = myReader.nextLine();
 
-            String[] row = data.split("\t");
-            String doc_no = row[0];
-            String query = row[1];
+            line = myReader.nextLine();
+
+            if (line.isBlank())
+                continue;
+
+            String[] row = line.split("\t");
+            String query_id = row[0];
+            String query_text = row[1];
 
             long startTime = System.nanoTime();
-            QueryProcess.submitQuery(query);
+            BoundedPriorityQueue results = QueryProcess.submitQuery(query_text);
 
             //System.out.println("Query processed: " + num_queries);
             long elapsedTime = (System.nanoTime() - startTime) / 1000000;
@@ -41,20 +85,25 @@ public class Evaluator {
 
             if (elapsedTime < min_elaps || num_queries == 1) {
                 min_elaps = elapsedTime;
-                min_query = query;
+                min_query = query_text;
             } else if (elapsedTime > max_elaps) {
                 max_elaps = elapsedTime;
-                max_query = query;
+                max_query = query_text;
             }
 
-            /*if (num_queries == 1000)
-                break;*/
+            if (Flags.isTrecEval()) {
+                assert results != null;
+                if (!saveResultsTrecEval(query_id, results))
+                    System.out.println("Error encountered while writing trec_eval_results");
+            }
+
+            if (num_queries == 1000)
+                break;
 
             //bw.write(doc_no + " " + elapsedTime);
             //bw.newLine();
         }
 
-        System.out.println("\n" + "Evaluation finished!" + "\n");
         System.out.println("STATISTICS FOR QUERIES, IN " + Flags.getQueryMode() + " MODE WITH " + Flags.getScoringFunction() + " AS SCORING FUNCTION: ");
         System.out.println("Average time elapsed: " + sum_elapsedTime / num_queries + " ms");
         System.out.println("Query with min time elapsed: " + min_query + "- " + min_elaps + "ms");
@@ -66,4 +115,5 @@ public class Evaluator {
         myReader.close();
         //bw.close();
     }
+
 }

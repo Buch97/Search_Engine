@@ -6,8 +6,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.BitSet;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import static java.lang.Math.log;
 
@@ -19,7 +17,6 @@ public class Compression {
     private int formerElem = 0;
     private Posting[] decodedPostingList;
     private int doc_freq;
-    private static final ExecutorService executor = Executors.newFixedThreadPool(10);
 
     public Compression(int doc_frequency) {
         posUnary = 0;

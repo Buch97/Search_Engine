@@ -37,50 +37,41 @@ public class QueryProcess {
     private static final String mode = "READ";
     private static FileChannel document_index;
     private static FileChannel lexicon;
-    private static long startTime;
     private static final ExecutorService executor = Executors.newFixedThreadPool(10);
 
-    public static void submitQuery(String query) throws IOException {
+    public static BoundedPriorityQueue submitQuery(String query) throws IOException {
 
         Tokenizer tokenizer = new Tokenizer(query);
         Map<String, Integer> query_term_frequency = tokenizer.tokenize();
 
         if (query_term_frequency.isEmpty()) {
             System.out.println("Not valid input.");
-            return;
+            return null;
         }
 
         String mode = Flags.getQueryMode();
 
         if(!Flags.isEvaluation()){
             System.out.println("Your request: " + query + "\n");
-            startTime = System.nanoTime();
         }
-        daat(query_term_frequency, mode);
+         return daat(query_term_frequency, mode);
     }
 
-    public static void daat(Map<String, Integer> query_term_frequency, String mode) {
+    public static BoundedPriorityQueue daat(Map<String, Integer> query_term_frequency, String mode) {
         Comparator<Results> comparator = new ResultsComparator();
         int k = Flags.getK();
 
         BoundedPriorityQueue results = new BoundedPriorityQueue(comparator, k);
 
         ArrayList<InvertedList> L = getL(query_term_frequency);
-        if (L.isEmpty()) return;
+        if (L.isEmpty()) return results;
 
         if (Objects.equals(mode, "d"))
             daatScoringDisjunctive(L, results);
         else if (Objects.equals(mode, "c"))
             daatScoringConjunctive(L, results);
 
-        if (!Flags.isEvaluation()){
-            results.printRankedResults();
-            long elapsedTime = System.nanoTime() - startTime;
-            System.out.println("Total elapsed time: " + elapsedTime / 1000000 + " ms");
-
-            GuavaCache guavaCache = GuavaCache.getInstance();
-            System.out.println(guavaCache.getStats());
-        }
+        return results;
     }
 
     private static void daatScoringDisjunctive(ArrayList<InvertedList> L, BoundedPriorityQueue results) {
@@ -337,7 +328,7 @@ public class QueryProcess {
         long finish = System.currentTimeMillis();
         System.out.println("Time for loading lexicon in memory: " + (finish - start)/1000 + " s");
 
-        if (Objects.equals(Flags.getScoringFunction(), "bm25")) {
+        if (Objects.equals(Flags.getScoringFunction(), "bm25") || Flags.isTrecEval()) {
             System.out.println("Loading document index in memory...");
             start = System.currentTimeMillis();
             AuxiliarStructureOnMemory.loadDocumentIndex(document_index);
