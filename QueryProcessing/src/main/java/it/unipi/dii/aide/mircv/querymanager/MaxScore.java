@@ -19,8 +19,8 @@ public class MaxScore {
         double threshold = -1;
 
         for (String term : queryTerms) {
-            System.out.println(term);
-            termUpperBounds.put(term, lexiconMemory.get(term).getTermUpperBound());
+            if(lexiconMemory.get(term)!=null)
+                termUpperBounds.put(term, lexiconMemory.get(term).getTermUpperBound());
         }
 
         L = (ArrayList<InvertedList>) L.stream().sorted(Comparator.comparingDouble(e -> termUpperBounds.get(e.getTerm())))
