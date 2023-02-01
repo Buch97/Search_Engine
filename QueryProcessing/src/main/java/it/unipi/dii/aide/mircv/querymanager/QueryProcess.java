@@ -4,6 +4,7 @@ import it.unipi.dii.aide.mircv.common.bean.InvertedList;
 import it.unipi.dii.aide.mircv.common.bean.Posting;
 import it.unipi.dii.aide.mircv.common.bean.Results;
 import it.unipi.dii.aide.mircv.common.bean.TermStats;
+import it.unipi.dii.aide.mircv.common.bean.DocumentIndexStats;
 import it.unipi.dii.aide.mircv.common.cache.GuavaCache;
 import it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory;
 import it.unipi.dii.aide.mircv.common.textProcessing.Tokenizer;
@@ -58,7 +59,7 @@ public class QueryProcess {
          return daat(query_term_frequency, mode);
     }
 
-    public static BoundedPriorityQueue daat(Map<String, Integer> query_term_frequency, String mode) {
+    public static BoundedPriorityQueue daat(Map<String, Integer> query_term_frequency, String mode) throws IOException {
         Comparator<Results> comparator = new ResultsComparator();
         int k = Flags.getK();
 
@@ -79,7 +80,7 @@ public class QueryProcess {
         return results;
     }
 
-    private static void daatScoringDisjunctive(ArrayList<InvertedList> L, BoundedPriorityQueue results) {
+    private static void daatScoringDisjunctive(ArrayList<InvertedList> L, BoundedPriorityQueue results) throws IOException {
         int current_doc_id = min_doc_id(L);
         if(!Flags.isEvaluation())
             System.out.println("Scoring");
@@ -104,7 +105,7 @@ public class QueryProcess {
         }
     }
 
-    private static double getScore(int current_doc_id, HashMap<String, ListIterator<Posting>> iteratorList, HashMap<String, Integer> doc_freqs, InvertedList invertedList) {
+    private static double getScore(int current_doc_id, HashMap<String, ListIterator<Posting>> iteratorList, HashMap<String, Integer> doc_freqs, InvertedList invertedList) throws IOException {
 
         double score = 0;
         if (iteratorList.get(invertedList.getTerm()).hasNext()) {
@@ -115,7 +116,8 @@ public class QueryProcess {
 
             if (current_doc_id == doc_id) {
                 if (Objects.equals(Flags.getScoringFunction(), "bm25")) {
-                    int doc_len = documentIndexMemory.get(doc_id).getDoc_len();
+                    //int doc_len_mem = documentIndexMemory.get(doc_id).getDoc_len();
+                    int doc_len=DocumentIndexStats.readDocLen(document_index,doc_id);
                     score = Score.BM25Score(term_freq, doc_freqs.get(invertedList.getTerm()), doc_len);
                 } else
                     score = Score.tfIdfScore(term_freq, doc_freqs.get(invertedList.getTerm()));

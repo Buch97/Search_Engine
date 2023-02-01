@@ -53,7 +53,7 @@ public class AuxiliarStructureOnMemory {
         return 0;
     }
 
-    public static int loadDocumentIndex(FileChannel channelDocIndex) throws IOException {
+    public static void loadDocumentIndex(FileChannel channelDocIndex) throws IOException {
         long offset = 0;
         MappedByteBuffer buffer;
 
@@ -63,24 +63,21 @@ public class AuxiliarStructureOnMemory {
 
             // Buffer not created
             if (buffer == null)
-                return -1;
+                return;
 
             int doc_id = buffer.getInt();
-
             CharBuffer charBuffer = StandardCharsets.UTF_8.decode(buffer);
 
             String[] encodedTerm = charBuffer.toString().split("\0");
             if (encodedTerm.length == 0)
-                return 0;
+                return;
 
             String doc_no = encodedTerm[0];
-
-            buffer = channelDocIndex.map(FileChannel.MapMode.READ_WRITE, offset + 64, ENTRY_SIZE_DOCINDEX - 64);
+            buffer = channelDocIndex.map(FileChannel.MapMode.READ_WRITE, offset + 68, ENTRY_SIZE_DOCINDEX - 68);
 
             int doc_len = buffer.getInt();
             documentIndexMemory.put(doc_id, new DocumentIndexStats(doc_no, doc_len));
             offset += ENTRY_SIZE_DOCINDEX;
         }
-        return 0;
     }
 }
