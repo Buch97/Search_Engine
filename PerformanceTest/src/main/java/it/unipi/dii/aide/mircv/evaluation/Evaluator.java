@@ -51,11 +51,8 @@ public class Evaluator {
     public static void evaluateQueriesTest() throws IOException {
 
         Scanner myReader = new Scanner(new File(queriesPathTrain), StandardCharsets.UTF_8);
-        // BufferedWriter bw = new BufferedWriter(new FileWriter("PerformanceTest/src/main/resources/results/testResult.txt"));
 
         System.out.println("Starting query performances evaluation..." + "\n");
-
-        Flags.setK(k);
 
         int num_queries = 0;
         long sum_elapsedTime = 0;
@@ -77,9 +74,9 @@ public class Evaluator {
 
             long startTime = System.nanoTime();
             BoundedPriorityQueue results = QueryProcess.submitQuery(query_text);
-
             //System.out.println("Query processed: " + num_queries);
             long elapsedTime = (System.nanoTime() - startTime) / 1000000;
+
             sum_elapsedTime += elapsedTime;
             num_queries += 1;
 
@@ -91,17 +88,13 @@ public class Evaluator {
                 max_query = query_text;
             }
 
-            if (Flags.isTrecEval()) {
-                assert results != null;
+            if (Flags.isTrecEval() && results != null) {
                 if (!saveResultsTrecEval(query_id, results))
                     System.out.println("Error encountered while writing trec_eval_results");
             }
 
-            if (num_queries == 1000)
-                break;
-
-            //bw.write(doc_no + " " + elapsedTime);
-            //bw.newLine();
+            /*if (num_queries == 1000)
+                break;*/
         }
 
         System.out.println("STATISTICS FOR QUERIES, IN " + Flags.getQueryMode() + " MODE WITH " + Flags.getScoringFunction() + " AS SCORING FUNCTION: ");
@@ -110,10 +103,6 @@ public class Evaluator {
         System.out.println("Query with max time elapsed: " + max_query + "- " + max_elaps + "ms");
         System.out.println("Cache hit rate: " + GuavaCache.getInstance().getStats().hitRate() + ".");
 
-        //bw.write("\nAverage time elapsed: " + sum_elapsedTime / num_queries + " ms");
-
         myReader.close();
-        //bw.close();
     }
-
 }

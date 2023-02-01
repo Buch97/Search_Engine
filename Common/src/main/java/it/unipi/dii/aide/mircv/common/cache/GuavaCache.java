@@ -28,7 +28,7 @@ public class GuavaCache {
         this.invertedListLoadingCache = CacheBuilder.newBuilder()
                 .maximumWeight(MEMORY_THRESHOLD)
                 .weigher((Weigher<String, List<Posting>>) (term, postingList)
-                        -> ByteBuffer.allocate(postingList.size()).capacity() + term.length())
+                        -> (5 + 4 + 4) * postingList.size() + term.length())
                 .recordStats()
                 .build(
                         new CacheLoader<>() {

@@ -63,7 +63,7 @@ public class QueryProcess {
 
         BoundedPriorityQueue results = new BoundedPriorityQueue(comparator, k);
 
-        ArrayList<InvertedList> L = getL(query_term_frequency);
+        ArrayList<InvertedList> L = getLCache(query_term_frequency);
         if (L.isEmpty()) return results;
 
         if (Objects.equals(mode, "d"))
@@ -341,7 +341,7 @@ public class QueryProcess {
         FileChannelInvIndex.openFileChannels(mode);
         FileChannelInvIndex.MapFileChannel();
 
-        //GuavaCache guavaCache = GuavaCache.getInstance();
-        //guavaCache.preloadCache();
+        GuavaCache guavaCache = GuavaCache.getInstance();
+        guavaCache.preloadCache();
     }
 }

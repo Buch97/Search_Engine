@@ -45,28 +45,23 @@ public class QueryProcessingMain {
                 String input = reader.readLine();
                 if (Objects.equals(input, "1"))
                     Flags.setQueryMode("c");
-                else if (Objects.equals(input, "0")){
+                else if (Objects.equals(input, "0")) {
                     Flags.setQueryMode("d");
                 } else {
                     System.out.println("Not valid input. Query mode must be 0 or 1.");
                 }
             } else if (Objects.equals(query, "") || query.trim().length() == 0) {
                 System.out.println("The query is empty.");
-            } else{
-                if (Flags.isEvaluation()){
-                    QueryProcess.submitQuery(query);
-                }
-                else {
-                    long startTime = System.nanoTime();
-                    BoundedPriorityQueue results = QueryProcess.submitQuery(query);
-                    long elapsedTime = System.nanoTime() - startTime;
-                    if (results != null) {
-                        results.printRankedResults();
-                        System.out.println("Total elapsed time: " + elapsedTime / 1000000 + " ms");
+            } else {
+                long startTime = System.nanoTime();
+                BoundedPriorityQueue results = QueryProcess.submitQuery(query);
+                long elapsedTime = System.nanoTime() - startTime;
+                if (results != null) {
+                    results.printRankedResults();
+                    System.out.println("Total elapsed time: " + elapsedTime / 1000000 + " ms");
 
-                        GuavaCache guavaCache = GuavaCache.getInstance();
-                        System.out.println(guavaCache.getStats());
-                    }
+                    GuavaCache guavaCache = GuavaCache.getInstance();
+                    System.out.println(guavaCache.getStats());
                 }
             }
         }
