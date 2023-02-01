@@ -24,7 +24,12 @@ public class PerformanceTestMain
                     Flags.setScoringFunction("tfidf");
             }
             if (args.length > 2){
-                if (args[2].equals("-treceval")) {
+                if (args[2].equals("-maxScore")) {
+                    Flags.setQueryAlgorithm("maxScore");
+                }
+            }
+            if (args.length > 3){
+                if (args[3].equals("-treceval")) {
                     Flags.setTrecEval(true);
                     Flags.setK(100);
                 }
