@@ -32,6 +32,13 @@ public class BoundedPriorityQueue {
         }
     }
 
+
+    public PriorityQueue<Results> reverseOrder(){
+        PriorityQueue<Results> reverseResults = new PriorityQueue<>(maxSize, Collections.reverseOrder(comparator));
+        reverseResults.addAll(results);
+        return reverseResults;
+    }
+
     public int getMaxSize(){
         return maxSize;
     }

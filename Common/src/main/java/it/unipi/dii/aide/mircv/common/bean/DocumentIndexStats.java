@@ -18,6 +18,10 @@ public class DocumentIndexStats {
         this.doc_len = doc_len;
     }
 
+    public String getDoc_no() {
+        return doc_no;
+    }
+
     public int getDoc_len() {
         return doc_len;
     }

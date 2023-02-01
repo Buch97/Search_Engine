@@ -1,6 +1,8 @@
 package it.unipi.dii.aide.mircv;
 
+import it.unipi.dii.aide.mircv.common.cache.GuavaCache;
 import it.unipi.dii.aide.mircv.common.utils.Flags;
+import it.unipi.dii.aide.mircv.common.utils.boundedpq.BoundedPriorityQueue;
 import it.unipi.dii.aide.mircv.querymanager.QueryProcess;
 
 import java.io.BufferedReader;
@@ -55,8 +57,23 @@ public class QueryProcessingMain {
                 }
             } else if (Objects.equals(query, "") || query.trim().length() == 0) {
                 System.out.println("The query is empty.");
-            } else
-                QueryProcess.submitQuery(query);
+            } else{
+                if (Flags.isEvaluation()){
+                    QueryProcess.submitQuery(query);
+                }
+                else {
+                    long startTime = System.nanoTime();
+                    BoundedPriorityQueue results = QueryProcess.submitQuery(query);
+                    long elapsedTime = System.nanoTime() - startTime;
+                    if (results != null) {
+                        results.printRankedResults();
+                        System.out.println("Total elapsed time: " + elapsedTime / 1000000 + " ms");
+
+                        GuavaCache guavaCache = GuavaCache.getInstance();
+                        System.out.println(guavaCache.getStats());
+                    }
+                }
+            }
         }
     }
 }
