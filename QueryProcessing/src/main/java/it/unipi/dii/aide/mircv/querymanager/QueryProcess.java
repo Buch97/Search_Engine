@@ -28,6 +28,7 @@ import java.util.concurrent.Future;
 
 import static it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory.documentIndexMemory;
 import static it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory.lexiconMemory;
+import static it.unipi.dii.aide.mircv.querymanager.MaxScore.maxScore;
 
 public class QueryProcess {
 
@@ -66,10 +67,14 @@ public class QueryProcess {
         ArrayList<InvertedList> L = getLCache(query_term_frequency);
         if (L.isEmpty()) return results;
 
-        if (Objects.equals(mode, "d"))
-            daatScoringDisjunctive(L, results);
-        else if (Objects.equals(mode, "c"))
-            daatScoringConjunctive(L, results);
+        if (Objects.equals(Flags.getQueryAlgorithm(), "maxScore")) {
+            maxScore(query_term_frequency.keySet().toArray(new String[0]), L,results,k);
+        }else {
+            if (Objects.equals(mode, "d"))
+                daatScoringDisjunctive(L, results);
+            else if (Objects.equals(mode, "c"))
+                daatScoringConjunctive(L, results);
+        }
 
         return results;
     }

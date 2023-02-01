@@ -39,6 +39,14 @@ public class BoundedPriorityQueue {
         return reverseResults;
     }
 
+    public int getMaxSize(){
+        return maxSize;
+    }
+
+    public PriorityQueue<Results> getResults(){
+        return results;
+    }
+
     public void printRankedResults() {
         System.out.println("Results: ");
         PriorityQueue<Results> reverseResults = new PriorityQueue<>(maxSize, Collections.reverseOrder(comparator));
