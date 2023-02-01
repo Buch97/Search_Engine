@@ -63,8 +63,8 @@ public class QueryProcess {
         int k = Flags.getK();
 
         BoundedPriorityQueue results = new BoundedPriorityQueue(comparator, k);
-        System.out.println(query_term_frequency.size());
-        ArrayList<InvertedList> L = getL(query_term_frequency);
+
+        ArrayList<InvertedList> L = getLCache(query_term_frequency);
         if (L.isEmpty()) return results;
 
         if (Objects.equals(Flags.getQueryAlgorithm(), "maxScore")) {
@@ -346,7 +346,7 @@ public class QueryProcess {
         FileChannelInvIndex.openFileChannels(mode);
         FileChannelInvIndex.MapFileChannel();
 
-        //GuavaCache guavaCache = GuavaCache.getInstance();
-        //guavaCache.preloadCache();
+        GuavaCache guavaCache = GuavaCache.getInstance();
+        guavaCache.preloadCache();
     }
 }
