@@ -14,6 +14,8 @@ public class Flags {
 
     private static boolean evaluation = false;
 
+    private static String queryAlgorithm ="daat";
+
     public Flags() {
     }
 
@@ -56,6 +58,10 @@ public class Flags {
     public static void setK(int k) {
         Flags.k = k;
     }
+
+    public static void setQueryAlgorithm(String queryAlgorithm){Flags.queryAlgorithm=queryAlgorithm;}
+
+    public static String getQueryAlgorithm(){return queryAlgorithm;}
 
     public static boolean isEvaluation() {
         return evaluation;

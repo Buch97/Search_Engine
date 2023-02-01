@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 
 public class AuxiliarStructureOnMemory {
-    public static final int ENTRY_SIZE_LEXICON = 104;
+    public static final int ENTRY_SIZE_LEXICON = 108;
     public static final int ENTRY_SIZE_DOCINDEX = 72;
     public static HashMap<String, TermStats> lexiconMemory = new HashMap<>();
     public static HashMap<Integer, DocumentIndexStats> documentIndexMemory = new HashMap<>();
@@ -43,9 +43,9 @@ public class AuxiliarStructureOnMemory {
             long offset_term_freq_start = buffer.getLong();
             long offset_doc_id_end = buffer.getLong();
             long offset_term_freq_end = buffer.getLong();
+            float termUpperBound = buffer.getFloat();
 
-
-            lexiconMemory.put(term, new TermStats(doc_freq, coll_freq, offset_doc_id_start, offset_term_freq_start, offset_doc_id_end, offset_term_freq_end));
+            lexiconMemory.put(term, new TermStats(doc_freq, coll_freq, offset_doc_id_start, offset_term_freq_start, offset_doc_id_end, offset_term_freq_end,termUpperBound));
 
             offset += ENTRY_SIZE_LEXICON;
 

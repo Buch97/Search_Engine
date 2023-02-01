@@ -1,5 +1,6 @@
 package it.unipi.dii.aide.mircv.common.bean;
 
+import it.unipi.dii.aide.mircv.common.utils.CollectionStatistics;
 
 import java.io.IOException;
 import java.nio.CharBuffer;
@@ -18,9 +19,10 @@ public class TermStats {
     long offset_doc_id_end;
     long offset_term_freq_end;
     long actual_offset;
+    float termUpperBound;
 
 
-    public TermStats(String term, int doc_frequency, int coll_frequency, long offset_doc_id_start, long offset_term_freq_start, long offset_doc_id_end, long offset_term_freq_end) {
+    public TermStats(String term, int doc_frequency, int coll_frequency, long offset_doc_id_start, long offset_term_freq_start, long offset_doc_id_end, long offset_term_freq_end,float maxTermFrequency) {
         this.term = term;
         this.doc_frequency = doc_frequency;
         this.coll_frequency = coll_frequency;
@@ -28,15 +30,18 @@ public class TermStats {
         this.offset_term_freq_start = offset_term_freq_start;
         this.offset_doc_id_end = offset_doc_id_end;
         this.offset_term_freq_end = offset_term_freq_end;
+        this.termUpperBound = (float) (1+Math.log(maxTermFrequency)) * (float) Math.log((double) CollectionStatistics.num_docs/doc_frequency);
+
     }
 
-    public TermStats(int doc_frequency, int coll_frequency, long offset_doc_id_start, long offset_term_freq_start, long offset_doc_id_end, long offset_term_freq_end) {
+    public TermStats(int doc_frequency, int coll_frequency, long offset_doc_id_start, long offset_term_freq_start, long offset_doc_id_end, long offset_term_freq_end,float termUpperBound) {
         this.doc_frequency = doc_frequency;
         this.coll_frequency = coll_frequency;
         this.offset_doc_id_start = offset_doc_id_start;
         this.offset_term_freq_start = offset_term_freq_start;
         this.offset_doc_id_end = offset_doc_id_end;
         this.offset_term_freq_end = offset_term_freq_end;
+        this.termUpperBound = termUpperBound;
     }
 
     public long getOffset_doc_id_end() {
@@ -67,6 +72,7 @@ public class TermStats {
         bufferLexicon.putLong(offset_term_freq_start);
         bufferLexicon.putLong(offset_doc_id_end);
         bufferLexicon.putLong(offset_term_freq_end);
+        bufferLexicon.putFloat(termUpperBound);
 
         return positionLex + ENTRY_SIZE_LEXICON;
 
@@ -83,6 +89,8 @@ public class TermStats {
     public long getOffset_term_freq_start() {
         return offset_term_freq_start;
     }
+
+    public float getTermUpperBound(){return termUpperBound;}
 
     @Override
     public String toString() {

@@ -24,6 +24,11 @@ public class QueryProcessingMain {
                 if (args[2].equals("-10"))
                     Flags.setK(10);
             }
+
+            if (args.length > 3) {
+                if (args[3].equals("-maxScore"))
+                    Flags.setQueryAlgorithm("maxScore");
+            }
         }
 
         // GuavaCache.preloadCache();

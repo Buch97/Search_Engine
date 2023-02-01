@@ -67,10 +67,13 @@ public class MergeBlocks {
         // Sorted with a custom comparator
         openBufferedReaders(priorityQueue, readerList);
         long positionLex = 0;
+        float maxTermFrequency;
+        float localTermFrequency;
         // For loop is terminated when priority queue is empty
         while (priorityQueue.size() != 0) {
 
             // Set parameters to add in lexicon
+            maxTermFrequency=0;
             doc_frequency = 0;
             coll_frequency = 0;
             offset_doc_id_start = offset_doc_id_end;
@@ -89,6 +92,9 @@ public class MergeBlocks {
                 doc_frequency += postings.size();
 
                 for (Posting posting : postings) {
+                    localTermFrequency=posting.getTerm_frequency();
+                    if(localTermFrequency > maxTermFrequency) maxTermFrequency = localTermFrequency;
+
                     coll_frequency += posting.getTerm_frequency();
                     //compression.gammaEncoding(posting.getDoc_id());
                     compression.encodingVariableByte(posting.getDoc_id());
@@ -112,7 +118,7 @@ public class MergeBlocks {
             offset_term_freq_end += term_freq_compressed.length;
             // Build lexicon
 
-            TermStats termStats = new TermStats(currentTerm, doc_frequency, coll_frequency, offset_doc_id_start, offset_term_freq_start, offset_doc_id_end, offset_term_freq_end);
+            TermStats termStats = new TermStats(currentTerm, doc_frequency, coll_frequency, offset_doc_id_start, offset_term_freq_start, offset_doc_id_end, offset_term_freq_end,maxTermFrequency);
             positionLex = termStats.writeTermStats(positionLex, lexicon);
         }
 
