@@ -346,7 +346,7 @@ public class QueryProcess {
         FileChannelInvIndex.openFileChannels(mode);
         FileChannelInvIndex.MapFileChannel();
 
-        GuavaCache guavaCache = GuavaCache.getInstance();
-        guavaCache.preloadCache();
+        /*GuavaCache guavaCache = GuavaCache.getInstance();
+        guavaCache.preloadCache();*/
     }
 }

@@ -3,13 +3,11 @@ package it.unipi.dii.aide.mircv.common.cache;
 import com.google.common.cache.*;
 import it.unipi.dii.aide.mircv.common.bean.Posting;
 import it.unipi.dii.aide.mircv.common.bean.TermStats;
-import it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory;
 import it.unipi.dii.aide.mircv.common.textProcessing.Tokenizer;
 import it.unipi.dii.aide.mircv.common.utils.Flags;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;

@@ -38,6 +38,7 @@ public class PerformanceTestMain
 
         System.out.println("Mode selected: " + Flags.getQueryMode() + ".");
         System.out.println("Scoring function: " + Flags.getScoringFunction() + ".");
+        System.out.println("Algorithm used: " + Flags.getQueryAlgorithm());
         System.out.println("TREC EVAL: " + Flags.getTrecEval() + ".");
         System.out.println("Test on " + Flags.getK() + " results.");
 

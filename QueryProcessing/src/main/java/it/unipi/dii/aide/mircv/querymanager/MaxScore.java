@@ -14,12 +14,13 @@ import static it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory.
 
 public class MaxScore {
 
-    public static void maxScore(String[] queryTerms, ArrayList<InvertedList> L, BoundedPriorityQueue results, int k){
+    public static void maxScore(String[] queryTerms, ArrayList<InvertedList> L, BoundedPriorityQueue results, int k) {
         HashMap<String, Float> termUpperBounds = new HashMap<>();
         double threshold = -1;
 
-        for(String term : queryTerms){
-            termUpperBounds.put(term,lexiconMemory.get(term).getTermUpperBound());
+        for (String term : queryTerms) {
+            System.out.println(term);
+            termUpperBounds.put(term, lexiconMemory.get(term).getTermUpperBound());
         }
 
         L = (ArrayList<InvertedList>) L.stream().sorted(Comparator.comparingDouble(e -> termUpperBounds.get(e.getTerm())))
@@ -33,27 +34,27 @@ public class MaxScore {
             doc_freqs.put(invertedList.getTerm(), lexiconMemory.get(invertedList.getTerm()).getDoc_frequency());
         }
 
-        int essentialIndex=-1;
+        int essentialIndex = -1;
         double documentUpperBound;
-        boolean thresholdupdate=true;
+        boolean thresholdupdate = true;
 
-        while(true){
+        while (true) {
             double nonEssentialTermUpperBound = 0;
 
             if (thresholdupdate) {
                 essentialIndex = retrieveEssentialIndex(termUpperBounds, L, threshold);
 
-                if(essentialIndex==-1)
+                if (essentialIndex == -1)
                     break;
             }
 
 
             int current_doc_id = min_doc_id(L, essentialIndex);
 
-            if(current_doc_id==-1)
+            if (current_doc_id == -1)
                 break;
 
-            double partialScore = computeEssentialList(L, essentialIndex, current_doc_id, iteratorList,doc_freqs);
+            double partialScore = computeEssentialList(L, essentialIndex, current_doc_id, iteratorList, doc_freqs);
 
             for (int i = 0; i < essentialIndex; i++) {
                 if (L.get(i) != null)
@@ -63,21 +64,21 @@ public class MaxScore {
             documentUpperBound = partialScore + nonEssentialTermUpperBound;
 
             if (documentUpperBound > threshold) {
-                double nonEssentialScores = computeNonEssentialList(L, essentialIndex, current_doc_id, iteratorList,doc_freqs);
+                double nonEssentialScores = computeNonEssentialList(L, essentialIndex, current_doc_id, iteratorList, doc_freqs);
 
                 documentUpperBound = documentUpperBound - nonEssentialTermUpperBound + nonEssentialScores;
 
                 if (documentUpperBound > threshold) {
 
-                    if (results.getResults().size() == k){
+                    if (results.getResults().size() == k) {
                         assert results.getResults().peek() != null;
-                        threshold=results.getResults().peek().getScore();
-                        if(threshold>documentUpperBound)
-                            threshold=documentUpperBound;
+                        threshold = results.getResults().peek().getScore();
+                        if (threshold > documentUpperBound)
+                            threshold = documentUpperBound;
 
-                        thresholdupdate=true;
-                    }else
-                        thresholdupdate=false;
+                        thresholdupdate = true;
+                    } else
+                        thresholdupdate = false;
 
                     results.add(current_doc_id, documentUpperBound);
 
@@ -87,22 +88,22 @@ public class MaxScore {
 
     }
 
-    private static double computeNonEssentialList(ArrayList<InvertedList> L,int essentialIndex, int current_doc_id,HashMap<String, ListIterator<Posting>> iteratorList,HashMap<String, Integer> doc_freqs){
+    private static double computeNonEssentialList(ArrayList<InvertedList> L, int essentialIndex, int current_doc_id, HashMap<String, ListIterator<Posting>> iteratorList, HashMap<String, Integer> doc_freqs) {
         double nonEssentialScore = 0;
 
-        for(int i=0; i<essentialIndex; i++){
-            InvertedList postingList= L.get(i);
-            int index=binarySearch(postingList,current_doc_id);
-            if (index!=-1)
-                nonEssentialScore+=getScore(current_doc_id,iteratorList,doc_freqs,postingList);
+        for (int i = 0; i < essentialIndex; i++) {
+            InvertedList postingList = L.get(i);
+            int index = binarySearch(postingList, current_doc_id);
+            if (index != -1)
+                nonEssentialScore += getScore(current_doc_id, iteratorList, doc_freqs, postingList);
 
         }
         return nonEssentialScore;
     }
 
     private static int binarySearch(InvertedList postingList, int current_doc_id) {
-        List<Posting> arrayList=postingList.getPostingArrayList();
-        int l = postingList.getPos(), r = arrayList.size()-1;
+        List<Posting> arrayList = postingList.getPostingArrayList();
+        int l = postingList.getPos(), r = arrayList.size() - 1;
         // Checking element in whole array
         while (l <= r) {
             int m = l + (r - l) / 2;
@@ -128,10 +129,10 @@ public class MaxScore {
     }
 
 
-    private static double computeEssentialList(ArrayList<InvertedList> L,int essentialIndex, int current_doc_id,HashMap<String, ListIterator<Posting>> iteratorList,HashMap<String, Integer> doc_freqs){
+    private static double computeEssentialList(ArrayList<InvertedList> L, int essentialIndex, int current_doc_id, HashMap<String, ListIterator<Posting>> iteratorList, HashMap<String, Integer> doc_freqs) {
         double score = 0;
-        for(int i=essentialIndex;i<iteratorList.size();i++){
-            score+=getScore(current_doc_id,iteratorList,doc_freqs,L.get(i));
+        for (int i = essentialIndex; i < iteratorList.size(); i++) {
+            score += getScore(current_doc_id, iteratorList, doc_freqs, L.get(i));
         }
         return score;
     }
@@ -160,13 +161,13 @@ public class MaxScore {
     }
 
 
-    private static int retrieveEssentialIndex(HashMap<String, Float> termUpperBounds, ArrayList<InvertedList> L, double threshold){
-        double sum=0;
+    private static int retrieveEssentialIndex(HashMap<String, Float> termUpperBounds, ArrayList<InvertedList> L, double threshold) {
+        double sum = 0;
 
-        for(int i=0;i < L.size();i++){
-            sum+=termUpperBounds.get(L.get(i).getTerm());
+        for (int i = 0; i < L.size(); i++) {
+            sum += termUpperBounds.get(L.get(i).getTerm());
 
-            if(sum>threshold)
+            if (sum > threshold)
                 return i;
 
         }
@@ -174,7 +175,7 @@ public class MaxScore {
     }
 
 
-    private static int min_doc_id(ArrayList<InvertedList> L,int essentialIndex) {
+    private static int min_doc_id(ArrayList<InvertedList> L, int essentialIndex) {
         int min_doc_id = CollectionStatistics.num_docs;
 
         for (int i = essentialIndex; i < L.size(); i++) {
@@ -182,7 +183,7 @@ public class MaxScore {
                 min_doc_id = Math.min(L.get(i).getPostingArrayList().get(L.get(i).getPos()).getDoc_id(), min_doc_id);
             }
         }
-        if (min_doc_id==CollectionStatistics.num_docs)
+        if (min_doc_id == CollectionStatistics.num_docs)
             return -1;
 
         return min_doc_id;

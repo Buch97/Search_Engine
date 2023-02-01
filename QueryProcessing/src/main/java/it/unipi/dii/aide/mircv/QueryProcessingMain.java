@@ -33,9 +33,6 @@ public class QueryProcessingMain {
             }
         }
 
-        // GuavaCache.preloadCache();
-        // System.out.println(GuavaCache.invertedListLoadingCache.asMap());
-
         QueryProcess.startQueryProcessor();
 
         for (; ; ) {
@@ -65,8 +62,8 @@ public class QueryProcessingMain {
                     results.printRankedResults();
                     System.out.println("Total elapsed time: " + elapsedTime / 1000000 + " ms");
 
-                    GuavaCache guavaCache = GuavaCache.getInstance();
-                    System.out.println(guavaCache.getStats());
+                    /*GuavaCache guavaCache = GuavaCache.getInstance();
+                    System.out.println(guavaCache.getStats());*/
                 }
             }
         }

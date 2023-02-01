@@ -16,20 +16,21 @@ public class Flags {
 
     private static boolean evaluation = false;
 
-    private static String queryAlgorithm ="daat";
+    private static String queryAlgorithm = "daat";
 
     public Flags() {
     }
 
-    public static boolean isTrecEval(){
+    public static boolean isTrecEval() {
         return trecEval;
     }
 
-    public static void setTrecEval(boolean bool){
-        trecEval = bool;
-    }
-    public static boolean getTrecEval(){
+    public static boolean getTrecEval() {
         return trecEval;
+    }
+
+    public static void setTrecEval(boolean bool) {
+        trecEval = bool;
     }
 
     public static boolean isStopStem() {
@@ -72,9 +73,13 @@ public class Flags {
         Flags.k = k;
     }
 
-    public static void setQueryAlgorithm(String queryAlgorithm){Flags.queryAlgorithm=queryAlgorithm;}
+    public static String getQueryAlgorithm() {
+        return queryAlgorithm;
+    }
 
-    public static String getQueryAlgorithm(){return queryAlgorithm;}
+    public static void setQueryAlgorithm(String queryAlgorithm) {
+        Flags.queryAlgorithm = queryAlgorithm;
+    }
 
     public static boolean isEvaluation() {
         return evaluation;

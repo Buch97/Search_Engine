@@ -2,7 +2,6 @@ package it.unipi.dii.aide.mircv.evaluation;
 
 import it.unipi.dii.aide.mircv.common.bean.Results;
 import it.unipi.dii.aide.mircv.common.cache.GuavaCache;
-import it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory;
 import it.unipi.dii.aide.mircv.common.utils.Flags;
 import it.unipi.dii.aide.mircv.common.utils.boundedpq.BoundedPriorityQueue;
 import it.unipi.dii.aide.mircv.querymanager.QueryProcess;
@@ -11,11 +10,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.PriorityQueue;
 import java.util.Scanner;
 
@@ -23,7 +18,6 @@ import static it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory.
 
 public class Evaluator {
     private static final String queriesPathTrain = "PerformanceTest/src/main/resources/queries/queries.train.tsv";
-    private static final int k = 100;
     private static final String trecEvalResultPath = "PerformanceTest/src/main/resources/results/testResult.txt";
     private static final String fixed = "Q0";
     private static final String runid = "RUN-01";
