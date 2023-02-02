@@ -12,18 +12,20 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import static it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory.lexiconMemory;
 import static it.unipi.dii.aide.mircv.common.utils.Utils.retrievePostingLists;
 
 public class GuavaCache {
-    private static final long MEMORY_THRESHOLD = (long) (Runtime.getRuntime().freeMemory() * 0.3);
+    private static final long MEMORY_THRESHOLD = 50 * 1024 * 1024;
     private static GuavaCache instance = null;
     TermStats termStats;
     LoadingCache<String, List<Posting>> invertedListLoadingCache;
 
     private GuavaCache() {
         this.invertedListLoadingCache = CacheBuilder.newBuilder()
+                .expireAfterWrite(1, TimeUnit.MINUTES)
                 .maximumWeight(MEMORY_THRESHOLD)
                 .weigher((Weigher<String, List<Posting>>) (term, postingList)
                         -> (5 + 4 + 4) * postingList.size() + term.length())
@@ -70,7 +72,7 @@ public class GuavaCache {
 
             if (termStats != null){
                 List<Posting> postingList = retrievePostingLists(term, termStats).getPostingArrayList();
-                memoryUsed += (long) (5 + 4 + 4) * postingList.size() + term.length();
+                memoryUsed += (long) (4 + 4) * postingList.size() + term.length();
                 if (memoryUsed > MEMORY_THRESHOLD * 0.9)
                     break;
                 termsToAdd.put(term, postingList);

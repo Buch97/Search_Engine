@@ -8,39 +8,37 @@ import it.unipi.dii.aide.mircv.common.utils.Flags;
 import it.unipi.dii.aide.mircv.common.utils.boundedpq.BoundedPriorityQueue;
 
 import java.io.IOException;
-import java.nio.channels.FileChannel;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory.documentIndexMemory;
 import static it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory.lexiconMemory;
+import static it.unipi.dii.aide.mircv.common.utils.Utils.getIndex;
 import static it.unipi.dii.aide.mircv.common.utils.Utils.getIndexPostingbyId;
+import static it.unipi.dii.aide.mircv.querymanager.QueryProcess.docIndexBuffer;
 
 public class MaxScore {
 
-    public static void maxScore(String[] queryTerms, ArrayList<InvertedList> L, BoundedPriorityQueue results, int k,String mode,FileChannel document_index) throws IOException {
+    public static void maxScore(String[] queryTerms, ArrayList<InvertedList> L, BoundedPriorityQueue results, int k, String mode) throws IOException {
         HashMap<String, Float> termUpperBounds = new HashMap<>();
         double threshold = -1;
-        boolean conjunctive=false;
+        boolean conjunctive = false;
 
         for (String term : queryTerms) {
-            if(lexiconMemory.get(term)!=null)
+            if (lexiconMemory.get(term) != null)
                 termUpperBounds.put(term, lexiconMemory.get(term).getTermUpperBound());
         }
 
         L = (ArrayList<InvertedList>) L.stream().sorted(Comparator.comparingDouble(e -> termUpperBounds.get(e.getTerm())))
                 .collect(Collectors.toList());
 
-        HashMap<String, ListIterator<Posting>> iteratorList = new HashMap<>();
         HashMap<String, Integer> doc_freqs = new HashMap<>();
 
         for (InvertedList invertedList : L) {
-            iteratorList.put(invertedList.getTerm(), invertedList.getPostingArrayList().listIterator());
             doc_freqs.put(invertedList.getTerm(), lexiconMemory.get(invertedList.getTerm()).getDoc_frequency());
         }
 
         if (Objects.equals(mode, "c"))
-            conjunctive=true;
+            conjunctive = true;
 
 
         int essentialIndex = -1;
@@ -58,18 +56,18 @@ public class MaxScore {
             }
 
 
-            int current_doc_id = min_doc_id(L, essentialIndex,conjunctive);
+            int current_doc_id = min_doc_id(L, essentialIndex, conjunctive);
 
             if (current_doc_id == -1)
                 break;
 
-            if (conjunctive){
-                current_doc_id=nextGeqPostingLists(L,current_doc_id);
+            if (conjunctive) {
+                current_doc_id = nextGeqPostingLists(L, current_doc_id);
                 if (current_doc_id == -1)
                     break;
             }
 
-            double partialScore = computeEssentialList(L, essentialIndex, current_doc_id, iteratorList, doc_freqs,document_index);
+            double partialScore = computeEssentialList(L, essentialIndex, current_doc_id, doc_freqs);
 
             for (int i = 0; i < essentialIndex; i++) {
                 if (L.get(i) != null)
@@ -79,7 +77,7 @@ public class MaxScore {
             documentUpperBound = partialScore + nonEssentialTermUpperBound;
 
             if (documentUpperBound > threshold) {
-                double nonEssentialScores = computeNonEssentialList(L, essentialIndex, current_doc_id, iteratorList, doc_freqs,document_index);
+                double nonEssentialScores = computeNonEssentialList(L, essentialIndex, current_doc_id, doc_freqs);
 
                 documentUpperBound = documentUpperBound - nonEssentialTermUpperBound + nonEssentialScores;
 
@@ -103,48 +101,46 @@ public class MaxScore {
 
     }
 
-    private static int nextGeqPostingLists(ArrayList<InvertedList> L,int current_doc_id){
+    private static int nextGeqPostingLists(ArrayList<InvertedList> L, int current_doc_id) {
         int nextGEQ = current_doc_id;
 
-        for(int i=0; i<L.size(); i++){
+        for (int i = 0; i < L.size(); i++) {
 
-            ArrayList<Posting> arrayList = (ArrayList<Posting>) L.get(i).getPostingArrayList();
+            ArrayList<Posting> postingList = (ArrayList<Posting>) L.get(i).getPostingArrayList();
 
             // check if there are postings to iterate in the i-th posting list
-            if(arrayList != null){
-                Posting posting = arrayList.get(L.get(i).getPos());
+            if (postingList != null && postingList.size() != L.get(i).getPos()) {
+                Posting posting = postingList.get(L.get(i).getPos());
 
-                if(posting == null)
-                    return -1;
-
-                if(posting.getDoc_id() < nextGEQ) {
-                   posting = getIndexPostingbyId(arrayList,nextGEQ,L.get(i).getPos());
-                    if(posting == null)
+                if (posting.getDoc_id() < nextGEQ) {
+                    posting = getIndexPostingbyId(L.get(i), nextGEQ);
+                    if (posting == null)
                         return -1;
                 }
 
-                if (posting.getDoc_id()>nextGEQ) {
+                if (posting.getDoc_id() > nextGEQ) {
                     nextGEQ = posting.getDoc_id();
-                    i=-1;
+                    L.get(i).setPos(getIndex(L.get(i), nextGEQ));
+                    i = -1;
                 }
-            }
+            } else return -1;
         }
         return nextGEQ;
     }
 
-    private static double computeNonEssentialList(ArrayList<InvertedList> L, int essentialIndex, int current_doc_id, HashMap<String, ListIterator<Posting>> iteratorList, HashMap<String, Integer> doc_freqs,FileChannel document_index) throws IOException {
+    private static double computeNonEssentialList(ArrayList<InvertedList> L, int essentialIndex, int current_doc_id, HashMap<String, Integer> doc_freqs) {
         double nonEssentialScore = 0;
 
         for (int i = 0; i < essentialIndex; i++) {
             InvertedList postingList = L.get(i);
             int index = binarySearch(postingList, current_doc_id);
-            if (index != -1)
-                nonEssentialScore += getScore(current_doc_id, iteratorList, doc_freqs, postingList,document_index);
-
+            if (index != -1) {
+                postingList.setPos(index);
+                nonEssentialScore += getScore(current_doc_id, doc_freqs, postingList);
+            }
         }
         return nonEssentialScore;
     }
-
 
 
     private static int binarySearch(InvertedList postingList, int current_doc_id) {
@@ -175,33 +171,33 @@ public class MaxScore {
     }
 
 
-    private static double computeEssentialList(ArrayList<InvertedList> L, int essentialIndex, int current_doc_id, HashMap<String, ListIterator<Posting>> iteratorList, HashMap<String, Integer> doc_freqs,FileChannel document_index) throws IOException {
+    private static double computeEssentialList(ArrayList<InvertedList> L, int essentialIndex, int current_doc_id, HashMap<String, Integer> doc_freqs) {
         double score = 0;
-        for (int i = essentialIndex; i < iteratorList.size(); i++) {
-            score += getScore(current_doc_id, iteratorList, doc_freqs, L.get(i),document_index);
+        for (int i = essentialIndex; i < L.size(); i++) {
+            score += getScore(current_doc_id, doc_freqs, L.get(i));
         }
         return score;
     }
 
-    private static double getScore(int current_doc_id, HashMap<String, ListIterator<Posting>> iteratorList, HashMap<String, Integer> doc_freqs, InvertedList invertedList,FileChannel document_index) throws IOException {
+    private static double getScore(int current_doc_id, HashMap<String, Integer> doc_freqs, InvertedList invertedList) {
 
         double score = 0;
-        if (iteratorList.get(invertedList.getTerm()).hasNext()) {
 
-            Posting posting = iteratorList.get(invertedList.getTerm()).next();
+        if (invertedList.getPos() < invertedList.getPostingArrayList().size()) {
+
+            Posting posting = invertedList.getPostingArrayList().get(invertedList.getPos());
             int doc_id = posting.getDoc_id();
             int term_freq = posting.getTerm_frequency();
+
             if (current_doc_id == doc_id) {
                 if (Objects.equals(Flags.getScoringFunction(), "bm25")) {
                     //int doc_len = documentIndexMemory.get(doc_id).getDoc_len();
-                    int doc_len= DocumentIndexStats.readDocLen(document_index,doc_id);
+                    int doc_len = DocumentIndexStats.readDocLen(docIndexBuffer, doc_id);
                     score = Score.BM25Score(term_freq, doc_freqs.get(invertedList.getTerm()), doc_len);
                 } else
                     score = Score.tfIdfScore(term_freq, doc_freqs.get(invertedList.getTerm()));
 
                 invertedList.setPos(invertedList.getPos() + 1);
-            } else {
-                iteratorList.get(invertedList.getTerm()).previous();
             }
         }
         return score;
@@ -222,7 +218,7 @@ public class MaxScore {
     }
 
 
-    private static int min_doc_id(ArrayList<InvertedList> L, int essentialIndex,boolean conjunctive) {
+    private static int min_doc_id(ArrayList<InvertedList> L, int essentialIndex, boolean conjunctive) {
         int min_doc_id;
         if (conjunctive)
             min_doc_id = -1;
@@ -231,13 +227,13 @@ public class MaxScore {
 
         for (int i = essentialIndex; i < L.size(); i++) {
             if (L.get(i).getPos() < L.get(i).getPostingArrayList().size()) {
-                if(conjunctive)
+                if (conjunctive)
                     min_doc_id = Math.max(L.get(i).getPostingArrayList().get(L.get(i).getPos()).getDoc_id(), min_doc_id);
                 else
                     min_doc_id = Math.min(L.get(i).getPostingArrayList().get(L.get(i).getPos()).getDoc_id(), min_doc_id);
             }
-
         }
+        if (min_doc_id == -1) return -1;
         if (min_doc_id == CollectionStatistics.num_docs)
             return -1;
 

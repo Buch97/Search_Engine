@@ -45,10 +45,9 @@ public class DocumentIndexStats {
         return positionDocIndex + ENTRY_SIZE_DOCINDEX;
     }
 
-    public static int readDocLen(FileChannel channelDocIndex, int doc_id) throws IOException {
-        long offset= (long) doc_id *ENTRY_SIZE_DOCINDEX;
-        MappedByteBuffer docIndexBuffer = channelDocIndex.map(FileChannel.MapMode.READ_ONLY, offset+68, ENTRY_SIZE_DOCINDEX-68);
-        return docIndexBuffer.getInt();
+    public static int readDocLen(MappedByteBuffer channelDocIndex, int doc_id) {
+        long offset = (long) doc_id * ENTRY_SIZE_DOCINDEX + 68;
+        return channelDocIndex.getInt((int) offset);
     }
 
     @Override

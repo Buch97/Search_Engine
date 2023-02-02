@@ -17,6 +17,7 @@ import it.unipi.dii.aide.mircv.common.utils.filechannel.FileChannelInvIndex;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -27,8 +28,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import static it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory.documentIndexMemory;
-import static it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory.lexiconMemory;
+import static it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory.*;
 import static it.unipi.dii.aide.mircv.querymanager.MaxScore.maxScore;
 
 public class QueryProcess {
@@ -37,6 +37,7 @@ public class QueryProcess {
     private static final String term_freq_path = "resources/output/inverted_index_term_frequency_bin.dat";
     private static final String stats = "resources/stats/stats.txt";
     private static final String mode = "READ";
+    public static MappedByteBuffer docIndexBuffer;
     private static FileChannel document_index;
     private static FileChannel lexicon;
     private static final ExecutorService executor = Executors.newFixedThreadPool(10);
@@ -69,7 +70,7 @@ public class QueryProcess {
         if (L.isEmpty()) return results;
 
         if (Objects.equals(Flags.getQueryAlgorithm(), "maxScore")) {
-            maxScore(query_term_frequency.keySet().toArray(new String[0]), L,results,k,mode,document_index);
+            maxScore(query_term_frequency.keySet().toArray(new String[0]), L,results,k,mode);
         }else {
             if (Objects.equals(mode, "d"))
                 daatScoringDisjunctive(L, results);
@@ -117,7 +118,7 @@ public class QueryProcess {
             if (current_doc_id == doc_id) {
                 if (Objects.equals(Flags.getScoringFunction(), "bm25")) {
                     //int doc_len_mem = documentIndexMemory.get(doc_id).getDoc_len();
-                    int doc_len=DocumentIndexStats.readDocLen(document_index,doc_id);
+                    int doc_len=DocumentIndexStats.readDocLen(docIndexBuffer,doc_id);
                     score = Score.BM25Score(term_freq, doc_freqs.get(invertedList.getTerm()), doc_len);
                 } else
                     score = Score.tfIdfScore(term_freq, doc_freqs.get(invertedList.getTerm()));
@@ -305,7 +306,8 @@ public class QueryProcess {
 
     public static void closeQueryProcessor() throws IOException {
         lexicon.close();
-        document_index.close();
+        if (Objects.equals(Flags.getScoringFunction(), "bm25"))
+            document_index.close();
         FileChannelInvIndex.unmapBuffer();
         FileChannelInvIndex.closeFileChannels();
         System.exit(0);
@@ -319,11 +321,6 @@ public class QueryProcess {
             System.exit(0);
         }
 
-        document_index = (FileChannel) Files.newByteChannel(Paths.get("resources/output/document_index"),
-                StandardOpenOption.WRITE,
-                StandardOpenOption.READ,
-                StandardOpenOption.CREATE);
-
         lexicon = (FileChannel) Files.newByteChannel(Paths.get("resources/output/lexicon"),
                 StandardOpenOption.WRITE,
                 StandardOpenOption.READ,
@@ -335,12 +332,26 @@ public class QueryProcess {
         long finish = System.currentTimeMillis();
         System.out.println("Time for loading lexicon in memory: " + (finish - start)/1000 + " s");
 
-        if (Objects.equals(Flags.getScoringFunction(), "bm25") || Flags.isTrecEval()) {
+        /*if (Objects.equals(Flags.getScoringFunction(), "bm25") || Flags.isTrecEval()) {
+
+            document_index = (FileChannel) Files.newByteChannel(Paths.get("resources/output/document_index"),
+                StandardOpenOption.WRITE,
+                StandardOpenOption.READ,
+                StandardOpenOption.CREATE);
+
             System.out.println("Loading document index in memory...");
             start = System.currentTimeMillis();
             AuxiliarStructureOnMemory.loadDocumentIndex(document_index);
             finish = System.currentTimeMillis();
             System.out.println("Time for loading document index in memory: " + (finish - start)/1000 + " s");
+        }*/
+
+        if (Objects.equals(Flags.getScoringFunction(), "bm25") || Flags.isTrecEval()) {
+            document_index = (FileChannel) Files.newByteChannel(Paths.get("resources/output/document_index"),
+                    StandardOpenOption.WRITE,
+                    StandardOpenOption.READ,
+                    StandardOpenOption.CREATE);
+            docIndexBuffer = document_index.map(FileChannel.MapMode.READ_ONLY, 0, document_index.size());
         }
 
         CollectionStatistics.setParameters();

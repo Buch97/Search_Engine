@@ -78,7 +78,7 @@ public class Compression {
         return count;
     }*/
 
-    public void decodePostingList(byte[] doc_id_buffer, byte[] term_freq_buffer) throws InterruptedException {
+    public void decodePostingList(byte[] doc_id_buffer, byte[] term_freq_buffer) {
         int size = decodedPostingList.length;
         for (int i = 0; i < size; i++) {
             decodedPostingList[i] = new Posting();

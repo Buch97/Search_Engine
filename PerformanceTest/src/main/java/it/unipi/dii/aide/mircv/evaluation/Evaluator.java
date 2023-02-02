@@ -18,7 +18,7 @@ import static it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory.
 
 public class Evaluator {
     private static final String queriesPathTrain = "PerformanceTest/src/main/resources/queries/queries.train.tsv";
-    private static final String trecEvalResultPath = "PerformanceTest/src/main/resources/results/testResult.txt";
+    private static final String trecEvalResultPath = "PerformanceTest/src/main/resources/results/testResultDevMaxScore.txt";
     private static final String fixed = "Q0";
     private static final String runid = "RUN-01";
 
@@ -68,7 +68,7 @@ public class Evaluator {
 
             long startTime = System.nanoTime();
             BoundedPriorityQueue results = QueryProcess.submitQuery(query_text);
-            //System.out.println("Query processed: " + num_queries);
+            System.out.println("Query processed: " + num_queries);
             long elapsedTime = (System.nanoTime() - startTime) / 1000000;
 
             sum_elapsedTime += elapsedTime;
@@ -87,8 +87,8 @@ public class Evaluator {
                     System.out.println("Error encountered while writing trec_eval_results");
             }
 
-            /*if (num_queries == 1000)
-                break;*/
+            if (num_queries == 1000)
+                break;
         }
 
         System.out.println("STATISTICS FOR QUERIES, IN " + Flags.getQueryMode() + " MODE WITH " + Flags.getScoringFunction() + " AS SCORING FUNCTION: ");
@@ -96,6 +96,7 @@ public class Evaluator {
         System.out.println("Query with min time elapsed: " + min_query + "- " + min_elaps + "ms");
         System.out.println("Query with max time elapsed: " + max_query + "- " + max_elaps + "ms");
         System.out.println("Cache hit rate: " + GuavaCache.getInstance().getStats().hitRate() + ".");
+        System.out.println("Eviction count: " + GuavaCache.getInstance().getStats().evictionCount() + ".");
 
         myReader.close();
     }

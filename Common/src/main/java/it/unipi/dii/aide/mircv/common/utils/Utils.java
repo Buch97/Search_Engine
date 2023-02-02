@@ -9,6 +9,7 @@ import it.unipi.dii.aide.mircv.common.utils.filechannel.FileChannelInvIndex;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 public class Utils {
 
@@ -34,14 +35,28 @@ public class Utils {
         return new InvertedList(term, compression.getDecodedPostingList(), 0);
     }
 
-    public static Posting getIndexPostingbyId(ArrayList<Posting> postingsList, int doc_id, int index) {
-        int postingsListSize = postingsList.size();
-        for (int i = index; i < postingsListSize; i++) {
-            if (postingsList.get(i).getDoc_id() >= doc_id) {
-                return postingsList.get(i);
+    public static Posting getIndexPostingbyId(InvertedList invertedList, int doc_id) {
+        List<Posting> postingList = invertedList.getPostingArrayList();
+        int postingListSize = postingList.size();
+
+        for (int i = invertedList.getPos(); i < postingListSize; i++) {
+            if (postingList.get(i).getDoc_id() >= doc_id) {
+                return postingList.get(i);
             }
         }
         return null;
+    }
+
+    public static int getIndex(InvertedList invertedList, int doc_id) {
+        List<Posting> postingList = invertedList.getPostingArrayList();
+        int postingListSize = postingList.size();
+
+        for (int i = invertedList.getPos(); i < postingListSize; i++) {
+            if (postingList.get(i).getDoc_id() >= doc_id) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private static int extractSize(long start, long end) {
