@@ -31,6 +31,7 @@ public class MaxScore {
         L = (ArrayList<InvertedList>) L.stream().sorted(Comparator.comparingDouble(e -> termUpperBounds.get(e.getTerm())))
                 .collect(Collectors.toList());
 
+
         HashMap<String, Integer> doc_freqs = new HashMap<>();
 
         for (InvertedList invertedList : L) {
@@ -62,7 +63,7 @@ public class MaxScore {
                 break;
 
             if (conjunctive) {
-                current_doc_id = nextGeqPostingLists(L, current_doc_id);
+                current_doc_id = nextGeqPostingLists(L, current_doc_id,essentialIndex);
                 if (current_doc_id == -1)
                     break;
             }
@@ -101,10 +102,10 @@ public class MaxScore {
 
     }
 
-    private static int nextGeqPostingLists(ArrayList<InvertedList> L, int current_doc_id) {
+    private static int nextGeqPostingLists(ArrayList<InvertedList> L, int current_doc_id,int essentialIndex) {
         int nextGEQ = current_doc_id;
 
-        for (int i = 0; i < L.size(); i++) {
+        for (int i = essentialIndex; i < L.size(); i++) {
 
             ArrayList<Posting> postingList = (ArrayList<Posting>) L.get(i).getPostingArrayList();
 
@@ -123,7 +124,9 @@ public class MaxScore {
                     L.get(i).setPos(getIndex(L.get(i), nextGEQ));
                     i = -1;
                 }
-            } else return -1;
+            } else {
+                return -1;
+            }
         }
         return nextGEQ;
     }
@@ -232,10 +235,12 @@ public class MaxScore {
                 else
                     min_doc_id = Math.min(L.get(i).getPostingArrayList().get(L.get(i).getPos()).getDoc_id(), min_doc_id);
             }
+
+
         }
-        if (min_doc_id == -1) return -1;
-        if (min_doc_id == CollectionStatistics.num_docs)
+        if (min_doc_id == -1 || min_doc_id == CollectionStatistics.num_docs)
             return -1;
+
 
         return min_doc_id;
     }

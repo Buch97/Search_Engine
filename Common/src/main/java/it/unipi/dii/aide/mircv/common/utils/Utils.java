@@ -52,11 +52,11 @@ public class Utils {
         int postingListSize = postingList.size();
 
         for (int i = invertedList.getPos(); i < postingListSize; i++) {
-            if (postingList.get(i).getDoc_id() >= doc_id) {
+            if (postingList.get(i).getDoc_id() == doc_id) {
                 return i;
             }
         }
-        return -1;
+        return 0;
     }
 
     private static int extractSize(long start, long end) {
