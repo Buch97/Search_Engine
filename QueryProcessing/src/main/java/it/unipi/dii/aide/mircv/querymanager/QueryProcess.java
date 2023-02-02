@@ -69,7 +69,7 @@ public class QueryProcess {
         if (L.isEmpty()) return results;
 
         if (Objects.equals(Flags.getQueryAlgorithm(), "maxScore")) {
-            maxScore(query_term_frequency.keySet().toArray(new String[0]), L,results,k);
+            maxScore(query_term_frequency.keySet().toArray(new String[0]), L,results,k,mode,document_index);
         }else {
             if (Objects.equals(mode, "d"))
                 daatScoringDisjunctive(L, results);

@@ -1,22 +1,27 @@
 package it.unipi.dii.aide.mircv.querymanager;
 
+import it.unipi.dii.aide.mircv.common.bean.DocumentIndexStats;
 import it.unipi.dii.aide.mircv.common.bean.InvertedList;
 import it.unipi.dii.aide.mircv.common.bean.Posting;
 import it.unipi.dii.aide.mircv.common.utils.CollectionStatistics;
 import it.unipi.dii.aide.mircv.common.utils.Flags;
 import it.unipi.dii.aide.mircv.common.utils.boundedpq.BoundedPriorityQueue;
 
+import java.io.IOException;
+import java.nio.channels.FileChannel;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory.documentIndexMemory;
 import static it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory.lexiconMemory;
+import static it.unipi.dii.aide.mircv.common.utils.Utils.getIndexPostingbyId;
 
 public class MaxScore {
 
-    public static void maxScore(String[] queryTerms, ArrayList<InvertedList> L, BoundedPriorityQueue results, int k) {
+    public static void maxScore(String[] queryTerms, ArrayList<InvertedList> L, BoundedPriorityQueue results, int k,String mode,FileChannel document_index) throws IOException {
         HashMap<String, Float> termUpperBounds = new HashMap<>();
         double threshold = -1;
+        boolean conjunctive=false;
 
         for (String term : queryTerms) {
             if(lexiconMemory.get(term)!=null)
@@ -34,6 +39,10 @@ public class MaxScore {
             doc_freqs.put(invertedList.getTerm(), lexiconMemory.get(invertedList.getTerm()).getDoc_frequency());
         }
 
+        if (Objects.equals(mode, "c"))
+            conjunctive=true;
+
+
         int essentialIndex = -1;
         double documentUpperBound;
         boolean thresholdupdate = true;
@@ -49,12 +58,18 @@ public class MaxScore {
             }
 
 
-            int current_doc_id = min_doc_id(L, essentialIndex);
+            int current_doc_id = min_doc_id(L, essentialIndex,conjunctive);
 
             if (current_doc_id == -1)
                 break;
 
-            double partialScore = computeEssentialList(L, essentialIndex, current_doc_id, iteratorList, doc_freqs);
+            if (conjunctive){
+                current_doc_id=nextGeqPostingLists(L,current_doc_id);
+                if (current_doc_id == -1)
+                    break;
+            }
+
+            double partialScore = computeEssentialList(L, essentialIndex, current_doc_id, iteratorList, doc_freqs,document_index);
 
             for (int i = 0; i < essentialIndex; i++) {
                 if (L.get(i) != null)
@@ -64,7 +79,7 @@ public class MaxScore {
             documentUpperBound = partialScore + nonEssentialTermUpperBound;
 
             if (documentUpperBound > threshold) {
-                double nonEssentialScores = computeNonEssentialList(L, essentialIndex, current_doc_id, iteratorList, doc_freqs);
+                double nonEssentialScores = computeNonEssentialList(L, essentialIndex, current_doc_id, iteratorList, doc_freqs,document_index);
 
                 documentUpperBound = documentUpperBound - nonEssentialTermUpperBound + nonEssentialScores;
 
@@ -88,18 +103,49 @@ public class MaxScore {
 
     }
 
-    private static double computeNonEssentialList(ArrayList<InvertedList> L, int essentialIndex, int current_doc_id, HashMap<String, ListIterator<Posting>> iteratorList, HashMap<String, Integer> doc_freqs) {
+    private static int nextGeqPostingLists(ArrayList<InvertedList> L,int current_doc_id){
+        int nextGEQ = current_doc_id;
+
+        for(int i=0; i<L.size(); i++){
+
+            ArrayList<Posting> arrayList = (ArrayList<Posting>) L.get(i).getPostingArrayList();
+
+            // check if there are postings to iterate in the i-th posting list
+            if(arrayList != null){
+                Posting posting = arrayList.get(L.get(i).getPos());
+
+                if(posting == null)
+                    return -1;
+
+                if(posting.getDoc_id() < nextGEQ) {
+                   posting = getIndexPostingbyId(arrayList,nextGEQ,L.get(i).getPos());
+                    if(posting == null)
+                        return -1;
+                }
+
+                if (posting.getDoc_id()>nextGEQ) {
+                    nextGEQ = posting.getDoc_id();
+                    i=-1;
+                }
+            }
+        }
+        return nextGEQ;
+    }
+
+    private static double computeNonEssentialList(ArrayList<InvertedList> L, int essentialIndex, int current_doc_id, HashMap<String, ListIterator<Posting>> iteratorList, HashMap<String, Integer> doc_freqs,FileChannel document_index) throws IOException {
         double nonEssentialScore = 0;
 
         for (int i = 0; i < essentialIndex; i++) {
             InvertedList postingList = L.get(i);
             int index = binarySearch(postingList, current_doc_id);
             if (index != -1)
-                nonEssentialScore += getScore(current_doc_id, iteratorList, doc_freqs, postingList);
+                nonEssentialScore += getScore(current_doc_id, iteratorList, doc_freqs, postingList,document_index);
 
         }
         return nonEssentialScore;
     }
+
+
 
     private static int binarySearch(InvertedList postingList, int current_doc_id) {
         List<Posting> arrayList = postingList.getPostingArrayList();
@@ -129,15 +175,15 @@ public class MaxScore {
     }
 
 
-    private static double computeEssentialList(ArrayList<InvertedList> L, int essentialIndex, int current_doc_id, HashMap<String, ListIterator<Posting>> iteratorList, HashMap<String, Integer> doc_freqs) {
+    private static double computeEssentialList(ArrayList<InvertedList> L, int essentialIndex, int current_doc_id, HashMap<String, ListIterator<Posting>> iteratorList, HashMap<String, Integer> doc_freqs,FileChannel document_index) throws IOException {
         double score = 0;
         for (int i = essentialIndex; i < iteratorList.size(); i++) {
-            score += getScore(current_doc_id, iteratorList, doc_freqs, L.get(i));
+            score += getScore(current_doc_id, iteratorList, doc_freqs, L.get(i),document_index);
         }
         return score;
     }
 
-    private static double getScore(int current_doc_id, HashMap<String, ListIterator<Posting>> iteratorList, HashMap<String, Integer> doc_freqs, InvertedList invertedList) {
+    private static double getScore(int current_doc_id, HashMap<String, ListIterator<Posting>> iteratorList, HashMap<String, Integer> doc_freqs, InvertedList invertedList,FileChannel document_index) throws IOException {
 
         double score = 0;
         if (iteratorList.get(invertedList.getTerm()).hasNext()) {
@@ -147,7 +193,8 @@ public class MaxScore {
             int term_freq = posting.getTerm_frequency();
             if (current_doc_id == doc_id) {
                 if (Objects.equals(Flags.getScoringFunction(), "bm25")) {
-                    int doc_len = documentIndexMemory.get(doc_id).getDoc_len();
+                    //int doc_len = documentIndexMemory.get(doc_id).getDoc_len();
+                    int doc_len= DocumentIndexStats.readDocLen(document_index,doc_id);
                     score = Score.BM25Score(term_freq, doc_freqs.get(invertedList.getTerm()), doc_len);
                 } else
                     score = Score.tfIdfScore(term_freq, doc_freqs.get(invertedList.getTerm()));
@@ -175,13 +222,21 @@ public class MaxScore {
     }
 
 
-    private static int min_doc_id(ArrayList<InvertedList> L, int essentialIndex) {
-        int min_doc_id = CollectionStatistics.num_docs;
+    private static int min_doc_id(ArrayList<InvertedList> L, int essentialIndex,boolean conjunctive) {
+        int min_doc_id;
+        if (conjunctive)
+            min_doc_id = -1;
+        else
+            min_doc_id = CollectionStatistics.num_docs;
 
         for (int i = essentialIndex; i < L.size(); i++) {
             if (L.get(i).getPos() < L.get(i).getPostingArrayList().size()) {
-                min_doc_id = Math.min(L.get(i).getPostingArrayList().get(L.get(i).getPos()).getDoc_id(), min_doc_id);
+                if(conjunctive)
+                    min_doc_id = Math.max(L.get(i).getPostingArrayList().get(L.get(i).getPos()).getDoc_id(), min_doc_id);
+                else
+                    min_doc_id = Math.min(L.get(i).getPostingArrayList().get(L.get(i).getPos()).getDoc_id(), min_doc_id);
             }
+
         }
         if (min_doc_id == CollectionStatistics.num_docs)
             return -1;

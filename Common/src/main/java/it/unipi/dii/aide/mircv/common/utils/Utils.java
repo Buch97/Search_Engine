@@ -34,14 +34,14 @@ public class Utils {
         return new InvertedList(term, compression.getDecodedPostingList(), 0);
     }
 
-    public static int getIndexPostingbyId(ArrayList<Posting> postingsList, int doc_id, int index) {
+    public static Posting getIndexPostingbyId(ArrayList<Posting> postingsList, int doc_id, int index) {
         int postingsListSize = postingsList.size();
         for (int i = index; i < postingsListSize; i++) {
-            if (postingsList.get(i).getDoc_id() == doc_id) {
-                return i;
+            if (postingsList.get(i).getDoc_id() >= doc_id) {
+                return postingsList.get(i);
             }
         }
-        return -1;
+        return null;
     }
 
     private static int extractSize(long start, long end) {
