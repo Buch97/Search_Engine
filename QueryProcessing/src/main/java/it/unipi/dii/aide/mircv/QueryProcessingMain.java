@@ -15,6 +15,7 @@ public class QueryProcessingMain {
 
     public static void main(String[] args) throws IOException, InterruptedException {
 
+        // Compile flags parsing
         if (args.length > 0) {
             if (args[0].equals("-c"))
                 Flags.setQueryMode("c");
@@ -33,26 +34,38 @@ public class QueryProcessingMain {
             }
         }
 
+        // Initialize query processor
         QueryProcess.startQueryProcessor();
 
+        // Handling of user interactions with console
         for (; ; ) {
             System.out.println("Please, submit your query! Otherwise digit \"!exit\" to stop the execution or \"!mode\" to change query type.");
             BufferedReader reader = new BufferedReader(
                     new InputStreamReader(System.in));
+            // Store input submitted by user
             String query = reader.readLine();
+
             if (Objects.equals(query, "!exit")) {
                 QueryProcess.closeQueryProcessor();
-            } else if (Objects.equals(query, "!mode")) {
+            }
+
+            else if (Objects.equals(query, "!mode")) {
                 System.out.println("Digit \"0\" for disjunctive mode or \"1\" for conjunctive mode.");
                 String input = reader.readLine();
+
                 if (Objects.equals(input, "1"))
                     Flags.setQueryMode("c");
+
                 else if (Objects.equals(input, "0")) {
                     Flags.setQueryMode("d");
+
                 } else {
                     System.out.println("Not valid input. Query mode must be 0 or 1.");
                 }
-            } else if (Objects.equals(query, "") || query.trim().length() == 0) {
+
+            }
+
+            else if (Objects.equals(query, "") || query.trim().length() == 0) {
                 System.out.println("The query is empty.");
             } else {
                 /*
@@ -64,6 +77,9 @@ public class QueryProcessingMain {
                 if (results != null) {
                     results.printRankedResults();
                     System.out.println("Total elapsed time: " + elapsedTime / 1000000 + " ms");
+
+                    /*GuavaCache guavaCache = GuavaCache.getInstance();
+                    System.out.println(guavaCache.getStats());*/
                 }
             }
         }

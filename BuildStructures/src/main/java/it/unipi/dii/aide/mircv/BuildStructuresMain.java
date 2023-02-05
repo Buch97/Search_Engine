@@ -10,6 +10,7 @@ public class BuildStructuresMain {
 
     public static void main(String[] args) {
 
+        //command line argument parsing
         if (args.length > 0) {
             if (args[0].equals("-debug"))
                 Flags.setDebug(true);
@@ -19,6 +20,7 @@ public class BuildStructuresMain {
             }
         }
 
+        //missing directories creation
         Utils.createDir(new File("resources/output"));
         Utils.createDir(new File("resources/stats"));
         Utils.createDir(new File("BuildStructures/src/main/resources/blocks"));
