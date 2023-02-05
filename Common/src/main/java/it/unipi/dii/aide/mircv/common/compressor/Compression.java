@@ -38,46 +38,6 @@ public class Compression {
         return value;
     }
 
-    /*public void decodePostingList(int doc_freq, byte[] doc_id_buffer, byte[] term_freq_buffer) {
-        decodedPostingList = Arrays.asList(new Posting[doc_freq]);
-        for (int i = 0; i < doc_freq; i++) {
-            int term_freq = this.decodingUnaryList(BitSet.valueOf(term_freq_buffer));
-            int doc_id = this.decodingVariableByte(doc_id_buffer);
-            decodedPostingList.set(i, new Posting(doc_id, term_freq));
-        }
-    }
-
-    public int decodingVariableByte(byte[] byteStream) {
-        int n = 0;
-        int num = 0;
-        int byteStreamline = byteStream.length;
-
-        for (int i = posVarByte; i < byteStreamline; i++) {
-            int item = byteStream[i];
-            if (item == 0 && n == 0) {
-                posVarByte = ++i;
-                System.out.println(formerElem);
-                return formerElem;
-            } else if ((item & 0xff) < 128) {
-                n = 128 * n + item;
-            } else {
-                int gap = (128 * n + ((item - 128) & 0xff));
-                posVarByte = ++i;
-                num = gap + formerElem;
-                formerElem = gap + formerElem;
-                System.out.println(num);
-                return num;
-            }
-        }
-        return num;
-    }
-
-    public int decodingUnaryList(BitSet bitSet) {
-        int count = bitSet.nextClearBit(posUnary) + 1 - posUnary;
-        posUnary = posUnary + count;
-        return count;
-    }*/
-
     public void decodePostingList(byte[] doc_id_buffer, byte[] term_freq_buffer) {
         int size = decodedPostingList.length;
         for (int i = 0; i < size; i++) {

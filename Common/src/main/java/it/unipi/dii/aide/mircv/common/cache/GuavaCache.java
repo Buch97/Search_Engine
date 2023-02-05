@@ -12,23 +12,25 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 import static it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory.lexiconMemory;
 import static it.unipi.dii.aide.mircv.common.utils.Utils.retrievePostingLists;
 
 public class GuavaCache {
-    private static final long MEMORY_THRESHOLD = 50 * 1024 * 1024;
+    private static final long MEMORY_THRESHOLD = 80 * 1024 * 1024;
     private static GuavaCache instance = null;
     TermStats termStats;
     LoadingCache<String, List<Posting>> invertedListLoadingCache;
 
+    /*
+    Constructor of Guava Cache. Set the maximum weight of elements in cache and implements the
+    method load.
+     */
     private GuavaCache() {
         this.invertedListLoadingCache = CacheBuilder.newBuilder()
-                .expireAfterWrite(1, TimeUnit.MINUTES)
                 .maximumWeight(MEMORY_THRESHOLD)
                 .weigher((Weigher<String, List<Posting>>) (term, postingList)
-                        -> (5 + 4 + 4) * postingList.size() + term.length())
+                        -> (4 + 4) * postingList.size())
                 .recordStats()
                 .build(
                         new CacheLoader<>() {
@@ -41,6 +43,9 @@ public class GuavaCache {
                 );
     }
 
+    /*
+    Return an instance of Guava Cache. Only one instance per run is allowed.
+     */
     public static GuavaCache getInstance() {
         if (instance == null) {
             synchronized (GuavaCache.class) {
@@ -52,37 +57,10 @@ public class GuavaCache {
         return instance;
     }
 
-    public void preloadCache() throws IOException, InterruptedException {
-        Map<String, Integer> popularTerms;
-        System.out.println("Starting cache preloading...");
-
-        long start = System.currentTimeMillis();
-
-        String queries_path = "PerformanceTest/src/main/resources/queries/queries.train.tsv";
-        String text = Files.readString(Paths.get(queries_path));
-        Tokenizer tokenizer = new Tokenizer(text.replace("\n", " ").replaceAll("\\d", ""));
-        popularTerms = sortByValue(tokenizer.tokenize());
-
-        HashMap<String, List<Posting>> termsToAdd = new HashMap<>();
-        long memoryUsed = 0;
-
-        for (Map.Entry<String, Integer> item : popularTerms.entrySet()) {
-            String term = item.getKey();
-            termStats = lexiconMemory.get(term);
-
-            if (termStats != null){
-                List<Posting> postingList = retrievePostingLists(term, termStats).getPostingArrayList();
-                memoryUsed += (long) (4 + 4) * postingList.size() + term.length();
-                if (memoryUsed > MEMORY_THRESHOLD * 0.9)
-                    break;
-                termsToAdd.put(term, postingList);
-            }
-        }
-        invertedListLoadingCache.putAll(termsToAdd);
-        long finish = System.currentTimeMillis();
-        System.out.println("Time for cache preloading: " + (finish - start)/1000 + " s");
-    }
-
+    /*
+    This method retrieve a term's posting list from cache if it is presents, or upload that term on cache
+    and returns it's posting list.
+     */
     public synchronized List<Posting> getOrLoadPostingList(String term) throws ExecutionException {
         termStats = lexiconMemory.get(term);
         if (termStats == null) {
@@ -94,18 +72,9 @@ public class GuavaCache {
         }
     }
 
-    private <K, V extends Comparable<? super V>> Map<K, V> sortByValue(Map<K, V> map) {
-        List<Map.Entry<K, V>> list = new ArrayList<>(map.entrySet());
-        list.sort(Collections.reverseOrder(Map.Entry.comparingByValue()));
-
-        Map<K, V> result = new LinkedHashMap<>();
-        for (Map.Entry<K, V> entry : list) {
-            result.put(entry.getKey(), entry.getValue());
-        }
-
-        return result;
-    }
-
+    /*
+    Return cache statistics
+     */
     public CacheStats getStats() {
         return invertedListLoadingCache.stats();
     }

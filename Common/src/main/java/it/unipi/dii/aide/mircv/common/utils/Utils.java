@@ -8,7 +8,6 @@ import it.unipi.dii.aide.mircv.common.utils.filechannel.FileChannelInvIndex;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 public class Utils {

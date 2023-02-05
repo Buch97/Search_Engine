@@ -30,7 +30,7 @@ public class Tokenizer {
         text = text.replaceAll("<[^>]+>", "\s");
 
         //remove non-digit characters including punctuation
-        text = text.replaceAll("[^a-zA-Z ]", "\s");
+        text = text.replaceAll("[^a-zA-Z0-9 ]", "\s");
 
         //collapse 3+ repeating characters in just 2
         text = text.replaceAll("(.)\\1{2,}","$1$1");
