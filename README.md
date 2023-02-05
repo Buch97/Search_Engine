@@ -38,7 +38,10 @@ If no flags are specified, this module will work with normal preprocessing proce
 ### PerformanceTest
 This module can be executed by setting an optional flag:
 - ***-d*** or ***-c***: it sets disjunctive or conjunctive mode
-If no flags are specified, this module will work with disjunctive mode
+- ***-tfidf*** or ***-bm25***: it sets TFIDF or BM25 as scoring function
+- ***-daat*** or ***-maxScore***: it sets DAAT or MaxScore as scoring algorithm
+- ***-treceval***: it create result.txt file suitable for trec_eval
+If no flags are specified, this module will work with disjunctive mode, with TFIDF as scoring function and DAAT as algorithm.
 
 ### Query processing
 The Query processing module can be compiled using the following optional flags:
@@ -46,5 +49,6 @@ The Query processing module can be compiled using the following optional flags:
 - ***-d*** or ***-c***: it sets disjunctive or conjunctive mode
 - ***-tfidf*** or ***-bm25***: it sets TFIDF or BM25 as scoring function
 - ***-10*** or ***-20***: it sets k paramter (how many results we want to see in the rank)
+- ***-daat*** or ***-maxScore***: it sets DAAT or MaxScore as scoring algorithm
 
-If no flags are specified, this module will work with disjunctive mode, TfIdf scoring function and it will show k=20 results.
+If no flags are specified, this module will work with disjunctive mode, DAAT algorithm, TfIdf scoring function and it will show k=20 results.
