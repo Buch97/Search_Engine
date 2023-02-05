@@ -47,7 +47,6 @@ public class AuxiliarStructureOnMemory {
             long offset_term_freq_end = buffer.getLong();
             float termUpperBound = buffer.getFloat();
 
-            //
             lexiconMemory.put(term, new TermStats(doc_freq, coll_freq, offset_doc_id_start, offset_term_freq_start, offset_doc_id_end, offset_term_freq_end,termUpperBound));
 
             offset += ENTRY_SIZE_LEXICON;           //update the offset to the next entry
