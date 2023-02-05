@@ -8,7 +8,6 @@ import it.unipi.dii.aide.mircv.common.utils.filechannel.FileChannelInvIndex;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 public class Utils {
@@ -20,9 +19,12 @@ public class Utils {
         }
     }
 
-    public static InvertedList retrievePostingLists(String term, TermStats termStats) throws IOException, InterruptedException {
+    //read the posting lists bytes from the two index stored on disk and decompress them
+    public static InvertedList retrievePostingLists(String term, TermStats termStats) throws IOException {
 
+        //size of the doc id bytes to read
         int size_doc_id_list = extractSize(termStats.getOffset_doc_id_start(), termStats.getOffset_doc_id_end());
+        //size of the term frequency bytes to read
         int size_term_freq_list = extractSize(termStats.getOffset_term_freq_start(), termStats.getOffset_term_freq_end());
 
         byte[] doc_id_buffer = new byte[size_doc_id_list];
@@ -31,10 +33,11 @@ public class Utils {
         FileChannelInvIndex.readMappedFile(doc_id_buffer, term_freq_buffer, termStats.getOffset_doc_id_start(), termStats.getOffset_term_freq_start());
         Compression compression = new Compression(termStats.getDoc_frequency());
 
-        compression.decodePostingList(doc_id_buffer, term_freq_buffer);
-        return new InvertedList(term, compression.getDecodedPostingList(), 0);
+        compression.decodePostingList(doc_id_buffer, term_freq_buffer); //decompress the two buffer
+        return new InvertedList(term, compression.getDecodedPostingList(), 0); //create the posting list in memory
     }
 
+    //retrieve the posting with nextGEQ by doc id
     public static Posting getIndexPostingbyId(InvertedList invertedList, int doc_id) {
         List<Posting> postingList = invertedList.getPostingArrayList();
         int postingListSize = postingList.size();
@@ -47,6 +50,7 @@ public class Utils {
         return null;
     }
 
+    //retrieve the position of the posting with nextGEQ by doc id
     public static int getIndex(InvertedList invertedList, int doc_id) {
         List<Posting> postingList = invertedList.getPostingArrayList();
         int postingListSize = postingList.size();

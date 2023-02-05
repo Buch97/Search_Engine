@@ -5,9 +5,9 @@ import java.util.List;
 
 public class InvertedList {
 
-    String term;
-    int pos;
-    List<Posting> postingArrayList;
+    String term;                //the term of the posting list
+    int pos;                    //the current position of the posting to process
+    List<Posting> postingArrayList;         // the list of the postings loaded in memory
 
     public InvertedList(String term, List<Posting> postingArrayList, int pos){
         this.term = term;

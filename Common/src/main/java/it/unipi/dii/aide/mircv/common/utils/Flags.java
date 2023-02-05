@@ -2,21 +2,21 @@ package it.unipi.dii.aide.mircv.common.utils;
 
 public class Flags {
 
-    private static boolean stopStem = true;
+    private static boolean stopStem = true;     //default remove the stemming phase during the text processing
 
-    private static boolean trecEval = false;
+    private static boolean trecEval = false;    //default the program don't test the system in trecEval
 
-    private static boolean debug = false;
+    private static boolean debug = false;       //default goes the program goes in execute mode
 
-    private static String queryMode = "d";
+    private static String queryMode = "d";      //default the program process the disjunctive query
 
-    private static String scoringFunction = "tfIdf";
+    private static String scoringFunction = "tfIdf"; //default compute the tf-idf score
 
-    private static int k = 20;
+    private static int k = 20;                      //default retrieve the 20 top document from the query
 
-    private static boolean evaluation = false;
+    private static boolean evaluation = false;      //default the program don't test the system
 
-    private static String queryAlgorithm = "daat";
+    private static String queryAlgorithm = "daat";  //default process the query using daat algorithm
 
     public Flags() {
     }

@@ -339,20 +339,6 @@ public class QueryProcess {
         long finish = System.currentTimeMillis();
         System.out.println("Time for loading lexicon in memory: " + (finish - start)/1000 + " s");
 
-        /*if (Objects.equals(Flags.getScoringFunction(), "bm25") || Flags.isTrecEval()) {
-
-            document_index = (FileChannel) Files.newByteChannel(Paths.get("resources/output/document_index"),
-                StandardOpenOption.WRITE,
-                StandardOpenOption.READ,
-                StandardOpenOption.CREATE);
-
-            System.out.println("Loading document index in memory...");
-            start = System.currentTimeMillis();
-            AuxiliarStructureOnMemory.loadDocumentIndex(document_index);
-            finish = System.currentTimeMillis();
-            System.out.println("Time for loading document index in memory: " + (finish - start)/1000 + " s");
-        }*/
-
         if (Objects.equals(Flags.getScoringFunction(), "bm25") || Flags.isTrecEval()) {
             document_index = (FileChannel) Files.newByteChannel(Paths.get("resources/output/document_index"),
                     StandardOpenOption.WRITE,

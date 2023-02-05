@@ -3,10 +3,11 @@ package it.unipi.dii.aide.mircv.common.utils;
 
 import java.io.*;
 
+//The statistics of the collection
 public class CollectionStatistics {
     private static final String stats = "resources/stats/stats.txt";
-    public static int num_docs = 0;
-    public static double avg_doc_len = 0;
+    public static int num_docs = 0;         //number of documents of the collection
+    public static double avg_doc_len = 0;   //average of documents length of the collection
 
     public CollectionStatistics() {
     }

@@ -9,21 +9,26 @@ import java.util.List;
 
 import static java.lang.Math.log;
 
+/* Implement the unary compressor used to compress the frequencies and
+   the variable byte used to compress the documents id in the inverted index.
+ */
 public class Compression {
 
-    private BitSet bitUnary;
-    private ByteArrayOutputStream variableByteBuffer;
-    private int posUnary;
-    private int formerElem = 0;
-    private Posting[] decodedPostingList;
+    private BitSet bitUnary;                            // Sequence of bits in unary encoding
+    private ByteArrayOutputStream variableByteBuffer;   //Buffer of bytes in variable byte encoding
+    private int posUnary;                               //Position of the next bit in bitUnary to encode a frequency
+    private int formerElem = 0;                         //doc id previous to the current one to compress, used for the D-gap
+    private Posting[] decodedPostingList;               //Array of Postings of the term decompressed
     private int doc_freq;
 
+    //Constructor for decompression of a term's posting list
     public Compression(int doc_frequency) {
         posUnary = 0;
         doc_freq = doc_frequency;
         decodedPostingList = new Posting[doc_freq];
     }
 
+    //Constructor for compression of a doc_id and term frequency of a posting
     public Compression(){
         bitUnary = new BitSet();
         variableByteBuffer = new ByteArrayOutputStream();
@@ -38,46 +43,8 @@ public class Compression {
         return value;
     }
 
-    /*public void decodePostingList(int doc_freq, byte[] doc_id_buffer, byte[] term_freq_buffer) {
-        decodedPostingList = Arrays.asList(new Posting[doc_freq]);
-        for (int i = 0; i < doc_freq; i++) {
-            int term_freq = this.decodingUnaryList(BitSet.valueOf(term_freq_buffer));
-            int doc_id = this.decodingVariableByte(doc_id_buffer);
-            decodedPostingList.set(i, new Posting(doc_id, term_freq));
-        }
-    }
 
-    public int decodingVariableByte(byte[] byteStream) {
-        int n = 0;
-        int num = 0;
-        int byteStreamline = byteStream.length;
-
-        for (int i = posVarByte; i < byteStreamline; i++) {
-            int item = byteStream[i];
-            if (item == 0 && n == 0) {
-                posVarByte = ++i;
-                System.out.println(formerElem);
-                return formerElem;
-            } else if ((item & 0xff) < 128) {
-                n = 128 * n + item;
-            } else {
-                int gap = (128 * n + ((item - 128) & 0xff));
-                posVarByte = ++i;
-                num = gap + formerElem;
-                formerElem = gap + formerElem;
-                System.out.println(num);
-                return num;
-            }
-        }
-        return num;
-    }
-
-    public int decodingUnaryList(BitSet bitSet) {
-        int count = bitSet.nextClearBit(posUnary) + 1 - posUnary;
-        posUnary = posUnary + count;
-        return count;
-    }*/
-
+    //inizialize and decode the sequence of posting of a term
     public void decodePostingList(byte[] doc_id_buffer, byte[] term_freq_buffer) {
         int size = decodedPostingList.length;
         for (int i = 0; i < size; i++) {
@@ -88,18 +55,19 @@ public class Compression {
         decodingVariableByte(doc_id_buffer);
     }
 
+    // Decode the stream of bytes of doc id of the posting lists compressed to integers
     public void decodingVariableByte(byte[] byteStream) {
         int n = 0;
-        int pos = 0;
-        for (int item : byteStream) {
-            if (item == 0 && n == 0) {
+        int pos = 0;                    //index of the next doc id decompressed
+        for (int item : byteStream) {    //takes 4 bytes at time from byteStream
+            if (item == 0 && n == 0) {   //the value to decompress is zero
                 decodedPostingList[pos].setDoc_id(formerElem);
                 pos++;
-            } else if ((item & 0xff) < 128) {
-                n = 128 * n + item;
-            } else {
-                int gap = (128 * n + ((item - 128) & 0xff));
-                formerElem = gap + formerElem;
+            } else if ((item & 0xff) < 128) {           //The MSB is zero
+                n = 128 * n + item;                     // not the termination byte, shift the actual number and insert the new byte
+            } else {                                    //The MSB is 1, is the last byte of the number compressed
+                int gap = (128 * n + ((item - 128) & 0xff));     // termination byte, remove the 1 at the MSB and then append the byte to the number
+                formerElem = gap + formerElem;                  //retrieve the current doc id from the gap
                 decodedPostingList[pos].setDoc_id(formerElem);
                 pos++;
                 n = 0;
@@ -107,29 +75,34 @@ public class Compression {
         }
     }
 
+    //Decode the sequence of bits of term frequencies of the posting lists compressed to integers
     public void decodingUnaryList(BitSet bitSet) {
         int i = 0;
         int pos = 0;
-        while (i < doc_freq) {
+        while (i < doc_freq) {    //decode all the posting
             int count = bitSet.nextClearBit(pos) + 1 - pos;
-            pos = pos + count;
+            pos = pos + count;                  //update to the next number to decode
             decodedPostingList[i].setTerm_frequency(count);
             i++;
         }
     }
 
+
+    //encode an integer to variable byte
     public void encodingVariableByte(int n) throws IOException {
-        int gap = n - formerElem;
-        formerElem = n;
+        int gap = n - formerElem;               /* compute the difference between the current number and the previous one,
+                                                   encode the gap */
+
+        formerElem = n;                         // save the current integer for the next compression
         if (n != 0) {
-            int i = (int) (log(gap) / log(128)) + 1;
-            byte[] rv = new byte[i];
+            int i = (int) (log(gap) / log(128)) + 1;    //compute the number of byte needed to compress the integer
+            byte[] rv = new byte[i];                    // allocate the output byte array
             int j = i - 1;
             do {
                 rv[j--] = (byte) (gap % 128);
                 gap /= 128;
             } while (j >= 0);
-            rv[i - 1] += 128;
+            rv[i - 1] += 128;       // set the most significant bit of the least significant byte to 1
             variableByteBuffer.write(rv);
         } else {
             variableByteBuffer.write(new byte[]{0});
@@ -140,10 +113,11 @@ public class Compression {
         return List.of(decodedPostingList);
     }
 
+    //encode an integer to unary encoding.
     public void unaryEncoding(int n) {
         bitUnary.set(posUnary, posUnary + n - 1);
         bitUnary.clear(posUnary + n - 1);
-        posUnary += n;
+        posUnary += n;                              //update the position of the sequence to the first bit available.
     }
 
     public BitSet getUnaryBitSet() {

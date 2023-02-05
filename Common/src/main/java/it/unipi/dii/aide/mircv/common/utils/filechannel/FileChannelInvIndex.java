@@ -63,6 +63,7 @@ public class FileChannelInvIndex {
         System.gc();
     }
 
+    // gets the bytes from the two mapped file of the inverted index and put them respectively in doc_di_buffer and term_freq_buffer
     public static void readMappedFile(byte[] doc_id_buffer, byte[] term_freq_buffer, long offset_doc_id_start, long offset_term_freq_start) throws IOException {
         FileChannelInvIndex.MappedTermFreqBuffer.get((int) offset_term_freq_start, term_freq_buffer);
         FileChannelInvIndex.MappedDocIdBuffer.get((int) offset_doc_id_start, doc_id_buffer);
@@ -74,6 +75,7 @@ public class FileChannelInvIndex {
         FileChannelInvIndex.fileChannel_term_freq.read(term_freq_buffer, (int) offset_term_freq_start);
     }
 
+    //Write the two byte array compressed respectively in doc id file and term frequency file that both form the inverted index
     public static void write(byte[] doc_id_compressed, byte[] term_freq_compressed) throws IOException {
         FileChannelInvIndex.fileChannel_doc_id.write(ByteBuffer.wrap(doc_id_compressed));
         FileChannelInvIndex.fileChannel_term_freq.write(ByteBuffer.wrap(term_freq_compressed));

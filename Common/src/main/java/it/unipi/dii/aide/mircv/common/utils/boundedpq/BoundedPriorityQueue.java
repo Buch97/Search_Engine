@@ -9,7 +9,7 @@ import java.util.PriorityQueue;
 public class BoundedPriorityQueue {
 
     Comparator<Results> comparator;
-    int maxSize;
+    int maxSize;                 //max size of the PrioriyQueue
     PriorityQueue<Results> results;
 
     public BoundedPriorityQueue(Comparator<Results> comparator, int maxSize) {

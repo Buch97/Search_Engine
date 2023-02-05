@@ -16,11 +16,13 @@ import static it.unipi.dii.aide.mircv.common.utils.Utils.getIndex;
 import static it.unipi.dii.aide.mircv.common.utils.Utils.getIndexPostingbyId;
 import static it.unipi.dii.aide.mircv.querymanager.QueryProcess.docIndexBuffer;
 
+//Implements the max score algorithm
 public class MaxScore {
 
+    //Process using MaxScore algorithm a list of posting list of the query terms
     public static void maxScore(String[] queryTerms, ArrayList<InvertedList> L, BoundedPriorityQueue results, int k, String mode) throws IOException {
         HashMap<String, Float> termUpperBounds = new HashMap<>();
-        double threshold = -1;
+        double threshold = -1;          //Current threshold to enter the Priority queue of the results
         boolean conjunctive = false;
 
         for (String term : queryTerms) {
@@ -28,6 +30,7 @@ public class MaxScore {
                 termUpperBounds.put(term, lexiconMemory.get(term).getTermUpperBound());
         }
 
+        //Sort by increasing term upper bound posting lists to be scored
         L = (ArrayList<InvertedList>) L.stream().sorted(Comparator.comparingDouble(e -> termUpperBounds.get(e.getTerm())))
                 .collect(Collectors.toList());
 
@@ -42,9 +45,9 @@ public class MaxScore {
             conjunctive = true;
 
 
-        int essentialIndex = -1;
+        int essentialIndex = -1;         //divide posting lists to be scored in essential and non-essential posting lists
         double documentUpperBound;
-        boolean thresholdupdate = true;
+        boolean thresholdupdate = true;  //check if we must update the division in essential and non-essential posting lists
 
         while (true) {
             double nonEssentialTermUpperBound = 0;
@@ -56,7 +59,7 @@ public class MaxScore {
                     break;
             }
 
-
+            // search for minimum docid to be scored among essential posting lists
             int current_doc_id = min_doc_id(L, essentialIndex, conjunctive);
 
             if (current_doc_id == -1)
@@ -68,8 +71,10 @@ public class MaxScore {
                     break;
             }
 
+            // process DAAT the essential posting lists for docToProcess
             double partialScore = computeEssentialList(L, essentialIndex, current_doc_id, doc_freqs);
 
+            // sum the term upper bounds for all non-essential posting lists
             for (int i = 0; i < essentialIndex; i++) {
                 if (L.get(i) != null)
                     nonEssentialTermUpperBound += termUpperBounds.get(L.get(i).getTerm());
@@ -77,14 +82,17 @@ public class MaxScore {
 
             documentUpperBound = partialScore + nonEssentialTermUpperBound;
 
+            // check if non-essential posting lists must be processed or not
             if (documentUpperBound > threshold) {
+                // process non-essential posting list partial skipping all documents up to current_doc_id
                 double nonEssentialScores = computeNonEssentialList(L, essentialIndex, current_doc_id, doc_freqs);
 
                 documentUpperBound = documentUpperBound - nonEssentialTermUpperBound + nonEssentialScores;
 
+                // check if the document can enter the Priority queue
                 if (documentUpperBound > threshold) {
 
-                    if (results.getResults().size() == k) {
+                    if (results.getResults().size() == k) {  // is full
                         assert results.getResults().peek() != null;
                         threshold = results.getResults().peek().getScore();
                         if (threshold > documentUpperBound)
@@ -102,10 +110,11 @@ public class MaxScore {
 
     }
 
+    //method to move the invertedList of postings to the given docid
     private static int nextGeqPostingLists(ArrayList<InvertedList> L, int current_doc_id,int essentialIndex) {
         int nextGEQ = current_doc_id;
 
-        for (int i = essentialIndex; i < L.size(); i++) {
+        for (int i = essentialIndex; i < L.size(); i++) {  // i-th posting list
 
             ArrayList<Posting> postingList = (ArrayList<Posting>) L.get(i).getPostingArrayList();
 
@@ -115,11 +124,14 @@ public class MaxScore {
 
                 if (posting.getDoc_id() < nextGEQ) {
                     posting = getIndexPostingbyId(L.get(i), nextGEQ);
+                    // check if in the current posting list there is no docid >= docidToProcess to be processed
                     if (posting == null)
                         return -1;
                 }
 
+                // check if in the current posting list is not present docidToProcess, but it is present a docid >
                 if (posting.getDoc_id() > nextGEQ) {
+                    // the current docid will be the candidate next docid to be processed
                     nextGEQ = posting.getDoc_id();
                     L.get(i).setPos(getIndex(L.get(i), nextGEQ));
                     i = -1;
@@ -145,7 +157,7 @@ public class MaxScore {
         return nonEssentialScore;
     }
 
-
+    //search the current_doc_id using the iterative binary search algorithm
     private static int binarySearch(InvertedList postingList, int current_doc_id) {
         List<Posting> arrayList = postingList.getPostingArrayList();
         int l = postingList.getPos(), r = arrayList.size() - 1;
@@ -194,7 +206,6 @@ public class MaxScore {
 
             if (current_doc_id == doc_id) {
                 if (Objects.equals(Flags.getScoringFunction(), "bm25")) {
-                    //int doc_len = documentIndexMemory.get(doc_id).getDoc_len();
                     int doc_len = DocumentIndexStats.readDocLen(docIndexBuffer, doc_id);
                     score = Score.BM25Score(term_freq, doc_freqs.get(invertedList.getTerm()), doc_len);
                 } else

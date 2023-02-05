@@ -31,7 +31,4 @@ public class Token {
         return frequency;
     }
 
-    public void setFrequency(int frequency) {
-        this.frequency = frequency;
-    }
 }
