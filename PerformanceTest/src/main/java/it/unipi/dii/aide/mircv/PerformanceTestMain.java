@@ -12,6 +12,7 @@ public class PerformanceTestMain
 {
     public static void main( String[] args ) throws IOException, InterruptedException {
 
+        // Command line flag parsing
         if(args.length > 0){
             if(args[0].equals("-c"))
                 Flags.setQueryMode("c");
@@ -42,6 +43,7 @@ public class PerformanceTestMain
         System.out.println("TREC EVAL: " + Flags.getTrecEval() + ".");
         System.out.println("Test on " + Flags.getK() + " results.");
 
+        // Missing directories creation
         Utils.createDir(new File("PerformanceTest/src/main/resources/queries"));
         Utils.createDir(new File("PerformanceTest/src/main/resources/results"));
 

@@ -32,6 +32,7 @@ public class MergeBlocks {
 
         System.out.println("----------------------START MERGE PHASE----------------------");
 
+        //File channel is opened in write mode
         FileChannelInvIndex.openFileChannels(mode);
 
         // Definition of comparator, implemented in Class TermPositionBlock
@@ -56,7 +57,7 @@ public class MergeBlocks {
                 StandardOpenOption.CREATE);
 
 
-        // array of buffered reader to read each block at the same time
+        // Array of buffered reader to read each block at the same time
         for (int i = 0; i < blockNumber; i++) {
             readerList.add(new BufferedReader(new FileReader("BuildStructures/src/main/resources/blocks/" +
                     "block" + i + ".tsv")));
@@ -92,32 +93,34 @@ public class MergeBlocks {
                 doc_frequency += postings.size();
 
                 for (Posting posting : postings) {
-                    localTermFrequency=posting.getTerm_frequency();
+                    localTermFrequency = posting.getTerm_frequency();
                     if(localTermFrequency > maxTermFrequency) maxTermFrequency = localTermFrequency;
 
                     coll_frequency += posting.getTerm_frequency();
-                    //compression.gammaEncoding(posting.getDoc_id());
+
+                    // Compression is applied to both doc_ids and term_frequencies
                     compression.encodingVariableByte(posting.getDoc_id());
                     compression.unaryEncoding(posting.getTerm_frequency());
                 }
+
                 updatePriorityQueue(priorityQueue, readerList.get(blockIndex), blockIndex);
                 if (priorityQueue.size() == 0) break;
             }
 
             byte[] doc_id_compressed = compression.getVariableByteBuffer().toByteArray();
-            //byte[] doc_id_compressed = compression.getGammaBitSet().toByteArray();
             byte[] term_freq_compressed = new byte[Math.ceilDivExact(compression.getPosUnary(), 8)];
 
             if (compression.getUnaryBitSet().toByteArray().length != 0) {
                 System.arraycopy(compression.getUnaryBitSet().toByteArray(), 0, term_freq_compressed, 0, compression.getUnaryBitSet().toByteArray().length);
             }
 
+            // Compressed fields are written in File Channel
             FileChannelInvIndex.write(doc_id_compressed, term_freq_compressed);
 
             offset_doc_id_end += doc_id_compressed.length;
             offset_term_freq_end += term_freq_compressed.length;
-            // Build lexicon
 
+            // Lexicon entry creation
             TermStats termStats = new TermStats(currentTerm, doc_frequency, coll_frequency, offset_doc_id_start, offset_term_freq_start, offset_doc_id_end, offset_term_freq_end,maxTermFrequency);
             positionLex = termStats.writeTermStats(positionLex, lexicon);
         }
@@ -163,6 +166,7 @@ public class MergeBlocks {
 
     private static InvertedList BuildTermPositionBlock(String line, int index) {
 
+        // Inverted list is created
         String term = line.split("\t")[0];
         String postingList = line.split("\t")[1];
         ArrayList<Posting> postingArrayList = new ArrayList<>();

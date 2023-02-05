@@ -19,25 +19,24 @@ import java.util.stream.Collectors;
 public class CreateBlocks {
     public final static List<Token> tokenStream = new ArrayList<>();
     private static final String DOCUMENT_INDEX = "resources/output/document_index";
-    public static int SPIMI_TOKEN_STREAM_MAX_LIMIT;
     public static int BLOCK_NUMBER = 0;
 
     public static void buildDataStructures() {
         try {
             File myObj;
 
+            //Pick the collection to use
             if (Flags.isDebug()) {
                 myObj = new File("resources/collections/small_collection.tsv");
-                //SPIMI_TOKEN_STREAM_MAX_LIMIT = 3000;
                 System.out.println("Running in debug mode");
             } else {
                 myObj = new File("resources/collections/collection.tsv");
-                //SPIMI_TOKEN_STREAM_MAX_LIMIT = 5000000;
                 System.out.println("Running in execution mode");
             }
 
             Scanner myReader = new Scanner(myObj, StandardCharsets.UTF_8);
 
+            //File channel allocation
             FileChannel document_index = (FileChannel) Files.newByteChannel(Paths.get(DOCUMENT_INDEX),
                     StandardOpenOption.WRITE,
                     StandardOpenOption.READ,
@@ -52,7 +51,7 @@ public class CreateBlocks {
             while (myReader.hasNextLine()) {
                 String data = myReader.nextLine();
 
-                // Handling of malformed lines
+                //Handling of malformed lines
                 if (!data.contains("\t"))
                     continue;
 
@@ -63,10 +62,10 @@ public class CreateBlocks {
                 if (!myReader.hasNextLine())
                     lastLine = true;
 
-                // Parsing/tokenization of the document
+                //Parsing/tokenization of the document
                 parseDocumentBody(Integer.parseInt(doc_no), text, lastLine);
 
-                // Add document to the document index
+                //Add document to the document index
                 positionDocIndex = documentIndexAddition(doc_no, document_index, positionDocIndex);
             }
 
@@ -87,15 +86,17 @@ public class CreateBlocks {
     }
 
     public static void parseDocumentBody(int doc_id, String text, Boolean lastLine) throws IOException {
+        //Space-based tokenization
         Tokenizer tokenizer = new Tokenizer(text);
         Map<String, Integer> results = tokenizer.tokenize();
 
+        //Add token to a stream of tokens
         for (String token : results.keySet())
             tokenStream.add(new Token(token, doc_id, results.get(token)));
 
         // leave 20% of memory free
         long MEMORY_THRESHOLD = Runtime.getRuntime().totalMemory() * 20 / 100;
-        // Add token to tokenStream until we reach a size threshold
+        // Add token to tokenStream until we reach a size threshold or if there are no more documents to process
         if (Runtime.getRuntime().freeMemory() < MEMORY_THRESHOLD || lastLine) {
             // Create the inverted index of the block
             invertedIndexSPIMI();
@@ -110,25 +111,30 @@ public class CreateBlocks {
 
         File output_file = new File("BuildStructures/src/main/resources/blocks/block" + BLOCK_NUMBER + ".tsv");
 
-        // one dictionary for each block
+        //One dictionary for each block
         HashMap<String, ArrayList<Posting>> dictionary = new HashMap<>();
 
         for (Token token : CreateBlocks.tokenStream) {
             String term = token.getTerm();
+            //If the entry for that term does not exist it is created
             if (!dictionary.containsKey(term)){
                 addToDictionary(dictionary, token.getTerm());
             }
+            //If the ArrayList is full we expand its size
             if (!dictionary.get(token.getTerm()).contains(null)) {
                 int capacity = dictionary.get(token.getTerm()).size() * 2;
-                dictionary.get(token.getTerm()).ensureCapacity(capacity); //aumenta la length dell arraylist
+                dictionary.get(token.getTerm()).ensureCapacity(capacity);
             }
+            //Add current posting to dictionary
             dictionary.get(token.getTerm()).add(new Posting(token.getDoc_id(), token.getFrequency()));
         }
 
+        //Dictionary is sorted alphabetically by key
         dictionary = dictionary.entrySet().stream().sorted(Map.Entry.comparingByKey())
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
 
         try {
+            //Dictionary is written inside a file which represents a block
             BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(output_file));
             bufferedWriter.write("TERM" + "\t" + "POSTING_LIST" + "\n");
 
@@ -155,6 +161,7 @@ public class CreateBlocks {
         vocabulary.put(token, postings_list);
     }
 
+    //This function create a new entry in document index for the current processed document
     private static long documentIndexAddition(String doc_no, FileChannel document_index, long position) throws IOException {
         int doc_len = Tokenizer.doc_len;
         int doc_id = Integer.parseInt(doc_no);

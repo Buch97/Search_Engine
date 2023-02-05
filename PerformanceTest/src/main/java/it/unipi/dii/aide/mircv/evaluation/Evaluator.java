@@ -67,8 +67,10 @@ public class Evaluator {
             String query_text = row[1];
 
             long startTime = System.nanoTime();
+            // Compute results for the query
             BoundedPriorityQueue results = QueryProcess.submitQuery(query_text);
             System.out.println("Query processed: " + num_queries);
+            // Update temporal variables
             long elapsedTime = (System.nanoTime() - startTime) / 1000000;
 
             sum_elapsedTime += elapsedTime;
@@ -87,10 +89,11 @@ public class Evaluator {
                     System.out.println("Error encountered while writing trec_eval_results");
             }
 
-            if (num_queries == 1000)
-                break;
+            /*if (num_queries == 1000)
+                break;*/
         }
 
+        // Print results on console
         System.out.println("STATISTICS FOR QUERIES, IN " + Flags.getQueryMode() + " MODE WITH " + Flags.getScoringFunction() + " AS SCORING FUNCTION: ");
         System.out.println("Average time elapsed: " + sum_elapsedTime / num_queries + " ms");
         System.out.println("Query with min time elapsed: " + min_query + "- " + min_elaps + "ms");

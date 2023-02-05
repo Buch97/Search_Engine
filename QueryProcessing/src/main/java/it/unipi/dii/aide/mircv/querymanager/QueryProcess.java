@@ -44,6 +44,7 @@ public class QueryProcess {
 
     public static BoundedPriorityQueue submitQuery(String query) throws IOException {
 
+        // Applying preprocessing to query
         Tokenizer tokenizer = new Tokenizer(query);
         Map<String, Integer> query_term_frequency = tokenizer.tokenize();
 
@@ -83,6 +84,7 @@ public class QueryProcess {
 
     private static void daatScoringDisjunctive(ArrayList<InvertedList> L, BoundedPriorityQueue results) throws IOException {
         int current_doc_id = min_doc_id(L);
+
         if(!Flags.isEvaluation())
             System.out.println("Scoring");
 
@@ -97,11 +99,14 @@ public class QueryProcess {
         while (current_doc_id != CollectionStatistics.num_docs) {
 
             double score = 0;
+            // We compute the score of the current doc_id
             for (InvertedList invertedList : L) {
                 score += getScore(current_doc_id, iteratorList, doc_freqs, invertedList);
             }
 
+            // We put the result in the priority queue
             results.add(current_doc_id, score);
+            // We advance to the min docid not still processed
             current_doc_id = min_doc_id(L);
         }
     }
@@ -117,14 +122,14 @@ public class QueryProcess {
 
             if (current_doc_id == doc_id) {
                 if (Objects.equals(Flags.getScoringFunction(), "bm25")) {
-                    //int doc_len_mem = documentIndexMemory.get(doc_id).getDoc_len();
-                    int doc_len=DocumentIndexStats.readDocLen(docIndexBuffer,doc_id);
+                    int doc_len = DocumentIndexStats.readDocLen(docIndexBuffer,doc_id);
                     score = Score.BM25Score(term_freq, doc_freqs.get(invertedList.getTerm()), doc_len);
                 } else
                     score = Score.tfIdfScore(term_freq, doc_freqs.get(invertedList.getTerm()));
 
                 invertedList.setPos(invertedList.getPos() + 1);
             } else {
+                // Step back because current_doc_id was not found
                 iteratorList.get(invertedList.getTerm()).previous();
             }
         }
@@ -139,6 +144,7 @@ public class QueryProcess {
         String term_shortest_pl = null;
         ListIterator<Posting> shortest_pl = null;
 
+        // Looking for the shortest posting list
         for (InvertedList invertedList : L) {
             iteratorList.put(invertedList.getTerm(), invertedList.getPostingArrayList().listIterator());
             if (invertedList.getPostingArrayList().size() < min) {
@@ -148,7 +154,7 @@ public class QueryProcess {
             }
         }
 
-        //delete the iterator relative to the shortest posting list, because it is contained inside shortest_pl
+        // Delete the iterator relative to the shortest posting list, because it is contained inside shortest_pl
         iteratorList.remove(term_shortest_pl);
 
         int current_doc_id = 0;
@@ -168,11 +174,12 @@ public class QueryProcess {
 
             int max = current_doc_id;
 
+            // The pointer is advanced to a posting with a doc_id greater or equal to current_doc_id
             for (Map.Entry<String, ListIterator<Posting>> entry : iteratorList.entrySet())
                 max = nextGeqPostingLists(entry, current_postings, current_doc_id, max);
 
             if (current_doc_id < max) {
-                //current_doc_id exceeded on reference posting list, so we need to reach a valid posting
+                // Current_doc_id exceeded on reference posting list, so we need to reach a valid posting
                 posting = nextGeqReferencePostingList(shortest_pl, current_postings, current_doc_id, term_shortest_pl);
                 if (posting == null)
                     break;
@@ -183,14 +190,14 @@ public class QueryProcess {
             }
 
             int needToScore = 0;
-            //check if all postings have the same doc_id
+            // Check if all postings have the same doc_id at the current position
             for (Map.Entry<String, Posting> entry : current_postings.entrySet()) {
                 if (entry.getValue().getDoc_id() == max) {
                     needToScore++;
                 }
             }
 
-            //this current_doc_id is present in every posting, so it is possible to compute the score
+            // This current_doc_id is present in every posting, so it is possible to compute the score
             if (needToScore == size + 1) {
                 for (Map.Entry<String, Posting> entry : current_postings.entrySet()) {
 
