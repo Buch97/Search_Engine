@@ -42,6 +42,10 @@ public class QueryProcess {
     private static FileChannel lexicon;
     private static final ExecutorService executor = Executors.newFixedThreadPool(10);
 
+
+    /*
+     Take the query submitted and send it to the scoring algorithm selected
+     */
     public static BoundedPriorityQueue submitQuery(String query) throws IOException {
 
         // Applying preprocessing to query
@@ -58,16 +62,21 @@ public class QueryProcess {
         if(!Flags.isEvaluation()){
             System.out.println("Your request: " + query + "\n");
         }
-         return daat(query_term_frequency, mode);
+         return selectScoringAlgorithm(query_term_frequency, mode);
     }
 
-    public static BoundedPriorityQueue daat(Map<String, Integer> query_term_frequency, String mode) throws IOException {
+    /*
+    Create a bounded priority queue that wraps k results objects. Retrieve L list, that is the list
+    of invertedList object, one for each term in the query. Starts scoring document with selected
+    scoring algorithm in 'd' mode or 'c' mode
+     */
+    public static BoundedPriorityQueue selectScoringAlgorithm(Map<String, Integer> query_term_frequency, String mode) throws IOException {
         Comparator<Results> comparator = new ResultsComparator();
         int k = Flags.getK();
 
         BoundedPriorityQueue results = new BoundedPriorityQueue(comparator, k);
 
-        ArrayList<InvertedList> L = getLCache(query_term_frequency);
+        ArrayList<InvertedList> L = getL(query_term_frequency);
         if (L.isEmpty()) return results;
 
         if (Objects.equals(Flags.getQueryAlgorithm(), "maxScore")) {
@@ -82,9 +91,13 @@ public class QueryProcess {
         return results;
     }
 
-    private static void daatScoringDisjunctive(ArrayList<InvertedList> L, BoundedPriorityQueue results) throws IOException {
+    /*
+    Scoring document with DAAT in disjunctive mode. Creates an array of iterators (one for each query term)
+    and an array of document frequencies (one for each query term).
+    Iterates until all documents in the posting lists are scored.
+    */
+    private static void daatScoringDisjunctive(ArrayList<InvertedList> L, BoundedPriorityQueue results) {
         int current_doc_id = min_doc_id(L);
-
         if(!Flags.isEvaluation())
             System.out.println("Scoring");
 
@@ -111,7 +124,10 @@ public class QueryProcess {
         }
     }
 
-    private static double getScore(int current_doc_id, HashMap<String, ListIterator<Posting>> iteratorList, HashMap<String, Integer> doc_freqs, InvertedList invertedList) throws IOException {
+    /*
+    Score document with the selected scoring function (TFIDF or BM25). Increment position when a document is evaluated.
+     */
+    private static double getScore(int current_doc_id, HashMap<String, ListIterator<Posting>> iteratorList, HashMap<String, Integer> doc_freqs, InvertedList invertedList) {
 
         double score = 0;
         if (iteratorList.get(invertedList.getTerm()).hasNext()) {
@@ -122,7 +138,7 @@ public class QueryProcess {
 
             if (current_doc_id == doc_id) {
                 if (Objects.equals(Flags.getScoringFunction(), "bm25")) {
-                    int doc_len = DocumentIndexStats.readDocLen(docIndexBuffer,doc_id);
+                    int doc_len=DocumentIndexStats.readDocLen(docIndexBuffer,doc_id);
                     score = Score.BM25Score(term_freq, doc_freqs.get(invertedList.getTerm()), doc_len);
                 } else
                     score = Score.tfIdfScore(term_freq, doc_freqs.get(invertedList.getTerm()));
@@ -136,6 +152,9 @@ public class QueryProcess {
         return score;
     }
 
+    /*
+    Score document with DAAT in conjunctive mode.
+     */
     private static void daatScoringConjunctive(ArrayList<InvertedList> L, BoundedPriorityQueue results) {
 
         HashMap<String, ListIterator<Posting>> iteratorList = new HashMap<>();
@@ -204,7 +223,7 @@ public class QueryProcess {
                     int doc_freq = lexiconMemory.get(entry.getKey()).getDoc_frequency();
 
                     if (Objects.equals(Flags.getScoringFunction(), "bm25")){
-                        int doc_len = documentIndexMemory.get(current_doc_id).getDoc_len();
+                        int doc_len=DocumentIndexStats.readDocLen(docIndexBuffer, current_doc_id);
                         score += Score.BM25Score(entry.getValue().getTerm_frequency(), doc_freq, doc_len);
                     } else score += Score.tfIdfScore(entry.getValue().getTerm_frequency(), doc_freq);
                 }
@@ -248,6 +267,11 @@ public class QueryProcess {
         return max;
     }
 
+
+    /*
+    Retrieve posting lists of query terms using cache. This task is executed by one thread for
+    each query term. Once done, results are retrieved from future objects.
+     */
     private static ArrayList<InvertedList> getLCache(Map<String, Integer> query_term_frequency) {
 
         final List<Future<?>> futures = new ArrayList<>();
@@ -274,6 +298,10 @@ public class QueryProcess {
         return L;
     }
 
+    /*
+    Retrieve posting lists of query terms without using cache. This task is executed by one thread for
+    each query term. Once done, results are retrieved from future objects.
+     */
     public static ArrayList<InvertedList> getL(Map<String, Integer> query_term_frequency){
         final List<Future<?>> futures = new ArrayList<>();
         ArrayList<InvertedList> L = new ArrayList<>();
@@ -303,6 +331,9 @@ public class QueryProcess {
         return L;
     }
 
+    /*
+    Increment posting lists position in order to find the minimum document id (among all posting lists) to score.
+     */
     private static int min_doc_id(ArrayList<InvertedList> L) {
         int min_doc_id = CollectionStatistics.num_docs;
 
@@ -314,6 +345,9 @@ public class QueryProcess {
         return min_doc_id;
     }
 
+    /*
+    Close lexicon and document index (oly if is open). Close file channels and end the search engine.
+     */
     public static void closeQueryProcessor() throws IOException {
         lexicon.close();
         if (Objects.equals(Flags.getScoringFunction(), "bm25"))
@@ -323,7 +357,11 @@ public class QueryProcess {
         System.exit(0);
     }
 
-    public static void startQueryProcessor() throws IOException, InterruptedException {
+    /*
+    Checks if data structures are present. Open lexicon and document index only if the scoring fucntion selected is
+    BM25, open filechannel and set collection statistics parameter (number of document and average document lenght)
+     */
+    public static void startQueryProcessor() throws IOException {
 
         if (!new File(doc_id_path).exists() || !new File(term_freq_path).exists() || !new File(stats).exists()) {
             System.out.println("Cannot find data structures.");
@@ -342,20 +380,6 @@ public class QueryProcess {
         long finish = System.currentTimeMillis();
         System.out.println("Time for loading lexicon in memory: " + (finish - start)/1000 + " s");
 
-        /*if (Objects.equals(Flags.getScoringFunction(), "bm25") || Flags.isTrecEval()) {
-
-            document_index = (FileChannel) Files.newByteChannel(Paths.get("resources/output/document_index"),
-                StandardOpenOption.WRITE,
-                StandardOpenOption.READ,
-                StandardOpenOption.CREATE);
-
-            System.out.println("Loading document index in memory...");
-            start = System.currentTimeMillis();
-            AuxiliarStructureOnMemory.loadDocumentIndex(document_index);
-            finish = System.currentTimeMillis();
-            System.out.println("Time for loading document index in memory: " + (finish - start)/1000 + " s");
-        }*/
-
         if (Objects.equals(Flags.getScoringFunction(), "bm25") || Flags.isTrecEval()) {
             document_index = (FileChannel) Files.newByteChannel(Paths.get("resources/output/document_index"),
                     StandardOpenOption.WRITE,
@@ -368,8 +392,5 @@ public class QueryProcess {
 
         FileChannelInvIndex.openFileChannels(mode);
         FileChannelInvIndex.MapFileChannel();
-
-        /*GuavaCache guavaCache = GuavaCache.getInstance();
-        guavaCache.preloadCache();*/
     }
 }
