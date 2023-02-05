@@ -221,6 +221,8 @@ public class QueryProcess {
     }
 
     private static Posting nextGeqReferencePostingList(ListIterator<Posting> min_list, HashMap<String, Posting> current_postings, int max, String term_shortest_pl) {
+        // Advance the pointer of the reference posting lists up to the max docid reached after
+        // doing next geq operation on other lists
         while (min_list.hasNext()) {
             Posting p = min_list.next();
             if (p.getDoc_id() >= max) {
@@ -232,12 +234,13 @@ public class QueryProcess {
     }
 
     private static int nextGeqPostingLists(Map.Entry<String, ListIterator<Posting>> entry, HashMap<String, Posting> current_postings, int doc_id, int max) {
+        //Advance the pointer on all postings except the reference one to a docid greater or equal to the one at which
+        // points currently the pointer of the shortest posting lists and return the maximum docid reached
         while (entry.getValue().hasNext()) {
             Posting p = entry.getValue().next();
             if (p.getDoc_id() >= doc_id) {
                 if (p.getDoc_id() >= max)
                     max = p.getDoc_id();
-                //System.out.println("Skippo a questa: " + p.getDoc_id());
                 current_postings.put(entry.getKey(), p);
                 return max;
             }
