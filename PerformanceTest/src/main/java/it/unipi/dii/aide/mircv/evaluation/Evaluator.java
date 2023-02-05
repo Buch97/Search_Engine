@@ -14,27 +14,25 @@ import java.nio.charset.StandardCharsets;
 import java.util.PriorityQueue;
 import java.util.Scanner;
 
-import static it.unipi.dii.aide.mircv.common.inMemory.AuxiliarStructureOnMemory.documentIndexMemory;
-
 public class Evaluator {
-    private static final String queriesPathTrain = "PerformanceTest/src/main/resources/queries/queries.train.tsv";
-    private static final String trecEvalResultPath = "PerformanceTest/src/main/resources/results/testResultDevMaxScore.txt";
+    private static final String queriesPathTrain = "PerformanceTest/src/main/resources/queries/queries.dev.tsv";
+    private static final String trecEvalResultPath = "PerformanceTest/src/main/resources/results/testResult.txt";
     private static final String fixed = "Q0";
     private static final String runid = "RUN-01";
 
     private static boolean saveResultsTrecEval(String topicId, BoundedPriorityQueue priorityQueue) {
         PriorityQueue<Results> results_queue = priorityQueue.reverseOrder();
-        int i = results_queue.size();
+        int i = 1;
 
         try (BufferedWriter statisticsBuffer = new BufferedWriter(new FileWriter(trecEvalResultPath, true))) {
             String resultsLine;
 
             while (results_queue.peek() != null) {
                 Results results = results_queue.poll();
-                resultsLine = topicId + "\t" + fixed + "\t" + documentIndexMemory.get(results.getDoc_id()).getDoc_no()
+                resultsLine = topicId + "\t" + fixed + "\t" + results.getDoc_id()
                         + "\t" + i + "\t" + results.getScore() + "\t" + runid + "\n";
                 statisticsBuffer.write(resultsLine);
-                i--;
+                i++;
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -88,9 +86,6 @@ public class Evaluator {
                 if (!saveResultsTrecEval(query_id, results))
                     System.out.println("Error encountered while writing trec_eval_results");
             }
-
-            /*if (num_queries == 1000)
-                break;*/
         }
 
         // Print results on console

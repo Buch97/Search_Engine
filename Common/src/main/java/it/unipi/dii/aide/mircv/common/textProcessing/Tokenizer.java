@@ -30,7 +30,7 @@ public class Tokenizer {
         text = text.replaceAll("<[^>]+>", "\s");
 
         //remove non-digit characters including punctuation
-        text = text.replaceAll("[^a-zA-Z ]", "\s");
+        text = text.replaceAll("[^a-zA-Z0-9 ]", "\s");
 
         //collapse 3+ repeating characters in just 2
         text = text.replaceAll("(.)\\1{2,}","$1$1");
@@ -53,6 +53,7 @@ public class Tokenizer {
             String word = normalTokenizer.nextToken().trim();
             String[] words;
 
+            // Upper camel case word handling
             if (word.length() > 32){
                 words = word.split("(?<=[a-z])(?=[A-Z])");
             } else {
@@ -61,8 +62,10 @@ public class Tokenizer {
 
             for (String term : words){
                 term = term.toLowerCase();
+                //Prune word greater than 64 chars
                 if (term.length() > 64)
                     break;
+                //Apply stopwords removal and stemming and add resulting tokens in hashmap
                 if(Flags.isStopStem()) {
                     if (term.length() > 0 && !Arrays.asList(STOPWORDS).contains(term)) {
                         term = Stemmer.stemming(term);

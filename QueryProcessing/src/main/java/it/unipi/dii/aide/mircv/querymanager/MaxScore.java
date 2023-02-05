@@ -116,15 +116,15 @@ public class MaxScore {
 
         for (int i = essentialIndex; i < L.size(); i++) {  // i-th posting list
 
-            ArrayList<Posting> postingList = (ArrayList<Posting>) L.get(i).getPostingArrayList();
+            InvertedList invertedList = L.get(i);
+            ArrayList<Posting> postingList = (ArrayList<Posting>) invertedList.getPostingArrayList();
 
             // check if there are postings to iterate in the i-th posting list
             if (postingList != null && postingList.size() != L.get(i).getPos()) {
-                Posting posting = postingList.get(L.get(i).getPos());
+                Posting posting = postingList.get(invertedList.getPos());
 
                 if (posting.getDoc_id() < nextGEQ) {
-                    posting = getIndexPostingbyId(L.get(i), nextGEQ);
-                    // check if in the current posting list there is no docid >= docidToProcess to be processed
+                    posting = getIndexPostingbyId(invertedList, nextGEQ);
                     if (posting == null)
                         return -1;
                 }
@@ -133,7 +133,7 @@ public class MaxScore {
                 if (posting.getDoc_id() > nextGEQ) {
                     // the current docid will be the candidate next docid to be processed
                     nextGEQ = posting.getDoc_id();
-                    L.get(i).setPos(getIndex(L.get(i), nextGEQ));
+                    invertedList.setPos(getIndex(invertedList, nextGEQ));
                     i = -1;
                 }
             } else {
@@ -240,11 +240,12 @@ public class MaxScore {
             min_doc_id = CollectionStatistics.num_docs;
 
         for (int i = essentialIndex; i < L.size(); i++) {
-            if (L.get(i).getPos() < L.get(i).getPostingArrayList().size()) {
+            InvertedList invertedList = L.get(i);
+            if (invertedList.getPos() < invertedList.getPostingArrayList().size()) {
                 if (conjunctive)
-                    min_doc_id = Math.max(L.get(i).getPostingArrayList().get(L.get(i).getPos()).getDoc_id(), min_doc_id);
+                    min_doc_id = Math.max(invertedList.getPostingArrayList().get(invertedList.getPos()).getDoc_id(), min_doc_id);
                 else
-                    min_doc_id = Math.min(L.get(i).getPostingArrayList().get(L.get(i).getPos()).getDoc_id(), min_doc_id);
+                    min_doc_id = Math.min(invertedList.getPostingArrayList().get(invertedList.getPos()).getDoc_id(), min_doc_id);
             }
 
 

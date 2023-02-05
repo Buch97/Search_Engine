@@ -67,16 +67,19 @@ public class QueryProcessingMain {
 
             else if (Objects.equals(query, "") || query.trim().length() == 0) {
                 System.out.println("The query is empty.");
-            }
-
-            else {
-                // The input is a query, we need to process it
+            } else {
+                /*
+                Print top k results.
+                 */
                 long startTime = System.nanoTime();
                 BoundedPriorityQueue results = QueryProcess.submitQuery(query);
                 long elapsedTime = System.nanoTime() - startTime;
                 if (results != null) {
                     results.printRankedResults();
                     System.out.println("Total elapsed time: " + elapsedTime / 1000000 + " ms");
+
+                    /*GuavaCache guavaCache = GuavaCache.getInstance();
+                    System.out.println(guavaCache.getStats());*/
                 }
             }
         }

@@ -4,7 +4,7 @@ import org.tartarus.snowball.ext.PorterStemmer;
 
 public class Stemmer {
     public static String stemming(String word){
-        PorterStemmer stem = new PorterStemmer(); //Initialize the stemmer
+        PorterStemmer stem = new PorterStemmer();
 
         stem.setCurrent(word);
         stem.stem();
